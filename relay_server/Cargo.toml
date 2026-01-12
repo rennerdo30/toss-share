@@ -1,0 +1,52 @@
+[package]
+name = "toss_relay"
+version = "0.1.0"
+edition = "2021"
+authors = ["Toss Contributors"]
+description = "Relay server for Toss clipboard sharing"
+license = "MIT"
+repository = "https://github.com/rennerdo30/toss-share"
+
+[[bin]]
+name = "toss-relay"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["ws"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "limit"] }
+anyhow = "1"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+
+# Authentication
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+jsonwebtoken = "9"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+
+# Utilities
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+dashmap = "6"
+futures = "0.3"
+thiserror = "2"
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test = "0.4"
+hex = "0.4"
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
