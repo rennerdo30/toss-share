@@ -74,7 +74,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath ../../../../../${{ matrix.artifact }}.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: flutter_app/${{ matrix.artifact }}.*
@@ -129,14 +129,14 @@ jobs:
 
       - name: Upload Android artifact
         if: matrix.platform == 'android'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload iOS artifact
         if: matrix.platform == 'ios'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: flutter_app/build/ios/iphoneos/Runner.app
@@ -159,7 +159,7 @@ jobs:
           outputs: type=docker,dest=/tmp/toss-relay.tar
 
       - name: Upload Docker image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: toss-relay-docker
           path: /tmp/toss-relay.tar
