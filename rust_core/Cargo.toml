@@ -20,7 +20,7 @@ aes-gcm = "0.10"
 hkdf = "0.12"
 sha2 = "0.10"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
-rand = "0.8"
+rand = "0.9"
 
 # Networking
 quinn = "0.11"
