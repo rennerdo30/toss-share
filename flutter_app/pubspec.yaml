@@ -29,7 +29,7 @@ dependencies:
   qr_flutter: ^4.1.0
 
   # Desktop Features
-  window_manager: ^0.3.8
+  window_manager: ^0.5.1
   tray_manager: ^0.2.2
 
   # Permissions
