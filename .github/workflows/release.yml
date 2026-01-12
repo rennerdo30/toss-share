@@ -1,0 +1,189 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  FLUTTER_VERSION: "3.24.0"
+
+jobs:
+  build-desktop:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact: toss-linux-x64
+          - os: macos-latest
+            platform: macos
+            artifact: toss-macos-universal
+          - os: windows-latest
+            platform: windows
+            artifact: toss-windows-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Build Flutter app
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          flutter build ${{ matrix.platform }} --release
+
+      - name: Package Linux
+        if: matrix.platform == 'linux'
+        run: |
+          cd flutter_app/build/linux/x64/release/bundle
+          tar -czvf ../../../../../${{ matrix.artifact }}.tar.gz .
+
+      - name: Package macOS
+        if: matrix.platform == 'macos'
+        run: |
+          cd flutter_app/build/macos/Build/Products/Release
+          zip -r ../../../../../${{ matrix.artifact }}.zip Toss.app
+
+      - name: Package Windows
+        if: matrix.platform == 'windows'
+        run: |
+          cd flutter_app/build/windows/x64/runner/Release
+          Compress-Archive -Path * -DestinationPath ../../../../../${{ matrix.artifact }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: flutter_app/${{ matrix.artifact }}.*
+
+  build-mobile:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: ios
+            artifact: toss-ios
+          - os: ubuntu-latest
+            platform: android
+            artifact: toss-android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Setup Java (Android)
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build Android APK
+        if: matrix.platform == 'android'
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Build iOS (no signing)
+        if: matrix.platform == 'ios'
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+
+      - name: Upload Android artifact
+        if: matrix.platform == 'android'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload iOS artifact
+        if: matrix.platform == 'ios'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: flutter_app/build/ios/iphoneos/Runner.app
+
+  build-relay:
+    name: Build Relay Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./relay_server
+          push: false
+          tags: toss-relay:${{ github.ref_name }}
+          outputs: type=docker,dest=/tmp/toss-relay.tar
+
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v4
+        with:
+          name: toss-relay-docker
+          path: /tmp/toss-relay.tar
+
+  create-release:
+    name: Create Release
+    needs: [build-desktop, build-mobile, build-relay]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

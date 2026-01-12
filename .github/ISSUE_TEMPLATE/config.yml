@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/YOUR_USERNAME/toss/wiki
+    about: Check out our documentation for guides and FAQs
+  - name: Discussions
+    url: https://github.com/YOUR_USERNAME/toss/discussions
+    about: Ask questions and discuss ideas with the community
