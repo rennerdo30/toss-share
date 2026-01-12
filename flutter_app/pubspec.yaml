@@ -18,7 +18,7 @@ dependencies:
   flutter_rust_bridge: ^2.0.0
 
   # Navigation
-  go_router: ^14.2.0
+  go_router: ^17.0.1
 
   # Local Storage
   hive: ^2.2.3
