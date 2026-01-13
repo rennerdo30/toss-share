@@ -154,6 +154,7 @@ jobs:
         working-directory: ./flutter_app
         run: |
           flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
           flutter build linux --release
 
   build-macos:
@@ -180,6 +181,7 @@ jobs:
         working-directory: ./flutter_app
         run: |
           flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
           sudo gem install cocoapods
           cd macos && pod install --repo-update
           cd ..
@@ -209,4 +211,5 @@ jobs:
         working-directory: ./flutter_app
         run: |
           flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
           flutter build windows --release
