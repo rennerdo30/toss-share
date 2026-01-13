@@ -152,7 +152,6 @@ pub async fn run_monitor<F>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::ContentType;
 
     #[test]
     fn test_change_detection() {
