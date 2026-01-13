@@ -54,6 +54,64 @@ This project is published on **GitHub** as an open-source project. All contribut
 - **Flutter UI**: Cross-platform user interface for all supported platforms
 - **FFI Bridge**: Connects Flutter to the Rust core via `flutter_rust_bridge`
 
+### Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph Device["Device"]
+        FlutterUI["Flutter UI<br/>(Cross-platform)"]
+        FFIBridge["FFI Bridge<br/>(flutter_rust_bridge)"]
+        RustCore["Rust Core"]
+        
+        subgraph RustCore["Rust Core"]
+            Crypto["Crypto<br/>(X25519, AES-256-GCM)"]
+            Network["Network<br/>(QUIC, mDNS, Relay)"]
+            Clipboard["Clipboard<br/>(Platform APIs)"]
+            Storage["Storage<br/>(SQLite)"]
+            Protocol["Protocol<br/>(Message Serialization)"]
+        end
+    end
+    
+    LocalNetwork["Local Network<br/>(P2P via QUIC)"]
+    RelayServer["Relay Server<br/>(Cloud Fallback)"]
+    OtherDevice["Other Devices"]
+    
+    FlutterUI <--> FFIBridge
+    FFIBridge <--> RustCore
+    RustCore --> Crypto
+    RustCore --> Network
+    RustCore --> Clipboard
+    RustCore --> Storage
+    RustCore --> Protocol
+    
+    Network --> LocalNetwork
+    Network --> RelayServer
+    LocalNetwork --> OtherDevice
+    RelayServer --> OtherDevice
+```
+
+### Communication Flow
+
+```mermaid
+sequenceDiagram
+    participant DeviceA as Device A
+    participant Network as Network Layer
+    participant P2P as P2P (QUIC)
+    participant Relay as Relay Server
+    participant DeviceB as Device B
+    
+    DeviceA->>Network: Clipboard Change Detected
+    Network->>Network: Encrypt with Session Key
+    Network->>P2P: Try Direct P2P Connection
+    alt P2P Success
+        P2P->>DeviceB: Encrypted Clipboard Data
+    else P2P Fails
+        Network->>Relay: Fallback to Relay
+        Relay->>DeviceB: Encrypted Clipboard Data
+    end
+    DeviceB->>DeviceB: Decrypt & Update Clipboard
+```
+
 ### Directory Structure
 ```
 toss/

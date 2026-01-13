@@ -25,30 +25,56 @@
 
 ### 2.1 System Components
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Device A                                 │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐  │
-│  │ Flutter UI  │◄──►│  FFI Bridge │◄──►│     Rust Core       │  │
-│  └─────────────┘    └─────────────┘    │  ┌───────────────┐  │  │
-│                                         │  │   Crypto      │  │  │
-│                                         │  │   Network     │  │  │
-│                                         │  │   Clipboard   │  │  │
-│                                         │  │   Protocol    │  │  │
-│                                         │  └───────────────┘  │  │
-│                                         └──────────┬──────────┘  │
-└────────────────────────────────────────────────────┼─────────────┘
-                                                     │
-                    ┌────────────────────────────────┼────────────────────────────────┐
-                    │                                │                                │
-                    ▼                                ▼                                ▼
-           ┌───────────────┐               ┌─────────────────┐              ┌─────────────────┐
-           │  Local Network │               │  Relay Server   │              │    Device B     │
-           │  (mDNS + P2P)  │               │  (Cloud Hosted) │              │                 │
-           └───────────────┘               └─────────────────┘              └─────────────────┘
+```mermaid
+graph TB
+    subgraph DeviceA["Device A"]
+        FlutterUI["Flutter UI"]
+        FFIBridge["FFI Bridge"]
+        RustCore["Rust Core"]
+        Crypto["Crypto"]
+        Network["Network"]
+        Clipboard["Clipboard"]
+        Protocol["Protocol"]
+        
+        FlutterUI <--> FFIBridge
+        FFIBridge <--> RustCore
+        RustCore --> Crypto
+        RustCore --> Network
+        RustCore --> Clipboard
+        RustCore --> Protocol
+    end
+    
+    LocalNetwork["Local Network<br/>(mDNS + P2P)"]
+    RelayServer["Relay Server<br/>(Cloud Hosted)"]
+    DeviceB["Device B"]
+    
+    RustCore --> LocalNetwork
+    RustCore --> RelayServer
+    LocalNetwork --> DeviceB
+    RelayServer --> DeviceB
 ```
 
 ### 2.2 Communication Flow
+
+```mermaid
+flowchart TD
+    Start([Clipboard Change Detected]) --> Encrypt[Encrypt with Session Key]
+    Encrypt --> TryP2P{Try P2P Connection}
+    TryP2P -->|Success| P2P[Send via P2P QUIC]
+    TryP2P -->|Fail| Relay[Send via Relay Server]
+    P2P --> Receive[Device B Receives]
+    Relay --> Receive
+    Receive --> Decrypt[Decrypt Content]
+    Decrypt --> Update[Update Clipboard]
+    Update --> End([Complete])
+    
+    style Start fill:#e1f5ff
+    style End fill:#d4edda
+    style Encrypt fill:#fff3cd
+    style Decrypt fill:#fff3cd
+```
+
+**Steps:**
 
 1. **Device Discovery**
    - mDNS broadcast on local network
@@ -93,38 +119,38 @@
 
 ### 3.3 Device Pairing Protocol
 
-```
-Device A                                    Device B
-    │                                           │
-    │  1. Generate pairing code (6 digits)      │
-    │  2. Display QR code / numeric code        │
-    │                                           │
-    │◄──────── 3. Scan QR / Enter code ─────────│
-    │                                           │
-    │  4. Exchange public keys (X25519)         │
-    │────────────► PubKey_A ───────────────────►│
-    │◄───────────── PubKey_B ◄─────────────────│
-    │                                           │
-    │  5. Derive shared secret                  │
-    │  6. Verify via pairing code               │
-    │────────────► Verify_A ───────────────────►│
-    │◄───────────── Verify_B ◄─────────────────│
-    │                                           │
-    │  7. Pairing complete                      │
-    │◄─────────────────────────────────────────►│
+```mermaid
+sequenceDiagram
+    participant A as Device A
+    participant B as Device B
+    
+    A->>A: 1. Generate pairing code (6 digits)
+    A->>A: 2. Display QR code / numeric code
+    B->>A: 3. Scan QR / Enter code
+    A->>B: 4. Exchange public keys (X25519)<br/>PubKey_A
+    B->>A: 4. Exchange public keys (X25519)<br/>PubKey_B
+    A->>A: 5. Derive shared secret
+    B->>B: 5. Derive shared secret
+    A->>B: 6. Verify via pairing code<br/>Verify_A
+    B->>A: 6. Verify via pairing code<br/>Verify_B
+    A->>B: 7. Pairing complete
+    B->>A: 7. Pairing complete
 ```
 
 ### 3.4 Message Encryption
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Encrypted Message                     │
-├──────────┬──────────┬───────────────────┬───────────────┤
-│  Header  │  Nonce   │  Encrypted Data   │   Auth Tag    │
-│ (8 bytes)│(12 bytes)│   (variable)      │  (16 bytes)   │
-└──────────┴──────────┴───────────────────┴───────────────┘
-
-Header: version (2) + type (2) + length (4)
+```mermaid
+graph LR
+    subgraph Message["Encrypted Message"]
+        Header["Header<br/>(8 bytes)<br/>version(2) + type(2) + length(4)"]
+        Nonce["Nonce<br/>(12 bytes)"]
+        EncryptedData["Encrypted Data<br/>(variable)"]
+        AuthTag["Auth Tag<br/>(16 bytes)"]
+        
+        Header --> Nonce
+        Nonce --> EncryptedData
+        EncryptedData --> AuthTag
+    end
 ```
 
 ### 3.5 Relay Server Security
@@ -187,6 +213,20 @@ struct Metadata {
 
 ### 4.4 Discovery Protocol (mDNS)
 
+```mermaid
+sequenceDiagram
+    participant DeviceA as Device A
+    participant mDNS as mDNS Service
+    participant DeviceB as Device B
+    
+    DeviceA->>mDNS: Broadcast Service<br/>_toss._udp.local
+    Note over DeviceA,mDNS: TXT: v=1, id=hash, name=DeviceA
+    mDNS->>DeviceB: Service Discovery
+    DeviceB->>DeviceA: Connect Request
+    DeviceA->>DeviceB: Connection Established
+```
+
+**Service Details:**
 - Service type: `_toss._udp.local`
 - TXT records:
   - `v=1` (protocol version)
@@ -198,6 +238,38 @@ struct Metadata {
 ## 5. Data Storage
 
 ### 5.1 Local Database Schema
+
+```mermaid
+erDiagram
+    devices ||--o{ clipboard_history : "has"
+    
+    devices {
+        TEXT id PK "Device public key hash"
+        TEXT name "Device name"
+        BLOB public_key "Public key"
+        BLOB session_key "Encrypted session key"
+        INTEGER last_seen "Last seen timestamp"
+        INTEGER created_at "Creation timestamp"
+        BOOLEAN is_active "Active status"
+    }
+    
+    clipboard_history {
+        INTEGER id PK "Primary key"
+        INTEGER content_type "Content type enum"
+        TEXT content_hash "SHA-256 hash"
+        BLOB encrypted_content "Encrypted content"
+        TEXT preview "Preview text"
+        TEXT source_device FK "Source device ID"
+        INTEGER created_at "Creation timestamp"
+    }
+    
+    settings {
+        TEXT key PK "Setting key"
+        TEXT value "Setting value"
+    }
+```
+
+**SQL Schema:**
 
 ```sql
 -- Paired devices
