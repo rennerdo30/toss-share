@@ -163,3 +163,57 @@ jobs:
           name: toss-android-nightly-${{ github.run_number }}
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
+
+  create-nightly-release:
+    name: Create Nightly Release
+    needs: [build-linux, build-macos, build-windows, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release-files
+          # Find and copy all build artifacts with consistent names
+          find artifacts -name "*.tar.gz" -exec cp {} release-files/ \;
+          find artifacts -name "*.zip" -exec cp {} release-files/ \;
+          find artifacts -name "*.apk" -exec cp {} release-files/toss-android-nightly.apk \;
+          ls -la release-files/
+
+      - name: Delete existing nightly release
+        run: gh release delete nightly --yes || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete existing nightly tag
+        run: git push origin :refs/tags/nightly || true
+
+      - name: Create nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly Build
+          prerelease: true
+          body: |
+            ## Nightly Build
+
+            **Built from:** ${{ github.sha }}
+            **Date:** ${{ github.event.repository.updated_at }}
+
+            These are automated nightly builds from the main branch. They may be unstable.
+
+            ### Downloads
+            - **Linux**: `toss-linux-x64-nightly.tar.gz`
+            - **macOS**: `toss-macos-nightly.zip`
+            - **Windows**: `toss-windows-x64-nightly.zip`
+            - **Android**: `toss-android-nightly.apk`
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
