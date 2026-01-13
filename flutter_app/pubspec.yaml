@@ -25,7 +25,7 @@ dependencies:
   hive_flutter: ^1.1.0
 
   # QR Code
-  mobile_scanner: ^7.1.4
+  mobile_scanner: ^5.1.1
   qr_flutter: ^4.1.0
 
   # Desktop Features

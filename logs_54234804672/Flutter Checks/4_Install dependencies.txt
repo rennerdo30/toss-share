@@ -1,0 +1,45 @@
+﻿2026-01-13T09:53:59.0542223Z ##[group]Run flutter pub get
+2026-01-13T09:53:59.0542542Z [36;1mflutter pub get[0m
+2026-01-13T09:53:59.0576856Z shell: /usr/bin/bash -e {0}
+2026-01-13T09:53:59.0577096Z env:
+2026-01-13T09:53:59.0577262Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:59.0577482Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:59.0577781Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.24.0-x64
+2026-01-13T09:53:59.0578122Z   PUB_CACHE: /home/runner/.pub-cache
+2026-01-13T09:53:59.0578361Z ##[endgroup]
+2026-01-13T09:53:59.2405995Z 
+2026-01-13T09:53:59.2418226Z   ╔════════════════════════════════════════════════════════════════════════════╗
+2026-01-13T09:53:59.2419220Z   ║                 Welcome to Flutter! - https://flutter.dev                  ║
+2026-01-13T09:53:59.2420256Z   ║                                                                            ║
+2026-01-13T09:53:59.2421085Z   ║ The Flutter tool uses Google Analytics to anonymously report feature usage ║
+2026-01-13T09:53:59.2422067Z   ║ statistics and basic crash reports. This data is used to help improve      ║
+2026-01-13T09:53:59.2422756Z   ║ Flutter tools over time.                                                   ║
+2026-01-13T09:53:59.2423186Z   ║                                                                            ║
+2026-01-13T09:53:59.2423638Z   ║ Flutter tool analytics are not sent on the very first run. To disable      ║
+2026-01-13T09:53:59.2424180Z   ║ reporting, type 'flutter config --no-analytics'. To display the current    ║
+2026-01-13T09:53:59.2424726Z   ║ setting, type 'flutter config'. If you opt out of analytics, an opt-out    ║
+2026-01-13T09:53:59.2425255Z   ║ event will be sent, and then no further information will be sent by the    ║
+2026-01-13T09:53:59.2425931Z   ║ Flutter tool.                                                              ║
+2026-01-13T09:53:59.2426324Z   ║                                                                            ║
+2026-01-13T09:53:59.2427120Z   ║ By downloading the Flutter SDK, you agree to the Google Terms of Service.  ║
+2026-01-13T09:53:59.2427778Z   ║ The Google Privacy Policy describes how data is handled in this service.   ║
+2026-01-13T09:53:59.2428245Z   ║                                                                            ║
+2026-01-13T09:53:59.2428759Z   ║ Moreover, Flutter includes the Dart SDK, which may send usage metrics and  ║
+2026-01-13T09:53:59.2429252Z   ║ crash reports to Google.                                                   ║
+2026-01-13T09:53:59.2429659Z   ║                                                                            ║
+2026-01-13T09:53:59.2430078Z   ║ Read about data we send with crash reports:                                ║
+2026-01-13T09:53:59.2430596Z   ║ https://flutter.dev/to/crash-reporting                                     ║
+2026-01-13T09:53:59.2431039Z   ║                                                                            ║
+2026-01-13T09:53:59.2431454Z   ║ See Google's privacy policy:                                               ║
+2026-01-13T09:53:59.2432277Z   ║ https://policies.google.com/privacy                                        ║
+2026-01-13T09:53:59.2432726Z   ║                                                                            ║
+2026-01-13T09:53:59.2433162Z   ║ To disable animations in this tool, use                                    ║
+2026-01-13T09:53:59.2433655Z   ║ 'flutter config --no-cli-animations'.                                      ║
+2026-01-13T09:53:59.2434205Z   ╚════════════════════════════════════════════════════════════════════════════╝
+2026-01-13T09:53:59.2434483Z 
+2026-01-13T09:54:04.0939679Z Resolving dependencies...
+2026-01-13T09:54:05.6367346Z The current Dart SDK version is 3.5.0.
+2026-01-13T09:54:05.6367824Z 
+2026-01-13T09:54:05.6368682Z Because mobile_scanner 7.1.4 requires SDK version >=3.7.0 <4.0.0 and no versions of mobile_scanner match >7.1.4 <8.0.0, mobile_scanner ^7.1.4 is forbidden.
+2026-01-13T09:54:05.6370046Z So, because toss depends on mobile_scanner ^7.1.4, version solving failed.
+2026-01-13T09:54:06.1893211Z ##[error]Process completed with exit code 1.

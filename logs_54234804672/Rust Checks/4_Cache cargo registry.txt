@@ -1,0 +1,18 @@
+﻿2026-01-13T09:53:31.1524172Z ##[group]Run actions/cache@v4
+2026-01-13T09:53:31.1524560Z with:
+2026-01-13T09:53:31.1524871Z   path: ~/.cargo/registry
+~/.cargo/git
+rust_core/target
+
+2026-01-13T09:53:31.1525245Z   key: Linux-cargo-
+2026-01-13T09:53:31.1525522Z   enableCrossOsArchive: false
+2026-01-13T09:53:31.1526176Z   fail-on-cache-miss: false
+2026-01-13T09:53:31.1526486Z   lookup-only: false
+2026-01-13T09:53:31.1526742Z   save-always: false
+2026-01-13T09:53:31.1527009Z env:
+2026-01-13T09:53:31.1527233Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:31.1527519Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:31.1527794Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:53:31.1528091Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:53:31.1528354Z ##[endgroup]
+2026-01-13T09:53:31.5390838Z Cache not found for input keys: Linux-cargo-

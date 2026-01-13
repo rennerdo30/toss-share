@@ -1,0 +1,33 @@
+﻿2026-01-13T09:53:26.4565156Z Current runner version: '2.330.0'
+2026-01-13T09:53:26.4588278Z ##[group]Runner Image Provisioner
+2026-01-13T09:53:26.4589129Z Hosted Compute Agent
+2026-01-13T09:53:26.4589657Z Version: 20251211.462
+2026-01-13T09:53:26.4590352Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+2026-01-13T09:53:26.4591160Z Build Date: 2025-12-11T16:28:49Z
+2026-01-13T09:53:26.4591776Z Worker ID: {03f7590a-3256-49dc-af91-440a42e677ce}
+2026-01-13T09:53:26.4592496Z ##[endgroup]
+2026-01-13T09:53:26.4593006Z ##[group]Operating System
+2026-01-13T09:53:26.4593574Z Ubuntu
+2026-01-13T09:53:26.4593994Z 24.04.3
+2026-01-13T09:53:26.4594550Z LTS
+2026-01-13T09:53:26.4594975Z ##[endgroup]
+2026-01-13T09:53:26.4595447Z ##[group]Runner Image
+2026-01-13T09:53:26.4596376Z Image: ubuntu-24.04
+2026-01-13T09:53:26.4596881Z Version: 20260105.202.1
+2026-01-13T09:53:26.4597874Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260105.202/images/ubuntu/Ubuntu2404-Readme.md
+2026-01-13T09:53:26.4599325Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260105.202
+2026-01-13T09:53:26.4600438Z ##[endgroup]
+2026-01-13T09:53:26.4601668Z ##[group]GITHUB_TOKEN Permissions
+2026-01-13T09:53:26.4603446Z Contents: read
+2026-01-13T09:53:26.4604154Z Metadata: read
+2026-01-13T09:53:26.4604637Z Packages: read
+2026-01-13T09:53:26.4605141Z ##[endgroup]
+2026-01-13T09:53:26.4607448Z Secret source: Actions
+2026-01-13T09:53:26.4608179Z Prepare workflow directory
+2026-01-13T09:53:26.5018859Z Prepare all required actions
+2026-01-13T09:53:26.5056219Z Getting action download info
+2026-01-13T09:53:26.9257033Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-01-13T09:53:27.0167624Z Download action repository 'subosito/flutter-action@v2' (SHA:fd55f4c5af5b953cc57a2be44cb082c8f6635e8e)
+2026-01-13T09:53:27.5818584Z Getting action download info
+2026-01-13T09:53:27.7861604Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-01-13T09:53:27.9398025Z Complete job name: Flutter Checks

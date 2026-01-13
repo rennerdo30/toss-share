@@ -124,12 +124,14 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore] // Requires clipboard access (X11 server)
     fn test_handler_creation() {
         let handler = ClipboardHandler::new();
         assert!(handler.is_ok());
     }
 
     #[test]
+    #[ignore] // Requires clipboard access (X11 server)
     fn test_supports_type() {
         let handler = ClipboardHandler::new().unwrap();
         assert!(handler.supports_type(ContentType::PlainText));

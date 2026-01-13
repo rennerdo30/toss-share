@@ -465,6 +465,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires clipboard access (X11 server)
     fn test_init_toss() {
         let result = init_toss("/tmp/toss-test".to_string(), "Test Device".to_string());
         assert!(result.is_ok());
@@ -474,6 +475,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires clipboard access (X11 server)
     fn test_pairing_flow() {
         init_toss("/tmp/toss-test".to_string(), "Test Device".to_string()).unwrap();
 

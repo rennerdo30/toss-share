@@ -1,0 +1,32 @@
+﻿2026-01-13T09:53:25.9056125Z Current runner version: '2.330.0'
+2026-01-13T09:53:25.9079694Z ##[group]Runner Image Provisioner
+2026-01-13T09:53:25.9080513Z Hosted Compute Agent
+2026-01-13T09:53:25.9081102Z Version: 20251211.462
+2026-01-13T09:53:25.9081719Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+2026-01-13T09:53:25.9082464Z Build Date: 2025-12-11T16:28:49Z
+2026-01-13T09:53:25.9083186Z Worker ID: {a8e1f450-a1f6-4dc3-9afe-bc9c7f259edf}
+2026-01-13T09:53:25.9083875Z ##[endgroup]
+2026-01-13T09:53:25.9084361Z ##[group]Operating System
+2026-01-13T09:53:25.9084956Z Ubuntu
+2026-01-13T09:53:25.9085402Z 24.04.3
+2026-01-13T09:53:25.9085891Z LTS
+2026-01-13T09:53:25.9086290Z ##[endgroup]
+2026-01-13T09:53:25.9086850Z ##[group]Runner Image
+2026-01-13T09:53:25.9087442Z Image: ubuntu-24.04
+2026-01-13T09:53:25.9088223Z Version: 20260105.202.1
+2026-01-13T09:53:25.9089364Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260105.202/images/ubuntu/Ubuntu2404-Readme.md
+2026-01-13T09:53:25.9090728Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260105.202
+2026-01-13T09:53:25.9091949Z ##[endgroup]
+2026-01-13T09:53:25.9093017Z ##[group]GITHUB_TOKEN Permissions
+2026-01-13T09:53:25.9094939Z Contents: read
+2026-01-13T09:53:25.9095533Z Metadata: read
+2026-01-13T09:53:25.9095998Z Packages: read
+2026-01-13T09:53:25.9096577Z ##[endgroup]
+2026-01-13T09:53:25.9098702Z Secret source: Actions
+2026-01-13T09:53:25.9099386Z Prepare workflow directory
+2026-01-13T09:53:25.9511389Z Prepare all required actions
+2026-01-13T09:53:25.9549212Z Getting action download info
+2026-01-13T09:53:26.4320413Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-01-13T09:53:26.5233990Z Download action repository 'dtolnay/rust-toolchain@stable' (SHA:4be9e76fd7c4901c61fb841f559994984270fce7)
+2026-01-13T09:53:26.7906871Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-01-13T09:53:27.0185735Z Complete job name: Relay Server Checks

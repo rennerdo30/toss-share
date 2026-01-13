@@ -1,0 +1,251 @@
+﻿2026-01-13T09:53:26.4566143Z Current runner version: '2.330.0'
+2026-01-13T09:53:26.4588303Z ##[group]Runner Image Provisioner
+2026-01-13T09:53:26.4589135Z Hosted Compute Agent
+2026-01-13T09:53:26.4589660Z Version: 20251211.462
+2026-01-13T09:53:26.4590357Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+2026-01-13T09:53:26.4591165Z Build Date: 2025-12-11T16:28:49Z
+2026-01-13T09:53:26.4591779Z Worker ID: {03f7590a-3256-49dc-af91-440a42e677ce}
+2026-01-13T09:53:26.4592500Z ##[endgroup]
+2026-01-13T09:53:26.4593009Z ##[group]Operating System
+2026-01-13T09:53:26.4593578Z Ubuntu
+2026-01-13T09:53:26.4593997Z 24.04.3
+2026-01-13T09:53:26.4594553Z LTS
+2026-01-13T09:53:26.4594978Z ##[endgroup]
+2026-01-13T09:53:26.4595450Z ##[group]Runner Image
+2026-01-13T09:53:26.4596387Z Image: ubuntu-24.04
+2026-01-13T09:53:26.4596884Z Version: 20260105.202.1
+2026-01-13T09:53:26.4597878Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260105.202/images/ubuntu/Ubuntu2404-Readme.md
+2026-01-13T09:53:26.4599512Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260105.202
+2026-01-13T09:53:26.4600442Z ##[endgroup]
+2026-01-13T09:53:26.4601673Z ##[group]GITHUB_TOKEN Permissions
+2026-01-13T09:53:26.4603464Z Contents: read
+2026-01-13T09:53:26.4604158Z Metadata: read
+2026-01-13T09:53:26.4604640Z Packages: read
+2026-01-13T09:53:26.4605144Z ##[endgroup]
+2026-01-13T09:53:26.4607468Z Secret source: Actions
+2026-01-13T09:53:26.4608184Z Prepare workflow directory
+2026-01-13T09:53:26.5018886Z Prepare all required actions
+2026-01-13T09:53:26.5056246Z Getting action download info
+2026-01-13T09:53:26.9257107Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-01-13T09:53:27.0167692Z Download action repository 'subosito/flutter-action@v2' (SHA:fd55f4c5af5b953cc57a2be44cb082c8f6635e8e)
+2026-01-13T09:53:27.5818611Z Getting action download info
+2026-01-13T09:53:27.7861647Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-01-13T09:53:27.9398054Z Complete job name: Flutter Checks
+2026-01-13T09:53:28.0158463Z ##[group]Run actions/checkout@v4
+2026-01-13T09:53:28.0159458Z with:
+2026-01-13T09:53:28.0159933Z   repository: rennerdo30/toss-share
+2026-01-13T09:53:28.0160853Z   token: ***
+2026-01-13T09:53:28.0161302Z   ssh-strict: true
+2026-01-13T09:53:28.0161770Z   ssh-user: git
+2026-01-13T09:53:28.0162260Z   persist-credentials: true
+2026-01-13T09:53:28.0162812Z   clean: true
+2026-01-13T09:53:28.0163298Z   sparse-checkout-cone-mode: true
+2026-01-13T09:53:28.0163937Z   fetch-depth: 1
+2026-01-13T09:53:28.0164402Z   fetch-tags: false
+2026-01-13T09:53:28.0164889Z   show-progress: true
+2026-01-13T09:53:28.0165394Z   lfs: false
+2026-01-13T09:53:28.0166023Z   submodules: false
+2026-01-13T09:53:28.0166530Z   set-safe-directory: true
+2026-01-13T09:53:28.0167342Z env:
+2026-01-13T09:53:28.0167775Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:28.0168352Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:28.0168887Z ##[endgroup]
+2026-01-13T09:53:28.1270767Z Syncing repository: rennerdo30/toss-share
+2026-01-13T09:53:28.1273758Z ##[group]Getting Git version info
+2026-01-13T09:53:28.1274906Z Working directory is '/home/runner/work/toss-share/toss-share'
+2026-01-13T09:53:28.1276553Z [command]/usr/bin/git version
+2026-01-13T09:53:28.1319146Z git version 2.52.0
+2026-01-13T09:53:28.1345521Z ##[endgroup]
+2026-01-13T09:53:28.1361780Z Temporarily overriding HOME='/home/runner/work/_temp/4b0b6b3f-3285-4b4d-94d2-7a62869dd204' before making global git config changes
+2026-01-13T09:53:28.1366023Z Adding repository directory to the temporary git global config as a safe directory
+2026-01-13T09:53:28.1377109Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/toss-share/toss-share
+2026-01-13T09:53:28.1414893Z Deleting the contents of '/home/runner/work/toss-share/toss-share'
+2026-01-13T09:53:28.1418595Z ##[group]Initializing the repository
+2026-01-13T09:53:28.1423724Z [command]/usr/bin/git init /home/runner/work/toss-share/toss-share
+2026-01-13T09:53:28.1514105Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-01-13T09:53:28.1516586Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-01-13T09:53:28.1518567Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-01-13T09:53:28.1520498Z hint: call:
+2026-01-13T09:53:28.1521281Z hint:
+2026-01-13T09:53:28.1522337Z hint: 	git config --global init.defaultBranch <name>
+2026-01-13T09:53:28.1523833Z hint:
+2026-01-13T09:53:28.1525153Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-01-13T09:53:28.1527886Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-01-13T09:53:28.1529855Z hint:
+2026-01-13T09:53:28.1530716Z hint: 	git branch -m <name>
+2026-01-13T09:53:28.1531706Z hint:
+2026-01-13T09:53:28.1533163Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-01-13T09:53:28.1536083Z Initialized empty Git repository in /home/runner/work/toss-share/toss-share/.git/
+2026-01-13T09:53:28.1539087Z [command]/usr/bin/git remote add origin https://github.com/rennerdo30/toss-share
+2026-01-13T09:53:28.1564765Z ##[endgroup]
+2026-01-13T09:53:28.1566538Z ##[group]Disabling automatic garbage collection
+2026-01-13T09:53:28.1569238Z [command]/usr/bin/git config --local gc.auto 0
+2026-01-13T09:53:28.1597662Z ##[endgroup]
+2026-01-13T09:53:28.1598487Z ##[group]Setting up auth
+2026-01-13T09:53:28.1604060Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-01-13T09:53:28.1634491Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-01-13T09:53:28.1954142Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-01-13T09:53:28.1985567Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-01-13T09:53:28.2200995Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-01-13T09:53:28.2229861Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-01-13T09:53:28.2454687Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-01-13T09:53:28.2486927Z ##[endgroup]
+2026-01-13T09:53:28.2488148Z ##[group]Fetching the repository
+2026-01-13T09:53:28.2495505Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d192c1f0dc9cd2c11e45828459bd19faf482804a:refs/remotes/origin/main
+2026-01-13T09:53:28.7041515Z From https://github.com/rennerdo30/toss-share
+2026-01-13T09:53:28.7043231Z  * [new ref]         d192c1f0dc9cd2c11e45828459bd19faf482804a -> origin/main
+2026-01-13T09:53:28.7073061Z ##[endgroup]
+2026-01-13T09:53:28.7074289Z ##[group]Determining the checkout info
+2026-01-13T09:53:28.7076082Z ##[endgroup]
+2026-01-13T09:53:28.7080416Z [command]/usr/bin/git sparse-checkout disable
+2026-01-13T09:53:28.7120921Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-01-13T09:53:28.7147408Z ##[group]Checking out the ref
+2026-01-13T09:53:28.7151293Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-01-13T09:53:28.7342652Z Switched to a new branch 'main'
+2026-01-13T09:53:28.7345078Z branch 'main' set up to track 'origin/main'.
+2026-01-13T09:53:28.7352844Z ##[endgroup]
+2026-01-13T09:53:28.7384969Z [command]/usr/bin/git log -1 --format=%H
+2026-01-13T09:53:28.7405479Z d192c1f0dc9cd2c11e45828459bd19faf482804a
+2026-01-13T09:53:28.7900322Z ##[group]Run subosito/flutter-action@v2
+2026-01-13T09:53:28.7901384Z with:
+2026-01-13T09:53:28.7902160Z   flutter-version: 3.24.0
+2026-01-13T09:53:28.7903045Z   channel: stable
+2026-01-13T09:53:28.7903845Z   cache: true
+2026-01-13T09:53:28.7904831Z   architecture: X64
+2026-01-13T09:53:28.7905986Z   pub-cache-path: default
+2026-01-13T09:53:28.7906947Z   dry-run: false
+2026-01-13T09:53:28.7907921Z   git-source: https://github.com/flutter/flutter.git
+2026-01-13T09:53:28.7909019Z env:
+2026-01-13T09:53:28.7909780Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:28.7910687Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:28.7911562Z ##[endgroup]
+2026-01-13T09:53:28.8110144Z ##[group]Run chmod +x "$GITHUB_ACTION_PATH/setup.sh"
+2026-01-13T09:53:28.8111424Z [36;1mchmod +x "$GITHUB_ACTION_PATH/setup.sh"[0m
+2026-01-13T09:53:28.8149061Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:53:28.8150193Z env:
+2026-01-13T09:53:28.8150906Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:28.8151795Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:28.8152601Z ##[endgroup]
+2026-01-13T09:53:28.8310769Z ##[group]Run $GITHUB_ACTION_PATH/setup.sh -p \
+2026-01-13T09:53:28.8311943Z [36;1m$GITHUB_ACTION_PATH/setup.sh -p \[0m
+2026-01-13T09:53:28.8312941Z [36;1m  -n '3.24.0' \[0m
+2026-01-13T09:53:28.8313750Z [36;1m  -f '' \[0m
+2026-01-13T09:53:28.8314518Z [36;1m  -a 'X64' \[0m
+2026-01-13T09:53:28.8315282Z [36;1m  -k '' \[0m
+2026-01-13T09:53:28.8316261Z [36;1m  -c '' \[0m
+2026-01-13T09:53:28.8317016Z [36;1m  -l '' \[0m
+2026-01-13T09:53:28.8317782Z [36;1m  -d 'default' \[0m
+2026-01-13T09:53:28.8318784Z [36;1m  -g 'https://github.com/flutter/flutter.git' \[0m
+2026-01-13T09:53:28.8319856Z [36;1m  stable[0m
+2026-01-13T09:53:28.8351089Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:53:28.8352998Z env:
+2026-01-13T09:53:28.8354182Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:28.8355836Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:28.8357279Z ##[endgroup]
+2026-01-13T09:53:28.9988487Z ##[group]Run actions/cache@v4
+2026-01-13T09:53:28.9989356Z with:
+2026-01-13T09:53:28.9990200Z   path: /opt/hostedtoolcache/flutter/stable-3.24.0-x64
+2026-01-13T09:53:28.9991736Z   key: flutter-linux-stable-3.24.0-x64-80c2e84975bbd28ecf5f8d4bd4ca5a2490bfc819
+2026-01-13T09:53:28.9993140Z   enableCrossOsArchive: false
+2026-01-13T09:53:28.9994020Z   fail-on-cache-miss: false
+2026-01-13T09:53:28.9994844Z   lookup-only: false
+2026-01-13T09:53:28.9995837Z   save-always: false
+2026-01-13T09:53:28.9996595Z env:
+2026-01-13T09:53:28.9997289Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:28.9998116Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:28.9998918Z ##[endgroup]
+2026-01-13T09:53:29.4189732Z Cache not found for input keys: flutter-linux-stable-3.24.0-x64-80c2e84975bbd28ecf5f8d4bd4ca5a2490bfc819
+2026-01-13T09:53:29.5225189Z ##[group]Run actions/cache@v4
+2026-01-13T09:53:29.5226099Z with:
+2026-01-13T09:53:29.5226736Z   path: /home/runner/.pub-cache
+2026-01-13T09:53:29.5228049Z   key: flutter-pub-linux-stable-3.24.0-x64-80c2e84975bbd28ecf5f8d4bd4ca5a2490bfc819-09408ebe8428a8b8c311b5f7191c176cafb8fcdf2ddc4fceb8bc1cf0839e2050
+2026-01-13T09:53:29.5229344Z   enableCrossOsArchive: false
+2026-01-13T09:53:29.5230057Z   fail-on-cache-miss: false
+2026-01-13T09:53:29.5230761Z   lookup-only: false
+2026-01-13T09:53:29.5231424Z   save-always: false
+2026-01-13T09:53:29.5232070Z env:
+2026-01-13T09:53:29.5232685Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:29.5233376Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:29.5234047Z ##[endgroup]
+2026-01-13T09:53:29.9210922Z Cache not found for input keys: flutter-pub-linux-stable-3.24.0-x64-80c2e84975bbd28ecf5f8d4bd4ca5a2490bfc819-09408ebe8428a8b8c311b5f7191c176cafb8fcdf2ddc4fceb8bc1cf0839e2050
+2026-01-13T09:53:29.9312515Z ##[group]Run $GITHUB_ACTION_PATH/setup.sh \
+2026-01-13T09:53:29.9313338Z [36;1m$GITHUB_ACTION_PATH/setup.sh \[0m
+2026-01-13T09:53:29.9314078Z [36;1m  -n '3.24.0' \[0m
+2026-01-13T09:53:29.9314757Z [36;1m  -a 'x64' \[0m
+2026-01-13T09:53:29.9315935Z [36;1m  -c '/opt/hostedtoolcache/flutter/stable-3.24.0-x64' \[0m
+2026-01-13T09:53:29.9316846Z [36;1m  -d '/home/runner/.pub-cache' \[0m
+2026-01-13T09:53:29.9317592Z [36;1m  stable[0m
+2026-01-13T09:53:29.9353126Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:53:29.9354112Z env:
+2026-01-13T09:53:29.9354732Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:29.9355437Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:29.9356265Z ##[endgroup]
+2026-01-13T09:53:30.0787270Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-01-13T09:53:30.0789279Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-01-13T09:53:30.0790364Z 
+2026-01-13T09:53:30.9060496Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-01-13T09:53:31.9055133Z  20  639M   20  128M    0     0   155M      0  0:00:04 --:--:--  0:00:04  154M
+2026-01-13T09:53:32.9063255Z  49  639M   49  317M    0     0   173M      0  0:00:03  0:00:01  0:00:02  173M
+2026-01-13T09:53:33.6096041Z  79  639M   79  505M    0     0   178M      0  0:00:03  0:00:02  0:00:01  178M
+2026-01-13T09:53:33.6096943Z 100  639M  100  639M    0     0   181M      0  0:00:03  0:00:03 --:--:--  181M
+2026-01-13T09:53:59.0542236Z ##[group]Run flutter pub get
+2026-01-13T09:53:59.0542545Z [36;1mflutter pub get[0m
+2026-01-13T09:53:59.0576862Z shell: /usr/bin/bash -e {0}
+2026-01-13T09:53:59.0577098Z env:
+2026-01-13T09:53:59.0577271Z   CARGO_TERM_COLOR: always
+2026-01-13T09:53:59.0577484Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:53:59.0577784Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.24.0-x64
+2026-01-13T09:53:59.0578125Z   PUB_CACHE: /home/runner/.pub-cache
+2026-01-13T09:53:59.0578363Z ##[endgroup]
+2026-01-13T09:53:59.2406048Z 
+2026-01-13T09:53:59.2418240Z   ╔════════════════════════════════════════════════════════════════════════════╗
+2026-01-13T09:53:59.2419230Z   ║                 Welcome to Flutter! - https://flutter.dev                  ║
+2026-01-13T09:53:59.2420263Z   ║                                                                            ║
+2026-01-13T09:53:59.2421097Z   ║ The Flutter tool uses Google Analytics to anonymously report feature usage ║
+2026-01-13T09:53:59.2422156Z   ║ statistics and basic crash reports. This data is used to help improve      ║
+2026-01-13T09:53:59.2422759Z   ║ Flutter tools over time.                                                   ║
+2026-01-13T09:53:59.2423189Z   ║                                                                            ║
+2026-01-13T09:53:59.2423646Z   ║ Flutter tool analytics are not sent on the very first run. To disable      ║
+2026-01-13T09:53:59.2424183Z   ║ reporting, type 'flutter config --no-analytics'. To display the current    ║
+2026-01-13T09:53:59.2424729Z   ║ setting, type 'flutter config'. If you opt out of analytics, an opt-out    ║
+2026-01-13T09:53:59.2425258Z   ║ event will be sent, and then no further information will be sent by the    ║
+2026-01-13T09:53:59.2425935Z   ║ Flutter tool.                                                              ║
+2026-01-13T09:53:59.2426327Z   ║                                                                            ║
+2026-01-13T09:53:59.2427138Z   ║ By downloading the Flutter SDK, you agree to the Google Terms of Service.  ║
+2026-01-13T09:53:59.2427781Z   ║ The Google Privacy Policy describes how data is handled in this service.   ║
+2026-01-13T09:53:59.2428248Z   ║                                                                            ║
+2026-01-13T09:53:59.2428762Z   ║ Moreover, Flutter includes the Dart SDK, which may send usage metrics and  ║
+2026-01-13T09:53:59.2429255Z   ║ crash reports to Google.                                                   ║
+2026-01-13T09:53:59.2429661Z   ║                                                                            ║
+2026-01-13T09:53:59.2430080Z   ║ Read about data we send with crash reports:                                ║
+2026-01-13T09:53:59.2430599Z   ║ https://flutter.dev/to/crash-reporting                                     ║
+2026-01-13T09:53:59.2431042Z   ║                                                                            ║
+2026-01-13T09:53:59.2431465Z   ║ See Google's privacy policy:                                               ║
+2026-01-13T09:53:59.2432280Z   ║ https://policies.google.com/privacy                                        ║
+2026-01-13T09:53:59.2432729Z   ║                                                                            ║
+2026-01-13T09:53:59.2433164Z   ║ To disable animations in this tool, use                                    ║
+2026-01-13T09:53:59.2433664Z   ║ 'flutter config --no-cli-animations'.                                      ║
+2026-01-13T09:53:59.2434208Z   ╚════════════════════════════════════════════════════════════════════════════╝
+2026-01-13T09:53:59.2434487Z 
+2026-01-13T09:54:04.0939724Z Resolving dependencies...
+2026-01-13T09:54:05.6367395Z The current Dart SDK version is 3.5.0.
+2026-01-13T09:54:05.6367831Z 
+2026-01-13T09:54:05.6368693Z Because mobile_scanner 7.1.4 requires SDK version >=3.7.0 <4.0.0 and no versions of mobile_scanner match >7.1.4 <8.0.0, mobile_scanner ^7.1.4 is forbidden.
+2026-01-13T09:54:05.6370609Z So, because toss depends on mobile_scanner ^7.1.4, version solving failed.
+2026-01-13T09:54:06.1893233Z ##[error]Process completed with exit code 1.
+2026-01-13T09:54:06.2050270Z Post job cleanup.
+2026-01-13T09:54:06.2131286Z Post job cleanup.
+2026-01-13T09:54:06.3067735Z [command]/usr/bin/git version
+2026-01-13T09:54:06.3103235Z git version 2.52.0
+2026-01-13T09:54:06.3147152Z Temporarily overriding HOME='/home/runner/work/_temp/aeff3528-be23-49a9-a938-805aa9437733' before making global git config changes
+2026-01-13T09:54:06.3148573Z Adding repository directory to the temporary git global config as a safe directory
+2026-01-13T09:54:06.3159942Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/toss-share/toss-share
+2026-01-13T09:54:06.3193660Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-01-13T09:54:06.3226014Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-01-13T09:54:06.3450713Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-01-13T09:54:06.3470744Z http.https://github.com/.extraheader
+2026-01-13T09:54:06.3482796Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-01-13T09:54:06.3512226Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-01-13T09:54:06.3728983Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-01-13T09:54:06.3757954Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-01-13T09:54:06.4089540Z Cleaning up orphan processes
