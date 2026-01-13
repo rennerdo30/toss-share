@@ -10,10 +10,10 @@ pub mod discovery;
 pub mod relay_client;
 pub mod transport;
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use tokio::sync::broadcast;
 
 use crate::crypto::DeviceIdentity;
@@ -61,9 +61,7 @@ pub enum NetworkEvent {
         device_name: String,
     },
     /// Disconnected from a peer
-    PeerDisconnected {
-        device_id: [u8; 32],
-    },
+    PeerDisconnected { device_id: [u8; 32] },
     /// Message received from peer
     MessageReceived {
         from_device_id: [u8; 32],
@@ -230,11 +228,13 @@ impl NetworkManager {
 
     /// Connect to a peer by address
     pub async fn connect(&self, addr: SocketAddr) -> Result<[u8; 32], NetworkError> {
-        let transport = self.transport.as_ref()
-            .ok_or_else(|| NetworkError::ConnectionFailed("Transport not initialized".to_string()))?;
+        let transport = self.transport.as_ref().ok_or_else(|| {
+            NetworkError::ConnectionFailed("Transport not initialized".to_string())
+        })?;
 
         let conn = transport.connect(addr).await?;
-        let device_id = conn.peer_device_id()
+        let device_id = conn
+            .peer_device_id()
             .ok_or_else(|| NetworkError::ConnectionFailed("No device ID".to_string()))?;
 
         self.peers.write().insert(device_id, conn);

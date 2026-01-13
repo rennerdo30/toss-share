@@ -7,8 +7,8 @@
 use hkdf::Hkdf;
 use sha2::Sha256;
 
-use crate::error::CryptoError;
 use super::KEY_SIZE;
+use crate::error::CryptoError;
 
 /// Purpose of derived key (used as context in HKDF)
 #[derive(Debug, Clone, Copy)]

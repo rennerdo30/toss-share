@@ -42,7 +42,7 @@ pub struct AuthenticatedDevice {
 
 impl FromRequestParts<AppState> for AuthenticatedDevice {
     type Rejection = ApiError;
- 
+
     async fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
@@ -68,7 +68,11 @@ impl FromRequestParts<AppState> for AuthenticatedDevice {
 }
 
 /// Create a JWT token for a device
-pub fn create_token(device_id: &str, secret: &str, expiration_secs: u64) -> Result<String, ApiError> {
+pub fn create_token(
+    device_id: &str,
+    secret: &str,
+    expiration_secs: u64,
+) -> Result<String, ApiError> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()

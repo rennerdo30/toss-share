@@ -3,8 +3,8 @@
 //! This module provides the public API that is exposed to Flutter
 //! via flutter_rust_bridge.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 
 use crate::clipboard::ClipboardManager;
 use crate::crypto::{DeviceIdentity, PairingSession};
@@ -93,12 +93,12 @@ pub fn init_toss(_data_dir: String, device_name: String) -> Result<(), String> {
         .try_init();
 
     // Load or create identity
-    let identity = DeviceIdentity::generate()
-        .map_err(|e| format!("Failed to generate identity: {}", e))?;
+    let identity =
+        DeviceIdentity::generate().map_err(|e| format!("Failed to generate identity: {}", e))?;
 
     // Create clipboard manager
-    let clipboard = ClipboardManager::new()
-        .map_err(|e| format!("Failed to initialize clipboard: {}", e))?;
+    let clipboard =
+        ClipboardManager::new().map_err(|e| format!("Failed to initialize clipboard: {}", e))?;
 
     let core = TossCore {
         identity: Arc::new(identity),
@@ -195,7 +195,9 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
     let mut guard = TOSS_INSTANCE.write();
     let core = guard.as_mut().ok_or("Toss not initialized")?;
 
-    let session = core.pairing_session.take()
+    let session = core
+        .pairing_session
+        .take()
         .ok_or("No active pairing session")?;
 
     let (_session_key, device_name, _public_key) = session
@@ -222,7 +224,9 @@ pub fn complete_pairing_code(
     let mut guard = TOSS_INSTANCE.write();
     let core = guard.as_mut().ok_or("Toss not initialized")?;
 
-    let session = core.pairing_session.take()
+    let session = core
+        .pairing_session
+        .take()
         .ok_or("No active pairing session")?;
 
     let peer_key: [u8; 32] = peer_public_key
@@ -298,7 +302,9 @@ pub async fn send_clipboard() -> Result<(), String> {
     let guard = TOSS_INSTANCE.read();
     let core = guard.as_ref().ok_or("Toss not initialized")?;
 
-    let content = core.clipboard.read()
+    let content = core
+        .clipboard
+        .read()
         .map_err(|e| format!("Clipboard read failed: {}", e))?
         .ok_or("Clipboard is empty")?;
 
@@ -320,7 +326,10 @@ pub async fn send_clipboard() -> Result<(), String> {
     // Check size limit
     let max_bytes = (settings.max_file_size_mb as u64) * 1024 * 1024;
     if content.metadata.size_bytes > max_bytes {
-        return Err(format!("Content too large (max {} MB)", settings.max_file_size_mb));
+        return Err(format!(
+            "Content too large (max {} MB)",
+            settings.max_file_size_mb
+        ));
     }
 
     // In a real implementation, broadcast to connected devices
@@ -394,7 +403,8 @@ pub async fn start_network() -> Result<(), String> {
         .await
         .map_err(|e| format!("Network init failed: {}", e))?;
 
-    network.start()
+    network
+        .start()
         .await
         .map_err(|e| format!("Network start failed: {}", e))?;
 
@@ -426,7 +436,8 @@ pub fn get_connected_devices() -> Vec<DeviceInfoDto> {
     let guard = TOSS_INSTANCE.read();
     if let Some(ref core) = *guard {
         if let Some(ref network) = core.network {
-            return network.connected_peers()
+            return network
+                .connected_peers()
                 .into_iter()
                 .map(|peer| DeviceInfoDto {
                     id: hex::encode(peer.device_id),

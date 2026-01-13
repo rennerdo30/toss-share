@@ -116,7 +116,11 @@ impl ClipboardContent {
         };
 
         Self {
-            content_type: if is_url(text) { ContentType::Url } else { ContentType::PlainText },
+            content_type: if is_url(text) {
+                ContentType::Url
+            } else {
+                ContentType::PlainText
+            },
             data,
             metadata: ContentMetadata {
                 size_bytes: text.len() as u64,
@@ -239,10 +243,16 @@ mod tests {
         );
 
         // Plain text
-        assert_eq!(detect_content_type(b"Hello, World!"), ContentType::PlainText);
+        assert_eq!(
+            detect_content_type(b"Hello, World!"),
+            ContentType::PlainText
+        );
 
         // URL
-        assert_eq!(detect_content_type(b"https://example.com"), ContentType::Url);
+        assert_eq!(
+            detect_content_type(b"https://example.com"),
+            ContentType::Url
+        );
     }
 
     #[test]

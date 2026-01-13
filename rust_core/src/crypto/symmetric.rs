@@ -6,8 +6,8 @@ use aes_gcm::{
 };
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-use crate::error::CryptoError;
 use super::{KEY_SIZE, NONCE_SIZE, TAG_SIZE};
+use crate::error::CryptoError;
 
 /// Encrypted message with nonce and authentication tag
 #[derive(Debug, Clone)]
@@ -48,9 +48,13 @@ impl EncryptedMessage {
 /// * `key` - 32-byte encryption key
 /// * `plaintext` - Data to encrypt
 /// * `aad` - Additional authenticated data (not encrypted, but authenticated)
-pub fn encrypt(key: &[u8; KEY_SIZE], plaintext: &[u8], aad: &[u8]) -> Result<EncryptedMessage, CryptoError> {
-    let cipher = Aes256Gcm::new_from_slice(key)
-        .map_err(|e| CryptoError::Encryption(e.to_string()))?;
+pub fn encrypt(
+    key: &[u8; KEY_SIZE],
+    plaintext: &[u8],
+    aad: &[u8],
+) -> Result<EncryptedMessage, CryptoError> {
+    let cipher =
+        Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Encryption(e.to_string()))?;
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
@@ -59,7 +63,13 @@ pub fn encrypt(key: &[u8; KEY_SIZE], plaintext: &[u8], aad: &[u8]) -> Result<Enc
 
     // Encrypt with AAD
     let ciphertext = cipher
-        .encrypt(nonce, aes_gcm::aead::Payload { msg: plaintext, aad })
+        .encrypt(
+            nonce,
+            aes_gcm::aead::Payload {
+                msg: plaintext,
+                aad,
+            },
+        )
         .map_err(|e| CryptoError::Encryption(e.to_string()))?;
 
     Ok(EncryptedMessage {
@@ -74,14 +84,24 @@ pub fn encrypt(key: &[u8; KEY_SIZE], plaintext: &[u8], aad: &[u8]) -> Result<Enc
 /// * `key` - 32-byte encryption key
 /// * `message` - Encrypted message with nonce
 /// * `aad` - Additional authenticated data (must match encryption)
-pub fn decrypt(key: &[u8; KEY_SIZE], message: &EncryptedMessage, aad: &[u8]) -> Result<Vec<u8>, CryptoError> {
-    let cipher = Aes256Gcm::new_from_slice(key)
-        .map_err(|e| CryptoError::Decryption(e.to_string()))?;
+pub fn decrypt(
+    key: &[u8; KEY_SIZE],
+    message: &EncryptedMessage,
+    aad: &[u8],
+) -> Result<Vec<u8>, CryptoError> {
+    let cipher =
+        Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Decryption(e.to_string()))?;
 
     let nonce = Nonce::from_slice(&message.nonce);
 
     cipher
-        .decrypt(nonce, aes_gcm::aead::Payload { msg: &message.ciphertext, aad })
+        .decrypt(
+            nonce,
+            aes_gcm::aead::Payload {
+                msg: &message.ciphertext,
+                aad,
+            },
+        )
         .map_err(|e| CryptoError::Decryption(e.to_string()))
 }
 

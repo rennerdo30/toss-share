@@ -32,11 +32,10 @@ impl Config {
                 .unwrap_or(8080),
             database_url: env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "sqlite:./data/toss.db?mode=rwc".to_string()),
-            jwt_secret: env::var("JWT_SECRET")
-                .unwrap_or_else(|_| {
-                    tracing::warn!("JWT_SECRET not set, using random secret");
-                    generate_random_secret()
-                }),
+            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| {
+                tracing::warn!("JWT_SECRET not set, using random secret");
+                generate_random_secret()
+            }),
             jwt_expiration: env::var("JWT_EXPIRATION")
                 .ok()
                 .and_then(|e| e.parse().ok())

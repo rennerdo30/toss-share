@@ -1,0 +1,1116 @@
+﻿2026-01-13T09:33:52.3381333Z Current runner version: '2.330.0'
+2026-01-13T09:33:52.3404004Z ##[group]Runner Image Provisioner
+2026-01-13T09:33:52.3404843Z Hosted Compute Agent
+2026-01-13T09:33:52.3405420Z Version: 20251211.462
+2026-01-13T09:33:52.3405990Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+2026-01-13T09:33:52.3406723Z Build Date: 2025-12-11T16:28:49Z
+2026-01-13T09:33:52.3407387Z Worker ID: {97fbe6d4-e5e9-4ef9-9b27-722cac567809}
+2026-01-13T09:33:52.3408057Z ##[endgroup]
+2026-01-13T09:33:52.3408611Z ##[group]Operating System
+2026-01-13T09:33:52.3409156Z Ubuntu
+2026-01-13T09:33:52.3409625Z 24.04.3
+2026-01-13T09:33:52.3410207Z LTS
+2026-01-13T09:33:52.3410744Z ##[endgroup]
+2026-01-13T09:33:52.3411233Z ##[group]Runner Image
+2026-01-13T09:33:52.3411756Z Image: ubuntu-24.04
+2026-01-13T09:33:52.3412330Z Version: 20260105.202.1
+2026-01-13T09:33:52.3413297Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260105.202/images/ubuntu/Ubuntu2404-Readme.md
+2026-01-13T09:33:52.3414889Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260105.202
+2026-01-13T09:33:52.3415864Z ##[endgroup]
+2026-01-13T09:33:52.3416984Z ##[group]GITHUB_TOKEN Permissions
+2026-01-13T09:33:52.3418805Z Contents: read
+2026-01-13T09:33:52.3419315Z Metadata: read
+2026-01-13T09:33:52.3420175Z Packages: read
+2026-01-13T09:33:52.3420743Z ##[endgroup]
+2026-01-13T09:33:52.3422728Z Secret source: Actions
+2026-01-13T09:33:52.3423444Z Prepare workflow directory
+2026-01-13T09:33:52.3816960Z Prepare all required actions
+2026-01-13T09:33:52.3861685Z Getting action download info
+2026-01-13T09:33:52.8891163Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-01-13T09:33:53.0009373Z Download action repository 'dtolnay/rust-toolchain@stable' (SHA:4be9e76fd7c4901c61fb841f559994984270fce7)
+2026-01-13T09:33:53.3939706Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-01-13T09:33:53.6591632Z Complete job name: Rust Checks
+2026-01-13T09:33:53.7317565Z ##[group]Run actions/checkout@v4
+2026-01-13T09:33:53.7318484Z with:
+2026-01-13T09:33:53.7318912Z   repository: rennerdo30/toss-share
+2026-01-13T09:33:53.7319671Z   token: ***
+2026-01-13T09:33:53.7320332Z   ssh-strict: true
+2026-01-13T09:33:53.7320762Z   ssh-user: git
+2026-01-13T09:33:53.7321192Z   persist-credentials: true
+2026-01-13T09:33:53.7321663Z   clean: true
+2026-01-13T09:33:53.7322099Z   sparse-checkout-cone-mode: true
+2026-01-13T09:33:53.7322607Z   fetch-depth: 1
+2026-01-13T09:33:53.7323010Z   fetch-tags: false
+2026-01-13T09:33:53.7323428Z   show-progress: true
+2026-01-13T09:33:53.7323868Z   lfs: false
+2026-01-13T09:33:53.7324260Z   submodules: false
+2026-01-13T09:33:53.7324694Z   set-safe-directory: true
+2026-01-13T09:33:53.7325430Z env:
+2026-01-13T09:33:53.7325842Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:53.7326321Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:53.7326772Z ##[endgroup]
+2026-01-13T09:33:53.8405670Z Syncing repository: rennerdo30/toss-share
+2026-01-13T09:33:53.8407655Z ##[group]Getting Git version info
+2026-01-13T09:33:53.8408436Z Working directory is '/home/runner/work/toss-share/toss-share'
+2026-01-13T09:33:53.8409440Z [command]/usr/bin/git version
+2026-01-13T09:33:53.8505418Z git version 2.52.0
+2026-01-13T09:33:53.8532054Z ##[endgroup]
+2026-01-13T09:33:53.8545945Z Temporarily overriding HOME='/home/runner/work/_temp/990fefd5-73c2-4a31-b073-f63d39d7fe05' before making global git config changes
+2026-01-13T09:33:53.8547423Z Adding repository directory to the temporary git global config as a safe directory
+2026-01-13T09:33:53.8558953Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/toss-share/toss-share
+2026-01-13T09:33:53.8597934Z Deleting the contents of '/home/runner/work/toss-share/toss-share'
+2026-01-13T09:33:53.8601414Z ##[group]Initializing the repository
+2026-01-13T09:33:53.8605674Z [command]/usr/bin/git init /home/runner/work/toss-share/toss-share
+2026-01-13T09:33:53.8751253Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-01-13T09:33:53.8752637Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-01-13T09:33:53.8754432Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-01-13T09:33:53.8755876Z hint: call:
+2026-01-13T09:33:53.8756576Z hint:
+2026-01-13T09:33:53.8757456Z hint: 	git config --global init.defaultBranch <name>
+2026-01-13T09:33:53.8758594Z hint:
+2026-01-13T09:33:53.8759265Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-01-13T09:33:53.8760617Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-01-13T09:33:53.8761432Z hint:
+2026-01-13T09:33:53.8761850Z hint: 	git branch -m <name>
+2026-01-13T09:33:53.8762344Z hint:
+2026-01-13T09:33:53.8763217Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-01-13T09:33:53.8764712Z Initialized empty Git repository in /home/runner/work/toss-share/toss-share/.git/
+2026-01-13T09:33:53.8769158Z [command]/usr/bin/git remote add origin https://github.com/rennerdo30/toss-share
+2026-01-13T09:33:53.8803886Z ##[endgroup]
+2026-01-13T09:33:53.8804651Z ##[group]Disabling automatic garbage collection
+2026-01-13T09:33:53.8808070Z [command]/usr/bin/git config --local gc.auto 0
+2026-01-13T09:33:53.8836599Z ##[endgroup]
+2026-01-13T09:33:53.8837317Z ##[group]Setting up auth
+2026-01-13T09:33:53.8843838Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-01-13T09:33:53.8874488Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-01-13T09:33:53.9249236Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-01-13T09:33:53.9284403Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-01-13T09:33:53.9511378Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-01-13T09:33:53.9543109Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-01-13T09:33:53.9775393Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-01-13T09:33:53.9811496Z ##[endgroup]
+2026-01-13T09:33:53.9812970Z ##[group]Fetching the repository
+2026-01-13T09:33:53.9821781Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +a8058d21edcfa2d14c94e50e42e6658fb0633668:refs/remotes/origin/main
+2026-01-13T09:33:54.4561283Z From https://github.com/rennerdo30/toss-share
+2026-01-13T09:33:54.4563013Z  * [new ref]         a8058d21edcfa2d14c94e50e42e6658fb0633668 -> origin/main
+2026-01-13T09:33:54.4598075Z ##[endgroup]
+2026-01-13T09:33:54.4600252Z ##[group]Determining the checkout info
+2026-01-13T09:33:54.4602550Z ##[endgroup]
+2026-01-13T09:33:54.4604716Z [command]/usr/bin/git sparse-checkout disable
+2026-01-13T09:33:54.4648128Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-01-13T09:33:54.4680427Z ##[group]Checking out the ref
+2026-01-13T09:33:54.4682691Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-01-13T09:33:54.4866788Z Switched to a new branch 'main'
+2026-01-13T09:33:54.4868772Z branch 'main' set up to track 'origin/main'.
+2026-01-13T09:33:54.4877305Z ##[endgroup]
+2026-01-13T09:33:54.4913640Z [command]/usr/bin/git log -1 --format=%H
+2026-01-13T09:33:54.4935706Z a8058d21edcfa2d14c94e50e42e6658fb0633668
+2026-01-13T09:33:54.5496016Z ##[group]Run dtolnay/rust-toolchain@stable
+2026-01-13T09:33:54.5497168Z with:
+2026-01-13T09:33:54.5497978Z   components: rustfmt, clippy
+2026-01-13T09:33:54.5498962Z   toolchain: stable
+2026-01-13T09:33:54.5499786Z env:
+2026-01-13T09:33:54.5500705Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.5501883Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.5502806Z ##[endgroup]
+2026-01-13T09:33:54.5642502Z ##[group]Run : parse toolchain version
+2026-01-13T09:33:54.5643672Z [36;1m: parse toolchain version[0m
+2026-01-13T09:33:54.5644715Z [36;1mif [[ -z $toolchain ]]; then[0m
+2026-01-13T09:33:54.5646574Z [36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070[0m
+2026-01-13T09:33:54.5648587Z [36;1m  echo "'toolchain' is a required input" >&2[0m
+2026-01-13T09:33:54.5649735Z [36;1m  exit 1[0m
+2026-01-13T09:33:54.5651126Z [36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then[0m
+2026-01-13T09:33:54.5652703Z [36;1m  if [[ Linux == macOS ]]; then[0m
+2026-01-13T09:33:54.5654598Z [36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.5656476Z [36;1m  else[0m
+2026-01-13T09:33:54.5657971Z [36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.5659697Z [36;1m  fi[0m
+2026-01-13T09:33:54.5660909Z [36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then[0m
+2026-01-13T09:33:54.5662873Z [36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.5664605Z [36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then[0m
+2026-01-13T09:33:54.5666552Z [36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.5668421Z [36;1melse[0m
+2026-01-13T09:33:54.5669365Z [36;1m  echo "toolchain=$toolchain" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.5670844Z [36;1mfi[0m
+2026-01-13T09:33:54.5708372Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:54.5709626Z env:
+2026-01-13T09:33:54.5710715Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.5711631Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.5712485Z   toolchain: stable
+2026-01-13T09:33:54.5713438Z ##[endgroup]
+2026-01-13T09:33:54.6009562Z ##[group]Run : construct rustup command line
+2026-01-13T09:33:54.6011040Z [36;1m: construct rustup command line[0m
+2026-01-13T09:33:54.6012762Z [36;1mecho "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.6015045Z [36;1mecho "components=$(for c in ${components//,/ }; do echo -n ' --component' $c; done)" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.6017066Z [36;1mecho "downgrade=" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:54.6051377Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:54.6052585Z env:
+2026-01-13T09:33:54.6053294Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.6054192Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.6055047Z   targets: 
+2026-01-13T09:33:54.6055791Z   components: rustfmt, clippy
+2026-01-13T09:33:54.6056696Z ##[endgroup]
+2026-01-13T09:33:54.6176397Z ##[group]Run : set $CARGO_HOME
+2026-01-13T09:33:54.6177348Z [36;1m: set $CARGO_HOME[0m
+2026-01-13T09:33:54.6178539Z [36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV[0m
+2026-01-13T09:33:54.6211896Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:54.6213114Z env:
+2026-01-13T09:33:54.6213816Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.6214704Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.6215547Z ##[endgroup]
+2026-01-13T09:33:54.6327615Z ##[group]Run : install rustup if needed
+2026-01-13T09:33:54.6328674Z [36;1m: install rustup if needed[0m
+2026-01-13T09:33:54.6329762Z [36;1mif ! command -v rustup &>/dev/null; then[0m
+2026-01-13T09:33:54.6333084Z [36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y[0m
+2026-01-13T09:33:54.6335784Z [36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH[0m
+2026-01-13T09:33:54.6337000Z [36;1mfi[0m
+2026-01-13T09:33:54.6369006Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:54.6370477Z env:
+2026-01-13T09:33:54.6371197Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.6372077Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.6372967Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:54.6373903Z ##[endgroup]
+2026-01-13T09:33:54.6494015Z ##[group]Run rustup toolchain install stable --component rustfmt --component clippy --profile minimal --no-self-update
+2026-01-13T09:33:54.6496853Z [36;1mrustup toolchain install stable --component rustfmt --component clippy --profile minimal --no-self-update[0m
+2026-01-13T09:33:54.6529825Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:54.6531173Z env:
+2026-01-13T09:33:54.6531868Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.6532744Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.6533624Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:54.6534586Z   RUSTUP_PERMIT_COPY_RENAME: 1
+2026-01-13T09:33:54.6535490Z ##[endgroup]
+2026-01-13T09:33:57.4197267Z info: syncing channel updates for 'stable-x86_64-unknown-linux-gnu'
+2026-01-13T09:33:57.5161247Z info: latest update on 2025-12-11, rust version 1.92.0 (ded5c06cf 2025-12-08)
+2026-01-13T09:33:57.5501537Z info: component 'clippy' for target 'x86_64-unknown-linux-gnu' is up to date
+2026-01-13T09:33:57.5502320Z info: component 'rustfmt' for target 'x86_64-unknown-linux-gnu' is up to date
+2026-01-13T09:33:57.5517414Z 
+2026-01-13T09:33:57.5613672Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.92.0 (ded5c06cf 2025-12-08)
+2026-01-13T09:33:57.5614437Z 
+2026-01-13T09:33:57.5672293Z ##[group]Run rustup default stable
+2026-01-13T09:33:57.5672638Z [36;1mrustup default stable[0m
+2026-01-13T09:33:57.5706568Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.5706925Z env:
+2026-01-13T09:33:57.5707138Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.5707392Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.5707654Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.5707944Z ##[endgroup]
+2026-01-13T09:33:57.5811402Z info: using existing install for 'stable-x86_64-unknown-linux-gnu'
+2026-01-13T09:33:57.6170709Z info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
+2026-01-13T09:33:57.6171279Z 
+2026-01-13T09:33:57.6259184Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.92.0 (ded5c06cf 2025-12-08)
+2026-01-13T09:33:57.6259575Z 
+2026-01-13T09:33:57.6308327Z ##[group]Run : create cachekey
+2026-01-13T09:33:57.6308632Z [36;1m: create cachekey[0m
+2026-01-13T09:33:57.6309168Z [36;1mDATE=$(rustc +stable --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')[0m
+2026-01-13T09:33:57.6310266Z [36;1mHASH=$(rustc +stable --version --verbose | sed -ne 's/^commit-hash: //p')[0m
+2026-01-13T09:33:57.6310835Z [36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT[0m
+2026-01-13T09:33:57.6344584Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.6344958Z env:
+2026-01-13T09:33:57.6345167Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.6345416Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.6345689Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.6345952Z ##[endgroup]
+2026-01-13T09:33:57.7145116Z ##[group]Run : disable incremental compilation
+2026-01-13T09:33:57.7145492Z [36;1m: disable incremental compilation[0m
+2026-01-13T09:33:57.7145825Z [36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then[0m
+2026-01-13T09:33:57.7146210Z [36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV[0m
+2026-01-13T09:33:57.7146517Z [36;1mfi[0m
+2026-01-13T09:33:57.7181259Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.7181623Z env:
+2026-01-13T09:33:57.7182076Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.7182356Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.7182607Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.7182877Z ##[endgroup]
+2026-01-13T09:33:57.7259780Z ##[group]Run : enable colors in Cargo output
+2026-01-13T09:33:57.7260583Z [36;1m: enable colors in Cargo output[0m
+2026-01-13T09:33:57.7260920Z [36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then[0m
+2026-01-13T09:33:57.7261279Z [36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV[0m
+2026-01-13T09:33:57.7261586Z [36;1mfi[0m
+2026-01-13T09:33:57.7293774Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.7294129Z env:
+2026-01-13T09:33:57.7294342Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.7294596Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.7294848Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.7295117Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:57.7295345Z ##[endgroup]
+2026-01-13T09:33:57.7418754Z ##[group]Run : enable Cargo sparse registry
+2026-01-13T09:33:57.7419134Z [36;1m: enable Cargo sparse registry[0m
+2026-01-13T09:33:57.7419520Z [36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70[0m
+2026-01-13T09:33:57.7420811Z [36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then[0m
+2026-01-13T09:33:57.7421604Z [36;1m  if rustc +stable --version --verbose | grep -q '^release: 1\.6[89]\.'; then[0m
+2026-01-13T09:33:57.7422197Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-01-13T09:33:57.7422753Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV[0m
+2026-01-13T09:33:57.7423263Z [36;1m  elif rustc +stable --version --verbose | grep -q '^release: 1\.6[67]\.'; then[0m
+2026-01-13T09:33:57.7423840Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-01-13T09:33:57.7424386Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV[0m
+2026-01-13T09:33:57.7424736Z [36;1m  fi[0m
+2026-01-13T09:33:57.7424942Z [36;1mfi[0m
+2026-01-13T09:33:57.7458186Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.7458547Z env:
+2026-01-13T09:33:57.7458761Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.7459022Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.7459272Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.7459530Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:57.7459757Z ##[endgroup]
+2026-01-13T09:33:57.7836791Z ##[group]Run : work around spurious network errors in curl 8.0
+2026-01-13T09:33:57.7837258Z [36;1m: work around spurious network errors in curl 8.0[0m
+2026-01-13T09:33:57.7837832Z [36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation[0m
+2026-01-13T09:33:57.7838482Z [36;1mif rustc +stable --version --verbose | grep -q '^release: 1\.7[01]\.'; then[0m
+2026-01-13T09:33:57.7838982Z [36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV[0m
+2026-01-13T09:33:57.7839313Z [36;1mfi[0m
+2026-01-13T09:33:57.7875171Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.7875536Z env:
+2026-01-13T09:33:57.7875754Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.7876013Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.7876283Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.7876554Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:57.7876776Z ##[endgroup]
+2026-01-13T09:33:57.8107891Z ##[group]Run rustc +stable --version --verbose
+2026-01-13T09:33:57.8108262Z [36;1mrustc +stable --version --verbose[0m
+2026-01-13T09:33:57.8143126Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-01-13T09:33:57.8143483Z env:
+2026-01-13T09:33:57.8143700Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.8143947Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.8144203Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.8144466Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:57.8144690Z ##[endgroup]
+2026-01-13T09:33:57.8324902Z rustc 1.92.0 (ded5c06cf 2025-12-08)
+2026-01-13T09:33:57.8325679Z binary: rustc
+2026-01-13T09:33:57.8326331Z commit-hash: ded5c06cf21d2b93bffd5d884aa6e96934ee4234
+2026-01-13T09:33:57.8327016Z commit-date: 2025-12-08
+2026-01-13T09:33:57.8327514Z host: x86_64-unknown-linux-gnu
+2026-01-13T09:33:57.8328368Z release: 1.92.0
+2026-01-13T09:33:57.8328933Z LLVM version: 21.1.3
+2026-01-13T09:33:57.9231750Z ##[group]Run actions/cache@v4
+2026-01-13T09:33:57.9232072Z with:
+2026-01-13T09:33:57.9232353Z   path: ~/.cargo/registry
+~/.cargo/git
+rust_core/target
+
+2026-01-13T09:33:57.9232685Z   key: Linux-cargo-
+2026-01-13T09:33:57.9232928Z   enableCrossOsArchive: false
+2026-01-13T09:33:57.9233193Z   fail-on-cache-miss: false
+2026-01-13T09:33:57.9233441Z   lookup-only: false
+2026-01-13T09:33:57.9233661Z   save-always: false
+2026-01-13T09:33:57.9233877Z env:
+2026-01-13T09:33:57.9234077Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:57.9234324Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:57.9234580Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:57.9234840Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:57.9235068Z ##[endgroup]
+2026-01-13T09:33:58.3392417Z Cache not found for input keys: Linux-cargo-
+2026-01-13T09:33:58.3461409Z ##[group]Run cargo fmt --all -- --check
+2026-01-13T09:33:58.3461731Z [36;1mcargo fmt --all -- --check[0m
+2026-01-13T09:33:58.3493807Z shell: /usr/bin/bash -e {0}
+2026-01-13T09:33:58.3494043Z env:
+2026-01-13T09:33:58.3494213Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:58.3494427Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:58.3494631Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:58.3494856Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:58.3495040Z ##[endgroup]
+2026-01-13T09:33:59.7222425Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:3:
+2026-01-13T09:33:59.7223485Z  //! This module provides the public API that is exposed to Flutter
+2026-01-13T09:33:59.7224160Z  //! via flutter_rust_bridge.
+2026-01-13T09:33:59.7224583Z  
+2026-01-13T09:33:59.7229209Z -use std::sync::Arc;
+2026-01-13T09:33:59.7229512Z  use parking_lot::RwLock;
+2026-01-13T09:33:59.7229787Z +use std::sync::Arc;
+2026-01-13T09:33:59.7230399Z  
+2026-01-13T09:33:59.7230697Z  use crate::clipboard::ClipboardManager;
+2026-01-13T09:33:59.7231105Z  use crate::crypto::{DeviceIdentity, PairingSession};
+2026-01-13T09:33:59.7231641Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:93:
+2026-01-13T09:33:59.7232119Z          .try_init();
+2026-01-13T09:33:59.7232349Z  
+2026-01-13T09:33:59.7232546Z      // Load or create identity
+2026-01-13T09:33:59.7232866Z -    let identity = DeviceIdentity::generate()
+2026-01-13T09:33:59.7233315Z -        .map_err(|e| format!("Failed to generate identity: {}", e))?;
+2026-01-13T09:33:59.7233729Z +    let identity =
+2026-01-13T09:33:59.7234175Z +        DeviceIdentity::generate().map_err(|e| format!("Failed to generate identity: {}", e))?;
+2026-01-13T09:33:59.7234703Z  
+2026-01-13T09:33:59.7234924Z      // Create clipboard manager
+2026-01-13T09:33:59.7235254Z -    let clipboard = ClipboardManager::new()
+2026-01-13T09:33:59.7235855Z -        .map_err(|e| format!("Failed to initialize clipboard: {}", e))?;
+2026-01-13T09:33:59.7236520Z +    let clipboard =
+2026-01-13T09:33:59.7237115Z +        ClipboardManager::new().map_err(|e| format!("Failed to initialize clipboard: {}", e))?;
+2026-01-13T09:33:59.7237832Z  
+2026-01-13T09:33:59.7238085Z      let core = TossCore {
+2026-01-13T09:33:59.7238454Z          identity: Arc::new(identity),
+2026-01-13T09:33:59.7239076Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:195:
+2026-01-13T09:33:59.7239576Z      let mut guard = TOSS_INSTANCE.write();
+2026-01-13T09:33:59.7240115Z      let core = guard.as_mut().ok_or("Toss not initialized")?;
+2026-01-13T09:33:59.7240414Z  
+2026-01-13T09:33:59.7240604Z -    let session = core.pairing_session.take()
+2026-01-13T09:33:59.7240862Z +    let session = core
+2026-01-13T09:33:59.7241058Z +        .pairing_session
+2026-01-13T09:33:59.7241244Z +        .take()
+2026-01-13T09:33:59.7241436Z          .ok_or("No active pairing session")?;
+2026-01-13T09:33:59.7241669Z  
+2026-01-13T09:33:59.7241869Z      let (_session_key, device_name, _public_key) = session
+2026-01-13T09:33:59.7242283Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:222:
+2026-01-13T09:33:59.7242657Z      let mut guard = TOSS_INSTANCE.write();
+2026-01-13T09:33:59.7243300Z      let core = guard.as_mut().ok_or("Toss not initialized")?;
+2026-01-13T09:33:59.7243580Z  
+2026-01-13T09:33:59.7243763Z -    let session = core.pairing_session.take()
+2026-01-13T09:33:59.7244018Z +    let session = core
+2026-01-13T09:33:59.7244209Z +        .pairing_session
+2026-01-13T09:33:59.7244390Z +        .take()
+2026-01-13T09:33:59.7244580Z          .ok_or("No active pairing session")?;
+2026-01-13T09:33:59.7244814Z  
+2026-01-13T09:33:59.7244977Z      let peer_key: [u8; 32] = peer_public_key
+2026-01-13T09:33:59.7245341Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:298:
+2026-01-13T09:33:59.7245706Z      let guard = TOSS_INSTANCE.read();
+2026-01-13T09:33:59.7246014Z      let core = guard.as_ref().ok_or("Toss not initialized")?;
+2026-01-13T09:33:59.7246294Z  
+2026-01-13T09:33:59.7246689Z -    let content = core.clipboard.read()
+2026-01-13T09:33:59.7246941Z +    let content = core
+2026-01-13T09:33:59.7247128Z +        .clipboard
+2026-01-13T09:33:59.7247302Z +        .read()
+2026-01-13T09:33:59.7247586Z          .map_err(|e| format!("Clipboard read failed: {}", e))?
+2026-01-13T09:33:59.7248119Z          .ok_or("Clipboard is empty")?;
+2026-01-13T09:33:59.7248481Z  
+2026-01-13T09:33:59.7248921Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:320:
+2026-01-13T09:33:59.7249428Z      // Check size limit
+2026-01-13T09:33:59.7249707Z      let max_bytes = (settings.max_file_size_mb as u64) * 1024 * 1024;
+2026-01-13T09:33:59.7250477Z      if content.metadata.size_bytes > max_bytes {
+2026-01-13T09:33:59.7251179Z -        return Err(format!("Content too large (max {} MB)", settings.max_file_size_mb));
+2026-01-13T09:33:59.7252044Z +        return Err(format!(
+2026-01-13T09:33:59.7252608Z +            "Content too large (max {} MB)",
+2026-01-13T09:33:59.7253088Z +            settings.max_file_size_mb
+2026-01-13T09:33:59.7253479Z +        ));
+2026-01-13T09:33:59.7253745Z      }
+2026-01-13T09:33:59.7253996Z  
+2026-01-13T09:33:59.7254395Z      // In a real implementation, broadcast to connected devices
+2026-01-13T09:33:59.7255133Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:394:
+2026-01-13T09:33:59.7255746Z          .await
+2026-01-13T09:33:59.7256116Z          .map_err(|e| format!("Network init failed: {}", e))?;
+2026-01-13T09:33:59.7256598Z  
+2026-01-13T09:33:59.7256851Z -    network.start()
+2026-01-13T09:33:59.7257151Z +    network
+2026-01-13T09:33:59.7257415Z +        .start()
+2026-01-13T09:33:59.7257683Z          .await
+2026-01-13T09:33:59.7258054Z          .map_err(|e| format!("Network start failed: {}", e))?;
+2026-01-13T09:33:59.7258519Z  
+2026-01-13T09:33:59.7258983Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/api/mod.rs:426:
+2026-01-13T09:33:59.7259622Z      let guard = TOSS_INSTANCE.read();
+2026-01-13T09:33:59.7260232Z      if let Some(ref core) = *guard {
+2026-01-13T09:33:59.7260663Z          if let Some(ref network) = core.network {
+2026-01-13T09:33:59.7261140Z -            return network.connected_peers()
+2026-01-13T09:33:59.7261574Z +            return network
+2026-01-13T09:33:59.7261928Z +                .connected_peers()
+2026-01-13T09:33:59.7262161Z                  .into_iter()
+2026-01-13T09:33:59.7262381Z                  .map(|peer| DeviceInfoDto {
+2026-01-13T09:33:59.7262674Z                      id: hex::encode(peer.device_id),
+2026-01-13T09:33:59.7263117Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/formats.rs:18:
+2026-01-13T09:33:59.7263510Z          image.height as u32,
+2026-01-13T09:33:59.7263731Z          image.bytes.to_vec(),
+2026-01-13T09:33:59.7263923Z      )
+2026-01-13T09:33:59.7264296Z -    .ok_or_else(|| ClipboardError::ImageConversion("Failed to create image from raw data".to_string()))?;
+2026-01-13T09:33:59.7264734Z +    .ok_or_else(|| {
+2026-01-13T09:33:59.7265082Z +        ClipboardError::ImageConversion("Failed to create image from raw data".to_string())
+2026-01-13T09:33:59.7265473Z +    })?;
+2026-01-13T09:33:59.7265787Z  
+2026-01-13T09:33:59.7266007Z      let dynamic_image = DynamicImage::ImageRgba8(rgba_image);
+2026-01-13T09:33:59.7266285Z  
+2026-01-13T09:33:59.7266577Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:3:
+2026-01-13T09:33:59.7266971Z  use arboard::Clipboard;
+2026-01-13T09:33:59.7267177Z  use parking_lot::Mutex;
+2026-01-13T09:33:59.7267357Z  
+2026-01-13T09:33:59.7267571Z +use super::formats::{decode_image, encode_image_to_png};
+2026-01-13T09:33:59.7267877Z  use crate::error::ClipboardError;
+2026-01-13T09:33:59.7268157Z  use crate::protocol::{ClipboardContent, ContentType};
+2026-01-13T09:33:59.7268499Z -use super::formats::{decode_image, encode_image_to_png};
+2026-01-13T09:33:59.7268770Z  
+2026-01-13T09:33:59.7268932Z  /// Trait for clipboard operations
+2026-01-13T09:33:59.7269178Z  pub trait ClipboardProvider: Send + Sync {
+2026-01-13T09:33:59.7269706Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:30:
+2026-01-13T09:33:59.7270386Z  impl ClipboardHandler {
+2026-01-13T09:33:59.7270704Z      /// Create a new clipboard handler
+2026-01-13T09:33:59.7271198Z      pub fn new() -> Result<Self, ClipboardError> {
+2026-01-13T09:33:59.7271701Z -        let clipboard = Clipboard::new()
+2026-01-13T09:33:59.7272268Z -            .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7272600Z +        let clipboard =
+2026-01-13T09:33:59.7272937Z +            Clipboard::new().map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7273298Z  
+2026-01-13T09:33:59.7273445Z          Ok(Self {
+2026-01-13T09:33:59.7273641Z              clipboard: Mutex::new(clipboard),
+2026-01-13T09:33:59.7274045Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:71:
+2026-01-13T09:33:59.7274488Z              ContentType::PlainText | ContentType::Url => {
+2026-01-13T09:33:59.7274846Z                  let text = String::from_utf8(content.data.clone())
+2026-01-13T09:33:59.7275234Z                      .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7275646Z -                clipboard.set_text(text)
+2026-01-13T09:33:59.7276086Z +                clipboard
+2026-01-13T09:33:59.7276416Z +                    .set_text(text)
+2026-01-13T09:33:59.7276735Z                      .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7277051Z              }
+2026-01-13T09:33:59.7277250Z              ContentType::RichText => {
+2026-01-13T09:33:59.7277623Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:78:
+2026-01-13T09:33:59.7278141Z                  // For rich text, we write as plain text (arboard doesn't support HTML directly)
+2026-01-13T09:33:59.7278582Z                  let text = String::from_utf8(content.data.clone())
+2026-01-13T09:33:59.7278970Z                      .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7279308Z -                clipboard.set_text(text)
+2026-01-13T09:33:59.7279544Z +                clipboard
+2026-01-13T09:33:59.7279745Z +                    .set_text(text)
+2026-01-13T09:33:59.7280257Z                      .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7280576Z              }
+2026-01-13T09:33:59.7280750Z              ContentType::Image => {
+2026-01-13T09:33:59.7281122Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:85:
+2026-01-13T09:33:59.7281539Z                  let image = decode_image(&content.data)?;
+2026-01-13T09:33:59.7281819Z -                clipboard.set_image(image)
+2026-01-13T09:33:59.7282060Z +                clipboard
+2026-01-13T09:33:59.7282253Z +                    .set_image(image)
+2026-01-13T09:33:59.7282568Z                      .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7282900Z              }
+2026-01-13T09:33:59.7283084Z              ContentType::File => {
+2026-01-13T09:33:59.7283456Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:90:
+2026-01-13T09:33:59.7284557Z                  // Files are not directly supported - would need platform-specific handling
+2026-01-13T09:33:59.7285147Z -                return Err(ClipboardError::UnsupportedFormat("File clipboard not supported".to_string()));
+2026-01-13T09:33:59.7285661Z +                return Err(ClipboardError::UnsupportedFormat(
+2026-01-13T09:33:59.7286008Z +                    "File clipboard not supported".to_string(),
+2026-01-13T09:33:59.7286279Z +                ));
+2026-01-13T09:33:59.7286455Z              }
+2026-01-13T09:33:59.7286606Z          }
+2026-01-13T09:33:59.7286752Z  
+2026-01-13T09:33:59.7287054Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/clipboard/handler.rs:97:
+2026-01-13T09:33:59.7287439Z  
+2026-01-13T09:33:59.7287628Z      fn clear(&self) -> Result<(), ClipboardError> {
+2026-01-13T09:33:59.7288057Z          let mut clipboard = self.clipboard.lock();
+2026-01-13T09:33:59.7288348Z -        clipboard.clear()
+2026-01-13T09:33:59.7288554Z +        clipboard
+2026-01-13T09:33:59.7288725Z +            .clear()
+2026-01-13T09:33:59.7289000Z              .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+2026-01-13T09:33:59.7289325Z          Ok(())
+2026-01-13T09:33:59.7289479Z      }
+2026-01-13T09:33:59.7289808Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/identity.rs:37:
+2026-01-13T09:33:59.7290533Z              return Err(CryptoError::InvalidKey);
+2026-01-13T09:33:59.7290776Z          }
+2026-01-13T09:33:59.7290946Z  
+2026-01-13T09:33:59.7291140Z -        let signing_key = SigningKey::try_from(bytes)
+2026-01-13T09:33:59.7291439Z -            .map_err(|_| CryptoError::InvalidKey)?;
+2026-01-13T09:33:59.7291842Z +        let signing_key = SigningKey::try_from(bytes).map_err(|_| CryptoError::InvalidKey)?;
+2026-01-13T09:33:59.7292285Z          let verifying_key = signing_key.verifying_key();
+2026-01-13T09:33:59.7292546Z  
+2026-01-13T09:33:59.7292716Z          let mut hasher = Sha256::new();
+2026-01-13T09:33:59.7293097Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/identity.rs:150:
+2026-01-13T09:33:59.7293500Z          let signature = identity.sign(message);
+2026-01-13T09:33:59.7293742Z  
+2026-01-13T09:33:59.7293909Z          let public_key = identity.public_key();
+2026-01-13T09:33:59.7294318Z -        assert!(DeviceIdentity::verify_from_public_key(&public_key, message, &signature));
+2026-01-13T09:33:59.7294758Z +        assert!(DeviceIdentity::verify_from_public_key(
+2026-01-13T09:33:59.7295031Z +            &public_key,
+2026-01-13T09:33:59.7295221Z +            message,
+2026-01-13T09:33:59.7295396Z +            &signature
+2026-01-13T09:33:59.7295575Z +        ));
+2026-01-13T09:33:59.7295724Z      }
+2026-01-13T09:33:59.7295868Z  }
+2026-01-13T09:33:59.7296001Z  
+2026-01-13T09:33:59.7296282Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/kdf.rs:7:
+2026-01-13T09:33:59.7296644Z  use hkdf::Hkdf;
+2026-01-13T09:33:59.7296816Z  use sha2::Sha256;
+2026-01-13T09:33:59.7296977Z  
+2026-01-13T09:33:59.7297142Z -use crate::error::CryptoError;
+2026-01-13T09:33:59.7297367Z  use super::KEY_SIZE;
+2026-01-13T09:33:59.7297557Z +use crate::error::CryptoError;
+2026-01-13T09:33:59.7297762Z  
+2026-01-13T09:33:59.7297946Z  /// Purpose of derived key (used as context in HKDF)
+2026-01-13T09:33:59.7298230Z  #[derive(Debug, Clone, Copy)]
+2026-01-13T09:33:59.7298742Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/mod.rs:16:
+2026-01-13T09:33:59.7299424Z  pub use identity::DeviceIdentity;
+2026-01-13T09:33:59.7300012Z  pub use kdf::{derive_key, DerivedKeyPurpose};
+2026-01-13T09:33:59.7300501Z  pub use key_exchange::{EphemeralKeyPair, SharedSecret};
+2026-01-13T09:33:59.7300837Z -pub use pairing::{PairingSession, PairingInfo};
+2026-01-13T09:33:59.7301181Z -pub use symmetric::{encrypt, decrypt, EncryptedMessage};
+2026-01-13T09:33:59.7301524Z +pub use pairing::{PairingInfo, PairingSession};
+2026-01-13T09:33:59.7301844Z +pub use symmetric::{decrypt, encrypt, EncryptedMessage};
+2026-01-13T09:33:59.7302282Z  
+2026-01-13T09:33:59.7302439Z  /// Size of AES-256 key in bytes
+2026-01-13T09:33:59.7302682Z  pub const KEY_SIZE: usize = 32;
+2026-01-13T09:33:59.7303028Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/mod.rs:58:
+2026-01-13T09:33:59.7303413Z              alice_shared.as_bytes(),
+2026-01-13T09:33:59.7303685Z              DerivedKeyPurpose::SessionEncryption,
+2026-01-13T09:33:59.7303939Z              None,
+2026-01-13T09:33:59.7304111Z -        ).unwrap();
+2026-01-13T09:33:59.7304279Z +        )
+2026-01-13T09:33:59.7304435Z +        .unwrap();
+2026-01-13T09:33:59.7304593Z  
+2026-01-13T09:33:59.7304756Z          let bob_session_key = derive_key(
+2026-01-13T09:33:59.7304998Z              bob_shared.as_bytes(),
+2026-01-13T09:33:59.7305348Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/mod.rs:65:
+2026-01-13T09:33:59.7305862Z              DerivedKeyPurpose::SessionEncryption,
+2026-01-13T09:33:59.7306135Z              None,
+2026-01-13T09:33:59.7306307Z -        ).unwrap();
+2026-01-13T09:33:59.7306478Z +        )
+2026-01-13T09:33:59.7306627Z +        .unwrap();
+2026-01-13T09:33:59.7306781Z  
+2026-01-13T09:33:59.7306973Z          assert_eq!(alice_session_key, bob_session_key);
+2026-01-13T09:33:59.7307232Z  
+2026-01-13T09:33:59.7307537Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/pairing.rs:8:
+2026-01-13T09:33:59.7307934Z  use serde::{Deserialize, Serialize};
+2026-01-13T09:33:59.7308183Z  use std::time::{SystemTime, UNIX_EPOCH};
+2026-01-13T09:33:59.7308416Z  
+2026-01-13T09:33:59.7308571Z -use crate::error::CryptoError;
+2026-01-13T09:33:59.7308902Z  use super::{derive_key, DerivedKeyPurpose, EphemeralKeyPair, KEY_SIZE};
+2026-01-13T09:33:59.7309260Z +use crate::error::CryptoError;
+2026-01-13T09:33:59.7309460Z  
+2026-01-13T09:33:59.7309809Z  /// Pairing session duration in seconds (5 minutes)
+2026-01-13T09:33:59.7310484Z  const PAIRING_TIMEOUT_SECS: u64 = 300;
+2026-01-13T09:33:59.7310949Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/pairing.rs:121:
+2026-01-13T09:33:59.7311330Z  
+2026-01-13T09:33:59.7311480Z          // Verify code matches
+2026-01-13T09:33:59.7311778Z          if !constant_time_eq(self.code.as_bytes(), peer_code.as_bytes()) {
+2026-01-13T09:33:59.7312257Z -            return Err(CryptoError::PairingFailed("Invalid pairing code".to_string()));
+2026-01-13T09:33:59.7312662Z +            return Err(CryptoError::PairingFailed(
+2026-01-13T09:33:59.7312949Z +                "Invalid pairing code".to_string(),
+2026-01-13T09:33:59.7313189Z +            ));
+2026-01-13T09:33:59.7313353Z          }
+2026-01-13T09:33:59.7313493Z  
+2026-01-13T09:33:59.7313646Z          // Derive shared secret
+2026-01-13T09:33:59.7314003Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/pairing.rs:146:
+2026-01-13T09:33:59.7314523Z              .map_err(|e| CryptoError::PairingFailed(format!("Invalid QR data: {}", e)))?;
+2026-01-13T09:33:59.7314886Z  
+2026-01-13T09:33:59.7315033Z          // Decode public key
+2026-01-13T09:33:59.7315310Z -        let peer_public_key: [u8; 32] = base64::Engine::decode(
+2026-01-13T09:33:59.7315644Z -            &base64::engine::general_purpose::STANDARD,
+2026-01-13T09:33:59.7315920Z -            &payload.pk,
+2026-01-13T09:33:59.7316106Z -        )
+2026-01-13T09:33:59.7316400Z -        .map_err(|e| CryptoError::PairingFailed(format!("Invalid public key: {}", e)))?
+2026-01-13T09:33:59.7316771Z -        .try_into()
+2026-01-13T09:33:59.7317096Z -        .map_err(|_| CryptoError::PairingFailed("Invalid public key length".to_string()))?;
+2026-01-13T09:33:59.7317503Z +        let peer_public_key: [u8; 32] =
+2026-01-13T09:33:59.7317874Z +            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &payload.pk)
+2026-01-13T09:33:59.7318402Z +                .map_err(|e| CryptoError::PairingFailed(format!("Invalid public key: {}", e)))?
+2026-01-13T09:33:59.7318787Z +                .try_into()
+2026-01-13T09:33:59.7319150Z +                .map_err(|_| CryptoError::PairingFailed("Invalid public key length".to_string()))?;
+2026-01-13T09:33:59.7319688Z  
+2026-01-13T09:33:59.7320172Z          let session_key = self.complete(&peer_public_key, &payload.code)?;
+2026-01-13T09:33:59.7320509Z  
+2026-01-13T09:33:59.7320846Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/symmetric.rs:6:
+2026-01-13T09:33:59.7321215Z  };
+2026-01-13T09:33:59.7321411Z  use rand::{rngs::StdRng, RngCore, SeedableRng};
+2026-01-13T09:33:59.7321657Z  
+2026-01-13T09:33:59.7321814Z -use crate::error::CryptoError;
+2026-01-13T09:33:59.7322056Z  use super::{KEY_SIZE, NONCE_SIZE, TAG_SIZE};
+2026-01-13T09:33:59.7322320Z +use crate::error::CryptoError;
+2026-01-13T09:33:59.7322517Z  
+2026-01-13T09:33:59.7322722Z  /// Encrypted message with nonce and authentication tag
+2026-01-13T09:33:59.7323002Z  #[derive(Debug, Clone)]
+2026-01-13T09:33:59.7323463Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/symmetric.rs:48:
+2026-01-13T09:33:59.7323874Z  /// * `key` - 32-byte encryption key
+2026-01-13T09:33:59.7324118Z  /// * `plaintext` - Data to encrypt
+2026-01-13T09:33:59.7324459Z  /// * `aad` - Additional authenticated data (not encrypted, but authenticated)
+2026-01-13T09:33:59.7325016Z -pub fn encrypt(key: &[u8; KEY_SIZE], plaintext: &[u8], aad: &[u8]) -> Result<EncryptedMessage, CryptoError> {
+2026-01-13T09:33:59.7325492Z -    let cipher = Aes256Gcm::new_from_slice(key)
+2026-01-13T09:33:59.7325818Z -        .map_err(|e| CryptoError::Encryption(e.to_string()))?;
+2026-01-13T09:33:59.7326111Z +pub fn encrypt(
+2026-01-13T09:33:59.7326284Z +    key: &[u8; KEY_SIZE],
+2026-01-13T09:33:59.7326478Z +    plaintext: &[u8],
+2026-01-13T09:33:59.7326658Z +    aad: &[u8],
+2026-01-13T09:33:59.7326852Z +) -> Result<EncryptedMessage, CryptoError> {
+2026-01-13T09:33:59.7327104Z +    let cipher =
+2026-01-13T09:33:59.7327430Z +        Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Encryption(e.to_string()))?;
+2026-01-13T09:33:59.7327808Z  
+2026-01-13T09:33:59.7327956Z      // Generate random nonce
+2026-01-13T09:33:59.7328191Z      let mut nonce_bytes = [0u8; NONCE_SIZE];
+2026-01-13T09:33:59.7328578Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/symmetric.rs:59:
+2026-01-13T09:33:59.7328957Z  
+2026-01-13T09:33:59.7329108Z      // Encrypt with AAD
+2026-01-13T09:33:59.7329303Z      let ciphertext = cipher
+2026-01-13T09:33:59.7329602Z -        .encrypt(nonce, aes_gcm::aead::Payload { msg: plaintext, aad })
+2026-01-13T09:33:59.7330027Z +        .encrypt(
+2026-01-13T09:33:59.7330194Z +            nonce,
+2026-01-13T09:33:59.7330374Z +            aes_gcm::aead::Payload {
+2026-01-13T09:33:59.7330606Z +                msg: plaintext,
+2026-01-13T09:33:59.7330804Z +                aad,
+2026-01-13T09:33:59.7330973Z +            },
+2026-01-13T09:33:59.7331124Z +        )
+2026-01-13T09:33:59.7331348Z          .map_err(|e| CryptoError::Encryption(e.to_string()))?;
+2026-01-13T09:33:59.7331626Z  
+2026-01-13T09:33:59.7331778Z      Ok(EncryptedMessage {
+2026-01-13T09:33:59.7332129Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/symmetric.rs:74:
+2026-01-13T09:33:59.7332526Z  /// * `key` - 32-byte encryption key
+2026-01-13T09:33:59.7332782Z  /// * `message` - Encrypted message with nonce
+2026-01-13T09:33:59.7333113Z  /// * `aad` - Additional authenticated data (must match encryption)
+2026-01-13T09:33:59.7333647Z -pub fn decrypt(key: &[u8; KEY_SIZE], message: &EncryptedMessage, aad: &[u8]) -> Result<Vec<u8>, CryptoError> {
+2026-01-13T09:33:59.7334132Z -    let cipher = Aes256Gcm::new_from_slice(key)
+2026-01-13T09:33:59.7334443Z -        .map_err(|e| CryptoError::Decryption(e.to_string()))?;
+2026-01-13T09:33:59.7334734Z +pub fn decrypt(
+2026-01-13T09:33:59.7334902Z +    key: &[u8; KEY_SIZE],
+2026-01-13T09:33:59.7335108Z +    message: &EncryptedMessage,
+2026-01-13T09:33:59.7335312Z +    aad: &[u8],
+2026-01-13T09:33:59.7335496Z +) -> Result<Vec<u8>, CryptoError> {
+2026-01-13T09:33:59.7335722Z +    let cipher =
+2026-01-13T09:33:59.7336046Z +        Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Decryption(e.to_string()))?;
+2026-01-13T09:33:59.7336549Z  
+2026-01-13T09:33:59.7336737Z      let nonce = Nonce::from_slice(&message.nonce);
+2026-01-13T09:33:59.7336990Z  
+2026-01-13T09:33:59.7337278Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/crypto/symmetric.rs:83:
+2026-01-13T09:33:59.7337657Z      cipher
+2026-01-13T09:33:59.7337932Z -        .decrypt(nonce, aes_gcm::aead::Payload { msg: &message.ciphertext, aad })
+2026-01-13T09:33:59.7338283Z +        .decrypt(
+2026-01-13T09:33:59.7338444Z +            nonce,
+2026-01-13T09:33:59.7338628Z +            aes_gcm::aead::Payload {
+2026-01-13T09:33:59.7338864Z +                msg: &message.ciphertext,
+2026-01-13T09:33:59.7339098Z +                aad,
+2026-01-13T09:33:59.7339271Z +            },
+2026-01-13T09:33:59.7339425Z +        )
+2026-01-13T09:33:59.7339755Z          .map_err(|e| CryptoError::Decryption(e.to_string()))
+2026-01-13T09:33:59.7340129Z  }
+2026-01-13T09:33:59.7340268Z  
+2026-01-13T09:33:59.7404148Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/discovery.rs:1:
+2026-01-13T09:33:59.7404653Z  //! mDNS-SD device discovery
+2026-01-13T09:33:59.7404853Z  
+2026-01-13T09:33:59.7405021Z -use std::net::SocketAddr;
+2026-01-13T09:33:59.7405293Z  use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
+2026-01-13T09:33:59.7405588Z +use std::net::SocketAddr;
+2026-01-13T09:33:59.7405780Z  
+2026-01-13T09:33:59.7405937Z  use crate::error::NetworkError;
+2026-01-13T09:33:59.7406173Z  
+2026-01-13T09:33:59.7406538Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/discovery.rs:36:
+2026-01-13T09:33:59.7407033Z  impl MdnsDiscovery {
+2026-01-13T09:33:59.7407280Z      /// Create a new discovery service
+2026-01-13T09:33:59.7407779Z      pub fn new(device_id: &str, device_name: &str, port: u16) -> Result<Self, NetworkError> {
+2026-01-13T09:33:59.7408307Z -        let daemon = ServiceDaemon::new()
+2026-01-13T09:33:59.7408697Z -            .map_err(|e| NetworkError::Discovery(e.to_string()))?;
+2026-01-13T09:33:59.7409292Z +        let daemon = ServiceDaemon::new().map_err(|e| NetworkError::Discovery(e.to_string()))?;
+2026-01-13T09:33:59.7409781Z  
+2026-01-13T09:33:59.7410287Z          Ok(Self {
+2026-01-13T09:33:59.7410500Z              daemon,
+2026-01-13T09:33:59.7410924Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/discovery.rs:94:
+2026-01-13T09:33:59.7411544Z      pub fn parse_service(info: &ServiceInfo) -> Option<DiscoveredPeer> {
+2026-01-13T09:33:59.7412003Z          let properties = info.get_properties();
+2026-01-13T09:33:59.7412313Z  
+2026-01-13T09:33:59.7412508Z -        let device_id = properties
+2026-01-13T09:33:59.7412791Z -            .get("id")
+2026-01-13T09:33:59.7413048Z -            .map(|v| v.val_str().to_string())?;
+2026-01-13T09:33:59.7413491Z +        let device_id = properties.get("id").map(|v| v.val_str().to_string())?;
+2026-01-13T09:33:59.7413940Z          let device_name = properties
+2026-01-13T09:33:59.7414238Z              .get("name")
+2026-01-13T09:33:59.7414501Z              .map(|v| v.val_str().to_string())
+2026-01-13T09:33:59.7423144Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/mod.rs:10:
+2026-01-13T09:33:59.7423542Z  pub mod relay_client;
+2026-01-13T09:33:59.7423730Z  pub mod transport;
+2026-01-13T09:33:59.7423914Z  
+2026-01-13T09:33:59.7424073Z +use parking_lot::RwLock;
+2026-01-13T09:33:59.7424288Z  use std::collections::HashMap;
+2026-01-13T09:33:59.7424503Z  use std::net::SocketAddr;
+2026-01-13T09:33:59.7424704Z  use std::sync::Arc;
+2026-01-13T09:33:59.7425055Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/mod.rs:16:
+2026-01-13T09:33:59.7425421Z -use parking_lot::RwLock;
+2026-01-13T09:33:59.7425632Z  use tokio::sync::broadcast;
+2026-01-13T09:33:59.7425824Z  
+2026-01-13T09:33:59.7425993Z  use crate::crypto::DeviceIdentity;
+2026-01-13T09:33:59.7426346Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/mod.rs:61:
+2026-01-13T09:33:59.7426715Z          device_name: String,
+2026-01-13T09:33:59.7427084Z      },
+2026-01-13T09:33:59.7427249Z      /// Disconnected from a peer
+2026-01-13T09:33:59.7427483Z -    PeerDisconnected {
+2026-01-13T09:33:59.7427678Z -        device_id: [u8; 32],
+2026-01-13T09:33:59.7427878Z -    },
+2026-01-13T09:33:59.7428059Z +    PeerDisconnected { device_id: [u8; 32] },
+2026-01-13T09:33:59.7428326Z      /// Message received from peer
+2026-01-13T09:33:59.7428546Z      MessageReceived {
+2026-01-13T09:33:59.7428743Z          from_device_id: [u8; 32],
+2026-01-13T09:33:59.7429091Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/mod.rs:230:
+2026-01-13T09:33:59.7429453Z  
+2026-01-13T09:33:59.7429607Z      /// Connect to a peer by address
+2026-01-13T09:33:59.7430201Z      pub async fn connect(&self, addr: SocketAddr) -> Result<[u8; 32], NetworkError> {
+2026-01-13T09:33:59.7430742Z -        let transport = self.transport.as_ref()
+2026-01-13T09:33:59.7431194Z -            .ok_or_else(|| NetworkError::ConnectionFailed("Transport not initialized".to_string()))?;
+2026-01-13T09:33:59.7431688Z +        let transport = self.transport.as_ref().ok_or_else(|| {
+2026-01-13T09:33:59.7432108Z +            NetworkError::ConnectionFailed("Transport not initialized".to_string())
+2026-01-13T09:33:59.7432466Z +        })?;
+2026-01-13T09:33:59.7432615Z  
+2026-01-13T09:33:59.7432798Z          let conn = transport.connect(addr).await?;
+2026-01-13T09:33:59.7433100Z -        let device_id = conn.peer_device_id()
+2026-01-13T09:33:59.7433354Z +        let device_id = conn
+2026-01-13T09:33:59.7433566Z +            .peer_device_id()
+2026-01-13T09:33:59.7433898Z              .ok_or_else(|| NetworkError::ConnectionFailed("No device ID".to_string()))?;
+2026-01-13T09:33:59.7434253Z  
+2026-01-13T09:33:59.7434434Z          self.peers.write().insert(device_id, conn);
+2026-01-13T09:33:59.8143657Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/relay_client.rs:1:
+2026-01-13T09:33:59.8144291Z  //! Relay server client for remote clipboard sync
+2026-01-13T09:33:59.8144642Z  
+2026-01-13T09:33:59.8144893Z -use std::sync::Arc;
+2026-01-13T09:33:59.8145168Z -use std::time::{SystemTime, UNIX_EPOCH};
+2026-01-13T09:33:59.8145530Z  use futures_util::{SinkExt, StreamExt};
+2026-01-13T09:33:59.8145866Z  use serde::{Deserialize, Serialize};
+2026-01-13T09:33:59.8146176Z +use std::sync::Arc;
+2026-01-13T09:33:59.8146432Z +use std::time::{SystemTime, UNIX_EPOCH};
+2026-01-13T09:33:59.8146779Z  use tokio::sync::Mutex;
+2026-01-13T09:33:59.8147195Z  use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
+2026-01-13T09:33:59.8147654Z  
+2026-01-13T09:33:59.8148061Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/relay_client.rs:18:
+2026-01-13T09:33:59.8148604Z      auth_token: Mutex<Option<String>>,
+2026-01-13T09:33:59.8148906Z  }
+2026-01-13T09:33:59.8149083Z  
+2026-01-13T09:33:59.8149404Z -type WebSocketConnection = tokio_tungstenite::WebSocketStream<
+2026-01-13T09:33:59.8150176Z -    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>
+2026-01-13T09:33:59.8150563Z ->;
+2026-01-13T09:33:59.8150777Z +type WebSocketConnection =
+2026-01-13T09:33:59.8151324Z +    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+2026-01-13T09:33:59.8151903Z  
+2026-01-13T09:33:59.8152094Z  /// Registration request
+2026-01-13T09:33:59.8152354Z  #[allow(dead_code)]
+2026-01-13T09:33:59.8152807Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/relay_client.rs:112:
+2026-01-13T09:33:59.8153346Z                  .get("error")
+2026-01-13T09:33:59.8153621Z                  .and_then(|v| v.as_str())
+2026-01-13T09:33:59.8153946Z                  .unwrap_or("Unknown error");
+2026-01-13T09:33:59.8154423Z -            Err(NetworkError::Relay(format!("Authentication failed: {}", error)))
+2026-01-13T09:33:59.8154913Z +            Err(NetworkError::Relay(format!(
+2026-01-13T09:33:59.8155258Z +                "Authentication failed: {}",
+2026-01-13T09:33:59.8155559Z +                error
+2026-01-13T09:33:59.8155785Z +            )))
+2026-01-13T09:33:59.8156337Z          }
+2026-01-13T09:33:59.8156532Z      }
+2026-01-13T09:33:59.8156714Z  
+2026-01-13T09:33:59.8157140Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/relay_client.rs:152:
+2026-01-13T09:33:59.8157781Z              .map_err(|e| NetworkError::Relay(format!("Invalid message: {}", e)))?;
+2026-01-13T09:33:59.8158121Z  
+2026-01-13T09:33:59.8158366Z          if envelope.get("type").and_then(|v| v.as_str()) == Some("relay") {
+2026-01-13T09:33:59.8158749Z -            let msg: RelayMessage = serde_json::from_value(
+2026-01-13T09:33:59.8159098Z -                envelope.get("message").cloned().unwrap_or_default()
+2026-01-13T09:33:59.8159382Z -            )
+2026-01-13T09:33:59.8159686Z -            .map_err(|e| NetworkError::Relay(format!("Invalid relay message: {}", e)))?;
+2026-01-13T09:33:59.8160329Z +            let msg: RelayMessage =
+2026-01-13T09:33:59.8160876Z +                serde_json::from_value(envelope.get("message").cloned().unwrap_or_default())
+2026-01-13T09:33:59.8161413Z +                    .map_err(|e| NetworkError::Relay(format!("Invalid relay message: {}", e)))?;
+2026-01-13T09:33:59.8161777Z              Ok(msg)
+2026-01-13T09:33:59.8161949Z          } else {
+2026-01-13T09:33:59.8162214Z              Err(NetworkError::Relay("Unexpected message type".to_string()))
+2026-01-13T09:33:59.8162712Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/relay_client.rs:165:
+2026-01-13T09:33:59.8163119Z      /// Send WebSocket message
+2026-01-13T09:33:59.8163459Z      async fn send_ws_message(&self, message: &str) -> Result<(), NetworkError> {
+2026-01-13T09:33:59.8163830Z          let mut ws = self.ws.lock().await;
+2026-01-13T09:33:59.8164066Z -        let ws = ws.as_mut()
+2026-01-13T09:33:59.8164267Z +        let ws = ws
+2026-01-13T09:33:59.8164436Z +            .as_mut()
+2026-01-13T09:33:59.8164717Z              .ok_or_else(|| NetworkError::Relay("Not connected".to_string()))?;
+2026-01-13T09:33:59.8165028Z  
+2026-01-13T09:33:59.8165233Z          ws.send(WsMessage::Text(message.to_string().into()))
+2026-01-13T09:33:59.8165686Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/relay_client.rs:176:
+2026-01-13T09:33:59.8166091Z      /// Receive WebSocket message
+2026-01-13T09:33:59.8166408Z      async fn receive_ws_message(&self) -> Result<String, NetworkError> {
+2026-01-13T09:33:59.8166748Z          let mut ws = self.ws.lock().await;
+2026-01-13T09:33:59.8166986Z -        let ws = ws.as_mut()
+2026-01-13T09:33:59.8167180Z +        let ws = ws
+2026-01-13T09:33:59.8167349Z +            .as_mut()
+2026-01-13T09:33:59.8167613Z              .ok_or_else(|| NetworkError::Relay("Not connected".to_string()))?;
+2026-01-13T09:33:59.8167925Z  
+2026-01-13T09:33:59.8168065Z          loop {
+2026-01-13T09:33:59.8168918Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:1:
+2026-01-13T09:33:59.8169651Z  //! QUIC transport for P2P connections
+2026-01-13T09:33:59.8170190Z  
+2026-01-13T09:33:59.8170590Z +use quinn::{ClientConfig, Connection, Endpoint, ServerConfig, TransportConfig, VarInt};
+2026-01-13T09:33:59.8171119Z +use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+2026-01-13T09:33:59.8171494Z  use std::net::SocketAddr;
+2026-01-13T09:33:59.8171692Z  use std::sync::Arc;
+2026-01-13T09:33:59.8171883Z  use std::time::Duration;
+2026-01-13T09:33:59.8172223Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:6:
+2026-01-13T09:33:59.8172600Z -use quinn::{
+2026-01-13T09:33:59.8172872Z -    ClientConfig, Connection, Endpoint, ServerConfig, TransportConfig,
+2026-01-13T09:33:59.8173200Z -    VarInt,
+2026-01-13T09:33:59.8173353Z -};
+2026-01-13T09:33:59.8173664Z -use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+2026-01-13T09:33:59.8174023Z  use tokio::sync::Mutex;
+2026-01-13T09:33:59.8174211Z  
+2026-01-13T09:33:59.8174377Z  use crate::crypto::KEY_SIZE;
+2026-01-13T09:33:59.8174726Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:30:
+2026-01-13T09:33:59.8175287Z      /// Create a new QUIC transport
+2026-01-13T09:33:59.8175610Z      pub async fn new(bind_addr: SocketAddr) -> Result<Self, NetworkError> {
+2026-01-13T09:33:59.8175970Z          // Generate self-signed certificate
+2026-01-13T09:33:59.8176248Z -        let (cert, key) = generate_self_signed_cert()
+2026-01-13T09:33:59.8176567Z -            .map_err(|e| NetworkError::Tls(e.to_string()))?;
+2026-01-13T09:33:59.8176843Z +        let (cert, key) =
+2026-01-13T09:33:59.8177180Z +            generate_self_signed_cert().map_err(|e| NetworkError::Tls(e.to_string()))?;
+2026-01-13T09:33:59.8177537Z  
+2026-01-13T09:33:59.8177683Z          // Configure server
+2026-01-13T09:33:59.8177957Z -        let server_config = configure_server(cert.clone(), key)
+2026-01-13T09:33:59.8178296Z -            .map_err(|e| NetworkError::Tls(e.to_string()))?;
+2026-01-13T09:33:59.8178690Z +        let server_config =
+2026-01-13T09:33:59.8179046Z +            configure_server(cert.clone(), key).map_err(|e| NetworkError::Tls(e.to_string()))?;
+2026-01-13T09:33:59.8179433Z  
+2026-01-13T09:33:59.8179634Z          // Configure client (accepts any certificate for P2P)
+2026-01-13T09:33:59.8180222Z -        let client_config = configure_client()
+2026-01-13T09:33:59.8180532Z -            .map_err(|e| NetworkError::Tls(e.to_string()))?;
+2026-01-13T09:33:59.8180961Z +        let client_config = configure_client().map_err(|e| NetworkError::Tls(e.to_string()))?;
+2026-01-13T09:33:59.8181346Z  
+2026-01-13T09:33:59.8181494Z          // Create endpoint
+2026-01-13T09:33:59.8181778Z          let mut endpoint = Endpoint::server(server_config, bind_addr)
+2026-01-13T09:33:59.8182239Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:47:
+2026-01-13T09:33:59.8182622Z  
+2026-01-13T09:33:59.8182825Z          endpoint.set_default_client_config(client_config);
+2026-01-13T09:33:59.8183100Z  
+2026-01-13T09:33:59.8183274Z -        let local_addr = endpoint.local_addr()
+2026-01-13T09:33:59.8183663Z +        let local_addr = endpoint
+2026-01-13T09:33:59.8184063Z +            .local_addr()
+2026-01-13T09:33:59.8184435Z              .map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8184736Z  
+2026-01-13T09:33:59.8184876Z          Ok(Self {
+2026-01-13T09:33:59.8185205Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:63:
+2026-01-13T09:33:59.8185585Z  
+2026-01-13T09:33:59.8185738Z      /// Connect to a peer
+2026-01-13T09:33:59.8186095Z      pub async fn connect(&self, addr: SocketAddr) -> Result<PeerConnection, NetworkError> {
+2026-01-13T09:33:59.8186498Z -        let connection = self.endpoint
+2026-01-13T09:33:59.8186745Z +        let connection = self
+2026-01-13T09:33:59.8186945Z +            .endpoint
+2026-01-13T09:33:59.8187132Z              .connect(addr, "toss")
+2026-01-13T09:33:59.8187438Z              .map_err(|e| NetworkError::ConnectionFailed(e.to_string()))?
+2026-01-13T09:33:59.8187747Z              .await
+2026-01-13T09:33:59.8188071Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:152:
+2026-01-13T09:33:59.8188457Z  
+2026-01-13T09:33:59.8188606Z      /// Get peer name
+2026-01-13T09:33:59.8188821Z      pub fn peer_name(&self) -> Option<String> {
+2026-01-13T09:33:59.8189166Z -        self.peer_name.try_lock().ok().and_then(|guard| guard.clone())
+2026-01-13T09:33:59.8189480Z +        self.peer_name
+2026-01-13T09:33:59.8189667Z +            .try_lock()
+2026-01-13T09:33:59.8189965Z +            .ok()
+2026-01-13T09:33:59.8190159Z +            .and_then(|guard| guard.clone())
+2026-01-13T09:33:59.8190391Z      }
+2026-01-13T09:33:59.8190533Z  
+2026-01-13T09:33:59.8190673Z      /// Send raw bytes
+2026-01-13T09:33:59.8191017Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:159:
+2026-01-13T09:33:59.8191512Z      pub async fn send_raw(&self, data: &[u8]) -> Result<(), NetworkError> {
+2026-01-13T09:33:59.8191855Z -        let mut send = self.connection
+2026-01-13T09:33:59.8192090Z +        let mut send = self
+2026-01-13T09:33:59.8192446Z +            .connection
+2026-01-13T09:33:59.8192673Z              .open_uni()
+2026-01-13T09:33:59.8192854Z              .await
+2026-01-13T09:33:59.8193107Z              .map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8193561Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:174:
+2026-01-13T09:33:59.8193944Z  
+2026-01-13T09:33:59.8194097Z      /// Receive raw bytes
+2026-01-13T09:33:59.8194379Z      pub async fn receive_raw(&self) -> Result<Vec<u8>, NetworkError> {
+2026-01-13T09:33:59.8194716Z -        let mut recv = self.connection
+2026-01-13T09:33:59.8194942Z +        let mut recv = self
+2026-01-13T09:33:59.8195140Z +            .connection
+2026-01-13T09:33:59.8195323Z              .accept_uni()
+2026-01-13T09:33:59.8195505Z              .await
+2026-01-13T09:33:59.8195841Z              .map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8196291Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:190:
+2026-01-13T09:33:59.8196701Z      /// Send an encrypted message
+2026-01-13T09:33:59.8197046Z      pub async fn send_message(&self, message: &Message) -> Result<(), NetworkError> {
+2026-01-13T09:33:59.8197598Z          let key = self.session_key.lock().await;
+2026-01-13T09:33:59.8198035Z -        let key = key.as_ref()
+2026-01-13T09:33:59.8198303Z -            .ok_or(NetworkError::NotAuthenticated)?;
+2026-01-13T09:33:59.8198648Z +        let key = key.as_ref().ok_or(NetworkError::NotAuthenticated)?;
+2026-01-13T09:33:59.8198958Z  
+2026-01-13T09:33:59.8199113Z          let header = message.header();
+2026-01-13T09:33:59.8199365Z -        let payload = message.serialize()
+2026-01-13T09:33:59.8199616Z +        let payload = message
+2026-01-13T09:33:59.8199820Z +            .serialize()
+2026-01-13T09:33:59.8200363Z              .map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8200644Z  
+2026-01-13T09:33:59.8200847Z          let frame = Frame::encrypt(&header, &payload, key)
+2026-01-13T09:33:59.8201278Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:206:
+2026-01-13T09:33:59.8201682Z      /// Receive and decrypt a message
+2026-01-13T09:33:59.8202019Z      pub async fn receive_message(&self) -> Result<Message, NetworkError> {
+2026-01-13T09:33:59.8202379Z          let key = self.session_key.lock().await;
+2026-01-13T09:33:59.8202640Z -        let key = key.as_ref()
+2026-01-13T09:33:59.8202882Z -            .ok_or(NetworkError::NotAuthenticated)?;
+2026-01-13T09:33:59.8203224Z +        let key = key.as_ref().ok_or(NetworkError::NotAuthenticated)?;
+2026-01-13T09:33:59.8203519Z  
+2026-01-13T09:33:59.8203687Z          let data = self.receive_raw().await?;
+2026-01-13T09:33:59.8203916Z  
+2026-01-13T09:33:59.8204218Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:214:
+2026-01-13T09:33:59.8204634Z -        let frame = Frame::from_bytes(&data)
+2026-01-13T09:33:59.8204940Z -            .map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8205397Z +        let frame = Frame::from_bytes(&data).map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8205782Z  
+2026-01-13T09:33:59.8205962Z -        let (header, payload) = frame.decrypt(key)
+2026-01-13T09:33:59.8206232Z +        let (header, payload) = frame
+2026-01-13T09:33:59.8206590Z +            .decrypt(key)
+2026-01-13T09:33:59.8206905Z              .map_err(|e| NetworkError::Transport(e.to_string()))?;
+2026-01-13T09:33:59.8207274Z  
+2026-01-13T09:33:59.8207713Z -        Message::deserialize(&header, &payload)
+2026-01-13T09:33:59.8208167Z -            .map_err(|e| NetworkError::Transport(e.to_string()))
+2026-01-13T09:33:59.8208756Z +        Message::deserialize(&header, &payload).map_err(|e| NetworkError::Transport(e.to_string()))
+2026-01-13T09:33:59.8209321Z      }
+2026-01-13T09:33:59.8209530Z  
+2026-01-13T09:33:59.8209777Z      /// Close the connection
+2026-01-13T09:33:59.8210431Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:228:
+2026-01-13T09:33:59.8211140Z  }
+2026-01-13T09:33:59.8211370Z  
+2026-01-13T09:33:59.8224425Z  /// Generate a self-signed certificate for QUIC
+2026-01-13T09:33:59.8225299Z -fn generate_self_signed_cert() -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Box<dyn std::error::Error>> {
+2026-01-13T09:33:59.8225844Z +fn generate_self_signed_cert(
+2026-01-13T09:33:59.8226246Z +) -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Box<dyn std::error::Error>> {
+2026-01-13T09:33:59.8226773Z      let cert = rcgen::generate_simple_self_signed(vec!["toss".to_string()])?;
+2026-01-13T09:33:59.8227175Z      let key_der = cert.signing_key.serialize_der();
+2026-01-13T09:33:59.8227534Z      let key = PrivatePkcs8KeyDer::from(key_der).into();
+2026-01-13T09:33:59.8228154Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/network/transport.rs:261:
+2026-01-13T09:33:59.8228590Z          .with_no_client_auth();
+2026-01-13T09:33:59.8228799Z  
+2026-01-13T09:33:59.8229022Z      let mut client_config = ClientConfig::new(Arc::new(
+2026-01-13T09:33:59.8229389Z -        quinn::crypto::rustls::QuicClientConfig::try_from(crypto)?
+2026-01-13T09:33:59.8229805Z +        quinn::crypto::rustls::QuicClientConfig::try_from(crypto)?,
+2026-01-13T09:33:59.8230396Z      ));
+2026-01-13T09:33:59.8230547Z  
+2026-01-13T09:33:59.8230761Z      let mut transport = TransportConfig::default();
+2026-01-13T09:33:59.8231230Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/content.rs:116:
+2026-01-13T09:33:59.8231617Z          };
+2026-01-13T09:33:59.8231772Z  
+2026-01-13T09:33:59.8231911Z          Self {
+2026-01-13T09:33:59.8232240Z -            content_type: if is_url(text) { ContentType::Url } else { ContentType::PlainText },
+2026-01-13T09:33:59.8232648Z +            content_type: if is_url(text) {
+2026-01-13T09:33:59.8232907Z +                ContentType::Url
+2026-01-13T09:33:59.8233124Z +            } else {
+2026-01-13T09:33:59.8233316Z +                ContentType::PlainText
+2026-01-13T09:33:59.8233551Z +            },
+2026-01-13T09:33:59.8233706Z              data,
+2026-01-13T09:33:59.8233900Z              metadata: ContentMetadata {
+2026-01-13T09:33:59.8234169Z                  size_bytes: text.len() as u64,
+2026-01-13T09:33:59.8234568Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/content.rs:239:
+2026-01-13T09:33:59.8234966Z          );
+2026-01-13T09:33:59.8235118Z  
+2026-01-13T09:33:59.8235261Z          // Plain text
+2026-01-13T09:33:59.8235589Z -        assert_eq!(detect_content_type(b"Hello, World!"), ContentType::PlainText);
+2026-01-13T09:33:59.8235960Z +        assert_eq!(
+2026-01-13T09:33:59.8236165Z +            detect_content_type(b"Hello, World!"),
+2026-01-13T09:33:59.8236438Z +            ContentType::PlainText
+2026-01-13T09:33:59.8236681Z +        );
+2026-01-13T09:33:59.8236828Z  
+2026-01-13T09:33:59.8236967Z          // URL
+2026-01-13T09:33:59.8237299Z -        assert_eq!(detect_content_type(b"https://example.com"), ContentType::Url);
+2026-01-13T09:33:59.8237677Z +        assert_eq!(
+2026-01-13T09:33:59.8237912Z +            detect_content_type(b"https://example.com"),
+2026-01-13T09:33:59.8238196Z +            ContentType::Url
+2026-01-13T09:33:59.8238401Z +        );
+2026-01-13T09:33:59.8238552Z      }
+2026-01-13T09:33:59.8238693Z  
+2026-01-13T09:33:59.8238835Z      #[test]
+2026-01-13T09:33:59.8239133Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/frame.rs:1:
+2026-01-13T09:33:59.8239527Z  //! Wire frame encoding with encryption
+2026-01-13T09:33:59.8239753Z  
+2026-01-13T09:33:59.8240048Z +use super::message::MessageHeader;
+2026-01-13T09:33:59.8240437Z  use crate::crypto::{decrypt, encrypt, EncryptedMessage, KEY_SIZE, NONCE_SIZE, TAG_SIZE};
+2026-01-13T09:33:59.8240878Z  use crate::error::{CryptoError, ProtocolError};
+2026-01-13T09:33:59.8241172Z -use super::message::MessageHeader;
+2026-01-13T09:33:59.8241381Z  
+2026-01-13T09:33:59.8241520Z  /// Frame format:
+2026-01-13T09:33:59.8242124Z  /// [version: 2 bytes][type: 1 byte][reserved: 1 byte][message_id: 8 bytes][timestamp: 8 bytes][payload_length: 4 bytes][nonce: 12 bytes][encrypted_payload: N bytes][tag: 16 bytes]
+2026-01-13T09:33:59.8243082Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/frame.rs:80:
+2026-01-13T09:33:59.8243451Z  
+2026-01-13T09:33:59.8243618Z          // Validate payload length
+2026-01-13T09:33:59.8243880Z          if bytes.len() < HEADER_SIZE + payload_len {
+2026-01-13T09:33:59.8244334Z -            return Err(ProtocolError::InvalidFormat("Payload length mismatch".to_string()));
+2026-01-13T09:33:59.8244784Z +            return Err(ProtocolError::InvalidFormat(
+2026-01-13T09:33:59.8245079Z +                "Payload length mismatch".to_string(),
+2026-01-13T09:33:59.8245334Z +            ));
+2026-01-13T09:33:59.8245489Z          }
+2026-01-13T09:33:59.8245642Z  
+2026-01-13T09:33:59.8245930Z          if payload_len > super::MAX_MESSAGE_SIZE {
+2026-01-13T09:33:59.8246341Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/frame.rs:87:
+2026-01-13T09:33:59.8246894Z -            return Err(ProtocolError::MessageTooLarge(payload_len, super::MAX_MESSAGE_SIZE));
+2026-01-13T09:33:59.8247333Z +            return Err(ProtocolError::MessageTooLarge(
+2026-01-13T09:33:59.8247605Z +                payload_len,
+2026-01-13T09:33:59.8247819Z +                super::MAX_MESSAGE_SIZE,
+2026-01-13T09:33:59.8248046Z +            ));
+2026-01-13T09:33:59.8248195Z          }
+2026-01-13T09:33:59.8248345Z  
+2026-01-13T09:33:59.8248498Z          // Parse encrypted payload
+2026-01-13T09:33:59.8248866Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/frame.rs:91:
+2026-01-13T09:33:59.8249350Z          let encrypted_bytes = &bytes[HEADER_SIZE..HEADER_SIZE + payload_len];
+2026-01-13T09:33:59.8249787Z -        let encrypted = EncryptedMessage::from_bytes(encrypted_bytes)
+2026-01-13T09:33:59.8250414Z -            .map_err(|e| ProtocolError::InvalidFormat(format!("Invalid encrypted message: {}", e)))?;
+2026-01-13T09:33:59.8250968Z +        let encrypted = EncryptedMessage::from_bytes(encrypted_bytes).map_err(|e| {
+2026-01-13T09:33:59.8251472Z +            ProtocolError::InvalidFormat(format!("Invalid encrypted message: {}", e))
+2026-01-13T09:33:59.8251827Z +        })?;
+2026-01-13T09:33:59.8251985Z  
+2026-01-13T09:33:59.8252143Z          let header = MessageHeader {
+2026-01-13T09:33:59.8252373Z              version,
+2026-01-13T09:33:59.8252701Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/frame.rs:116:
+2026-01-13T09:33:59.8253128Z      /// Get the unencrypted header for routing decisions
+2026-01-13T09:33:59.8253520Z      pub fn peek_header(bytes: &[u8]) -> Result<MessageHeader, ProtocolError> {
+2026-01-13T09:33:59.8253875Z          if bytes.len() < HEADER_SIZE {
+2026-01-13T09:33:59.8254279Z -            return Err(ProtocolError::InvalidFormat("Frame too short for header".to_string()));
+2026-01-13T09:33:59.8254716Z +            return Err(ProtocolError::InvalidFormat(
+2026-01-13T09:33:59.8255027Z +                "Frame too short for header".to_string(),
+2026-01-13T09:33:59.8255288Z +            ));
+2026-01-13T09:33:59.8255446Z          }
+2026-01-13T09:33:59.8255598Z  
+2026-01-13T09:33:59.8255803Z          let version = u16::from_le_bytes([bytes[0], bytes[1]]);
+2026-01-13T09:33:59.8256238Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/message.rs:4:
+2026-01-13T09:33:59.8256637Z  use std::time::{SystemTime, UNIX_EPOCH};
+2026-01-13T09:33:59.8256881Z  use uuid::Uuid;
+2026-01-13T09:33:59.8257037Z  
+2026-01-13T09:33:59.8257203Z -use crate::error::ProtocolError;
+2026-01-13T09:33:59.8257446Z  use super::content::ClipboardContent;
+2026-01-13T09:33:59.8257700Z +use crate::error::ProtocolError;
+2026-01-13T09:33:59.8257908Z  
+2026-01-13T09:33:59.8258065Z  /// Message type identifier
+2026-01-13T09:33:59.8258380Z  #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+2026-01-13T09:33:59.8259011Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/message.rs:207:
+2026-01-13T09:33:59.8259571Z  
+2026-01-13T09:33:59.8259801Z  /// Custom serialization for 64-byte arrays (ed25519 signatures)
+2026-01-13T09:33:59.8260397Z  mod signature_bytes {
+2026-01-13T09:33:59.8260645Z -    use serde::{Deserialize, Deserializer, Serializer};
+2026-01-13T09:33:59.8260940Z      use base64::Engine;
+2026-01-13T09:33:59.8261189Z +    use serde::{Deserialize, Deserializer, Serializer};
+2026-01-13T09:33:59.8261452Z  
+2026-01-13T09:33:59.8261728Z      pub fn serialize<S>(bytes: &[u8; 64], serializer: S) -> Result<S::Ok, S::Error>
+2026-01-13T09:33:59.8262073Z      where
+2026-01-13T09:33:59.8262384Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/message.rs:226:
+2026-01-13T09:33:59.8262839Z          let bytes = base64::engine::general_purpose::STANDARD
+2026-01-13T09:33:59.8263125Z              .decode(&s)
+2026-01-13T09:33:59.8263463Z              .map_err(serde::de::Error::custom)?;
+2026-01-13T09:33:59.8263742Z -        bytes.try_into().map_err(|_| {
+2026-01-13T09:33:59.8264052Z -            serde::de::Error::custom("Invalid signature length")
+2026-01-13T09:33:59.8264332Z -        })
+2026-01-13T09:33:59.8264488Z +        bytes
+2026-01-13T09:33:59.8264642Z +            .try_into()
+2026-01-13T09:33:59.8264925Z +            .map_err(|_| serde::de::Error::custom("Invalid signature length"))
+2026-01-13T09:33:59.8265239Z      }
+2026-01-13T09:33:59.8265388Z  }
+2026-01-13T09:33:59.8265524Z  
+2026-01-13T09:33:59.8265824Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/message.rs:319:
+2026-01-13T09:33:59.8266209Z      #[test]
+2026-01-13T09:33:59.8266382Z      fn test_message_type_conversion() {
+2026-01-13T09:33:59.8266724Z          assert_eq!(MessageType::try_from(0x01).unwrap(), MessageType::Ping);
+2026-01-13T09:33:59.8267200Z -        assert_eq!(MessageType::try_from(0x10).unwrap(), MessageType::ClipboardUpdate);
+2026-01-13T09:33:59.8267581Z +        assert_eq!(
+2026-01-13T09:33:59.8267790Z +            MessageType::try_from(0x10).unwrap(),
+2026-01-13T09:33:59.8268068Z +            MessageType::ClipboardUpdate
+2026-01-13T09:33:59.8268294Z +        );
+2026-01-13T09:33:59.8268492Z          assert!(MessageType::try_from(0x99).is_err());
+2026-01-13T09:33:59.8268739Z      }
+2026-01-13T09:33:59.8268882Z  
+2026-01-13T09:33:59.8269157Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/mod.rs:10:
+2026-01-13T09:33:59.8269629Z  pub use content::{ClipboardContent, ContentMetadata, ContentType};
+2026-01-13T09:33:59.8270191Z  pub use frame::Frame;
+2026-01-13T09:33:59.8270379Z  pub use message::{
+2026-01-13T09:33:59.8270692Z -    ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage,
+2026-01-13T09:33:59.8271175Z -    KeyRotation, Message, MessageHeader, MessageType, Ping, Pong, Platform,
+2026-01-13T09:33:59.8271720Z +    ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage, KeyRotation,
+2026-01-13T09:33:59.8272211Z +    Message, MessageHeader, MessageType, Ping, Platform, Pong,
+2026-01-13T09:33:59.8272509Z  };
+2026-01-13T09:33:59.8272648Z  
+2026-01-13T09:33:59.8272802Z  /// Maximum message size (50 MB)
+2026-01-13T09:33:59.8273158Z Diff in /home/runner/work/toss-share/toss-share/rust_core/src/protocol/mod.rs:55:
+2026-01-13T09:33:59.8273558Z          let bob = EphemeralKeyPair::generate();
+2026-01-13T09:33:59.8273843Z          let bob_public = *bob.public_key_bytes();
+2026-01-13T09:33:59.8274154Z          let shared = alice.derive_shared_secret(&bob_public);
+2026-01-13T09:33:59.8274632Z -        let key = derive_key(shared.as_bytes(), DerivedKeyPurpose::SessionEncryption, None).unwrap();
+2026-01-13T09:33:59.8275056Z +        let key = derive_key(
+2026-01-13T09:33:59.8275264Z +            shared.as_bytes(),
+2026-01-13T09:33:59.8275502Z +            DerivedKeyPurpose::SessionEncryption,
+2026-01-13T09:33:59.8275761Z +            None,
+2026-01-13T09:33:59.8275924Z +        )
+2026-01-13T09:33:59.8276079Z +        .unwrap();
+2026-01-13T09:33:59.8276243Z  
+2026-01-13T09:33:59.8276467Z          let frame = Frame::encrypt(&header, &payload, &key).unwrap();
+2026-01-13T09:33:59.8276928Z          let frame_bytes = frame.to_bytes();
+2026-01-13T09:33:59.8337903Z ##[error]Process completed with exit code 1.
+2026-01-13T09:33:59.8425692Z Post job cleanup.
+2026-01-13T09:33:59.9390631Z [command]/usr/bin/git version
+2026-01-13T09:33:59.9427563Z git version 2.52.0
+2026-01-13T09:33:59.9470517Z Temporarily overriding HOME='/home/runner/work/_temp/0af78e07-d0f0-4737-8a16-f950418320b1' before making global git config changes
+2026-01-13T09:33:59.9471589Z Adding repository directory to the temporary git global config as a safe directory
+2026-01-13T09:33:59.9476095Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/toss-share/toss-share
+2026-01-13T09:33:59.9512130Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-01-13T09:33:59.9544648Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-01-13T09:33:59.9775334Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-01-13T09:33:59.9795913Z http.https://github.com/.extraheader
+2026-01-13T09:33:59.9808294Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-01-13T09:33:59.9838654Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-01-13T09:34:00.0064479Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-01-13T09:34:00.0095668Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-01-13T09:34:00.0422182Z Cleaning up orphan processes

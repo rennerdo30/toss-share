@@ -18,7 +18,9 @@ pub fn encode_image_to_png(image: &ImageData) -> Result<Vec<u8>, ClipboardError>
         image.height as u32,
         image.bytes.to_vec(),
     )
-    .ok_or_else(|| ClipboardError::ImageConversion("Failed to create image from raw data".to_string()))?;
+    .ok_or_else(|| {
+        ClipboardError::ImageConversion("Failed to create image from raw data".to_string())
+    })?;
 
     let dynamic_image = DynamicImage::ImageRgba8(rgba_image);
 

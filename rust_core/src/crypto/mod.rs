@@ -16,8 +16,8 @@ mod symmetric;
 pub use identity::DeviceIdentity;
 pub use kdf::{derive_key, DerivedKeyPurpose};
 pub use key_exchange::{EphemeralKeyPair, SharedSecret};
-pub use pairing::{PairingSession, PairingInfo};
-pub use symmetric::{encrypt, decrypt, EncryptedMessage};
+pub use pairing::{PairingInfo, PairingSession};
+pub use symmetric::{decrypt, encrypt, EncryptedMessage};
 
 /// Size of AES-256 key in bytes
 pub const KEY_SIZE: usize = 32;
@@ -58,13 +58,15 @@ mod tests {
             alice_shared.as_bytes(),
             DerivedKeyPurpose::SessionEncryption,
             None,
-        ).unwrap();
+        )
+        .unwrap();
 
         let bob_session_key = derive_key(
             bob_shared.as_bytes(),
             DerivedKeyPurpose::SessionEncryption,
             None,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(alice_session_key, bob_session_key);
 

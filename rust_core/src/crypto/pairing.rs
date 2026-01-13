@@ -8,8 +8,8 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::error::CryptoError;
 use super::{derive_key, DerivedKeyPurpose, EphemeralKeyPair, KEY_SIZE};
+use crate::error::CryptoError;
 
 /// Pairing session duration in seconds (5 minutes)
 const PAIRING_TIMEOUT_SECS: u64 = 300;
@@ -121,7 +121,9 @@ impl PairingSession {
 
         // Verify code matches
         if !constant_time_eq(self.code.as_bytes(), peer_code.as_bytes()) {
-            return Err(CryptoError::PairingFailed("Invalid pairing code".to_string()));
+            return Err(CryptoError::PairingFailed(
+                "Invalid pairing code".to_string(),
+            ));
         }
 
         // Derive shared secret
@@ -146,13 +148,11 @@ impl PairingSession {
             .map_err(|e| CryptoError::PairingFailed(format!("Invalid QR data: {}", e)))?;
 
         // Decode public key
-        let peer_public_key: [u8; 32] = base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            &payload.pk,
-        )
-        .map_err(|e| CryptoError::PairingFailed(format!("Invalid public key: {}", e)))?
-        .try_into()
-        .map_err(|_| CryptoError::PairingFailed("Invalid public key length".to_string()))?;
+        let peer_public_key: [u8; 32] =
+            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &payload.pk)
+                .map_err(|e| CryptoError::PairingFailed(format!("Invalid public key: {}", e)))?
+                .try_into()
+                .map_err(|_| CryptoError::PairingFailed("Invalid public key length".to_string()))?;
 
         let session_key = self.complete(&peer_public_key, &payload.code)?;
 

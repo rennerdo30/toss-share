@@ -1,0 +1,75 @@
+﻿2026-01-13T09:33:53.7317532Z ##[group]Run actions/checkout@v4
+2026-01-13T09:33:53.7318473Z with:
+2026-01-13T09:33:53.7318908Z   repository: rennerdo30/toss-share
+2026-01-13T09:33:53.7319667Z   token: ***
+2026-01-13T09:33:53.7320325Z   ssh-strict: true
+2026-01-13T09:33:53.7320758Z   ssh-user: git
+2026-01-13T09:33:53.7321181Z   persist-credentials: true
+2026-01-13T09:33:53.7321660Z   clean: true
+2026-01-13T09:33:53.7322096Z   sparse-checkout-cone-mode: true
+2026-01-13T09:33:53.7322604Z   fetch-depth: 1
+2026-01-13T09:33:53.7323007Z   fetch-tags: false
+2026-01-13T09:33:53.7323425Z   show-progress: true
+2026-01-13T09:33:53.7323859Z   lfs: false
+2026-01-13T09:33:53.7324256Z   submodules: false
+2026-01-13T09:33:53.7324691Z   set-safe-directory: true
+2026-01-13T09:33:53.7325418Z env:
+2026-01-13T09:33:53.7325839Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:53.7326318Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:53.7326769Z ##[endgroup]
+2026-01-13T09:33:53.8405609Z Syncing repository: rennerdo30/toss-share
+2026-01-13T09:33:53.8407562Z ##[group]Getting Git version info
+2026-01-13T09:33:53.8408431Z Working directory is '/home/runner/work/toss-share/toss-share'
+2026-01-13T09:33:53.8409436Z [command]/usr/bin/git version
+2026-01-13T09:33:53.8505381Z git version 2.52.0
+2026-01-13T09:33:53.8532029Z ##[endgroup]
+2026-01-13T09:33:53.8545918Z Temporarily overriding HOME='/home/runner/work/_temp/990fefd5-73c2-4a31-b073-f63d39d7fe05' before making global git config changes
+2026-01-13T09:33:53.8547417Z Adding repository directory to the temporary git global config as a safe directory
+2026-01-13T09:33:53.8558923Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/toss-share/toss-share
+2026-01-13T09:33:53.8597902Z Deleting the contents of '/home/runner/work/toss-share/toss-share'
+2026-01-13T09:33:53.8601393Z ##[group]Initializing the repository
+2026-01-13T09:33:53.8605649Z [command]/usr/bin/git init /home/runner/work/toss-share/toss-share
+2026-01-13T09:33:53.8751196Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-01-13T09:33:53.8752631Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-01-13T09:33:53.8754406Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-01-13T09:33:53.8755858Z hint: call:
+2026-01-13T09:33:53.8756570Z hint:
+2026-01-13T09:33:53.8757449Z hint: 	git config --global init.defaultBranch <name>
+2026-01-13T09:33:53.8758579Z hint:
+2026-01-13T09:33:53.8759260Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-01-13T09:33:53.8760601Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-01-13T09:33:53.8761428Z hint:
+2026-01-13T09:33:53.8761846Z hint: 	git branch -m <name>
+2026-01-13T09:33:53.8762341Z hint:
+2026-01-13T09:33:53.8763206Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-01-13T09:33:53.8764705Z Initialized empty Git repository in /home/runner/work/toss-share/toss-share/.git/
+2026-01-13T09:33:53.8769107Z [command]/usr/bin/git remote add origin https://github.com/rennerdo30/toss-share
+2026-01-13T09:33:53.8803863Z ##[endgroup]
+2026-01-13T09:33:53.8804646Z ##[group]Disabling automatic garbage collection
+2026-01-13T09:33:53.8808048Z [command]/usr/bin/git config --local gc.auto 0
+2026-01-13T09:33:53.8836577Z ##[endgroup]
+2026-01-13T09:33:53.8837313Z ##[group]Setting up auth
+2026-01-13T09:33:53.8843816Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-01-13T09:33:53.8874460Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-01-13T09:33:53.9249133Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-01-13T09:33:53.9283838Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-01-13T09:33:53.9511286Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-01-13T09:33:53.9543047Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-01-13T09:33:53.9775329Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-01-13T09:33:53.9811450Z ##[endgroup]
+2026-01-13T09:33:53.9812944Z ##[group]Fetching the repository
+2026-01-13T09:33:53.9821747Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +a8058d21edcfa2d14c94e50e42e6658fb0633668:refs/remotes/origin/main
+2026-01-13T09:33:54.4561210Z From https://github.com/rennerdo30/toss-share
+2026-01-13T09:33:54.4563001Z  * [new ref]         a8058d21edcfa2d14c94e50e42e6658fb0633668 -> origin/main
+2026-01-13T09:33:54.4598049Z ##[endgroup]
+2026-01-13T09:33:54.4600182Z ##[group]Determining the checkout info
+2026-01-13T09:33:54.4602536Z ##[endgroup]
+2026-01-13T09:33:54.4604689Z [command]/usr/bin/git sparse-checkout disable
+2026-01-13T09:33:54.4648099Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-01-13T09:33:54.4680399Z ##[group]Checking out the ref
+2026-01-13T09:33:54.4682664Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-01-13T09:33:54.4866736Z Switched to a new branch 'main'
+2026-01-13T09:33:54.4868753Z branch 'main' set up to track 'origin/main'.
+2026-01-13T09:33:54.4877289Z ##[endgroup]
+2026-01-13T09:33:54.4913611Z [command]/usr/bin/git log -1 --format=%H
+2026-01-13T09:33:54.4935676Z a8058d21edcfa2d14c94e50e42e6658fb0633668

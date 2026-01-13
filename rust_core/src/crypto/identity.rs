@@ -37,8 +37,7 @@ impl DeviceIdentity {
             return Err(CryptoError::InvalidKey);
         }
 
-        let signing_key = SigningKey::try_from(bytes)
-            .map_err(|_| CryptoError::InvalidKey)?;
+        let signing_key = SigningKey::try_from(bytes).map_err(|_| CryptoError::InvalidKey)?;
         let verifying_key = signing_key.verifying_key();
 
         let mut hasher = Sha256::new();
@@ -150,6 +149,10 @@ mod tests {
         let signature = identity.sign(message);
 
         let public_key = identity.public_key();
-        assert!(DeviceIdentity::verify_from_public_key(&public_key, message, &signature));
+        assert!(DeviceIdentity::verify_from_public_key(
+            &public_key,
+            message,
+            &signature
+        ));
     }
 }

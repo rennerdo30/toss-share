@@ -1,8 +1,8 @@
 //! Wire frame encoding with encryption
 
+use super::message::MessageHeader;
 use crate::crypto::{decrypt, encrypt, EncryptedMessage, KEY_SIZE, NONCE_SIZE, TAG_SIZE};
 use crate::error::{CryptoError, ProtocolError};
-use super::message::MessageHeader;
 
 /// Frame format:
 /// [version: 2 bytes][type: 1 byte][reserved: 1 byte][message_id: 8 bytes][timestamp: 8 bytes][payload_length: 4 bytes][nonce: 12 bytes][encrypted_payload: N bytes][tag: 16 bytes]
@@ -80,17 +80,23 @@ impl Frame {
 
         // Validate payload length
         if bytes.len() < HEADER_SIZE + payload_len {
-            return Err(ProtocolError::InvalidFormat("Payload length mismatch".to_string()));
+            return Err(ProtocolError::InvalidFormat(
+                "Payload length mismatch".to_string(),
+            ));
         }
 
         if payload_len > super::MAX_MESSAGE_SIZE {
-            return Err(ProtocolError::MessageTooLarge(payload_len, super::MAX_MESSAGE_SIZE));
+            return Err(ProtocolError::MessageTooLarge(
+                payload_len,
+                super::MAX_MESSAGE_SIZE,
+            ));
         }
 
         // Parse encrypted payload
         let encrypted_bytes = &bytes[HEADER_SIZE..HEADER_SIZE + payload_len];
-        let encrypted = EncryptedMessage::from_bytes(encrypted_bytes)
-            .map_err(|e| ProtocolError::InvalidFormat(format!("Invalid encrypted message: {}", e)))?;
+        let encrypted = EncryptedMessage::from_bytes(encrypted_bytes).map_err(|e| {
+            ProtocolError::InvalidFormat(format!("Invalid encrypted message: {}", e))
+        })?;
 
         let header = MessageHeader {
             version,
@@ -116,7 +122,9 @@ impl Frame {
     /// Get the unencrypted header for routing decisions
     pub fn peek_header(bytes: &[u8]) -> Result<MessageHeader, ProtocolError> {
         if bytes.len() < HEADER_SIZE {
-            return Err(ProtocolError::InvalidFormat("Frame too short for header".to_string()));
+            return Err(ProtocolError::InvalidFormat(
+                "Frame too short for header".to_string(),
+            ));
         }
 
         let version = u16::from_le_bytes([bytes[0], bytes[1]]);

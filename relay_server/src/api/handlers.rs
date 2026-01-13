@@ -40,12 +40,14 @@ pub async fn register_device(
     Json(req): Json<RegisterRequest>,
 ) -> ApiResult<Json<RegisterResponse>> {
     // Decode public key
-    let public_key = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.public_key)
-        .map_err(|_| ApiError::BadRequest("Invalid public key encoding".to_string()))?;
+    let public_key =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.public_key)
+            .map_err(|_| ApiError::BadRequest("Invalid public key encoding".to_string()))?;
 
     // Decode signature
-    let signature = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.signature)
-        .map_err(|_| ApiError::BadRequest("Invalid signature encoding".to_string()))?;
+    let signature =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.signature)
+            .map_err(|_| ApiError::BadRequest("Invalid signature encoding".to_string()))?;
 
     // Verify timestamp freshness (5 minute window)
     let now = SystemTime::now()
@@ -128,7 +130,11 @@ pub async fn relay_message(
     };
 
     // Try to send directly if device is connected
-    if state.relay.send_to(&target_device_id, message.clone()).await {
+    if state
+        .relay
+        .send_to(&target_device_id, message.clone())
+        .await
+    {
         return Ok(StatusCode::ACCEPTED);
     }
 

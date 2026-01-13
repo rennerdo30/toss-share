@@ -1,9 +1,9 @@
 //! Relay server client for remote clipboard sync
 
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
 
@@ -18,9 +18,8 @@ pub struct RelayClient {
     auth_token: Mutex<Option<String>>,
 }
 
-type WebSocketConnection = tokio_tungstenite::WebSocketStream<
-    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>
->;
+type WebSocketConnection =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
 /// Registration request
 #[allow(dead_code)]
@@ -112,7 +111,10 @@ impl RelayClient {
                 .get("error")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown error");
-            Err(NetworkError::Relay(format!("Authentication failed: {}", error)))
+            Err(NetworkError::Relay(format!(
+                "Authentication failed: {}",
+                error
+            )))
         }
     }
 
@@ -152,10 +154,9 @@ impl RelayClient {
             .map_err(|e| NetworkError::Relay(format!("Invalid message: {}", e)))?;
 
         if envelope.get("type").and_then(|v| v.as_str()) == Some("relay") {
-            let msg: RelayMessage = serde_json::from_value(
-                envelope.get("message").cloned().unwrap_or_default()
-            )
-            .map_err(|e| NetworkError::Relay(format!("Invalid relay message: {}", e)))?;
+            let msg: RelayMessage =
+                serde_json::from_value(envelope.get("message").cloned().unwrap_or_default())
+                    .map_err(|e| NetworkError::Relay(format!("Invalid relay message: {}", e)))?;
             Ok(msg)
         } else {
             Err(NetworkError::Relay("Unexpected message type".to_string()))
@@ -165,7 +166,8 @@ impl RelayClient {
     /// Send WebSocket message
     async fn send_ws_message(&self, message: &str) -> Result<(), NetworkError> {
         let mut ws = self.ws.lock().await;
-        let ws = ws.as_mut()
+        let ws = ws
+            .as_mut()
             .ok_or_else(|| NetworkError::Relay("Not connected".to_string()))?;
 
         ws.send(WsMessage::Text(message.to_string().into()))
@@ -176,7 +178,8 @@ impl RelayClient {
     /// Receive WebSocket message
     async fn receive_ws_message(&self) -> Result<String, NetworkError> {
         let mut ws = self.ws.lock().await;
-        let ws = ws.as_mut()
+        let ws = ws
+            .as_mut()
             .ok_or_else(|| NetworkError::Relay("Not connected".to_string()))?;
 
         loop {

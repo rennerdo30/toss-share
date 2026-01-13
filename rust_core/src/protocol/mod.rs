@@ -10,8 +10,8 @@ mod message;
 pub use content::{ClipboardContent, ContentMetadata, ContentType};
 pub use frame::Frame;
 pub use message::{
-    ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage,
-    KeyRotation, Message, MessageHeader, MessageType, Ping, Pong, Platform,
+    ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage, KeyRotation,
+    Message, MessageHeader, MessageType, Ping, Platform, Pong,
 };
 
 /// Maximum message size (50 MB)
@@ -55,7 +55,12 @@ mod tests {
         let bob = EphemeralKeyPair::generate();
         let bob_public = *bob.public_key_bytes();
         let shared = alice.derive_shared_secret(&bob_public);
-        let key = derive_key(shared.as_bytes(), DerivedKeyPurpose::SessionEncryption, None).unwrap();
+        let key = derive_key(
+            shared.as_bytes(),
+            DerivedKeyPurpose::SessionEncryption,
+            None,
+        )
+        .unwrap();
 
         let frame = Frame::encrypt(&header, &payload, &key).unwrap();
         let frame_bytes = frame.to_bytes();

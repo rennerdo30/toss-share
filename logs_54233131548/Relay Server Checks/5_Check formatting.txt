@@ -1,0 +1,235 @@
+﻿2026-01-13T09:33:54.5135206Z ##[group]Run cargo fmt --all -- --check
+2026-01-13T09:33:54.5136268Z [36;1mcargo fmt --all -- --check[0m
+2026-01-13T09:33:54.5172333Z shell: /usr/bin/bash -e {0}
+2026-01-13T09:33:54.5173171Z env:
+2026-01-13T09:33:54.5173815Z   CARGO_TERM_COLOR: always
+2026-01-13T09:33:54.5174642Z   FLUTTER_VERSION: 3.24.0
+2026-01-13T09:33:54.5175460Z   CARGO_HOME: /home/runner/.cargo
+2026-01-13T09:33:54.5176342Z   CARGO_INCREMENTAL: 0
+2026-01-13T09:33:54.5177290Z ##[endgroup]
+2026-01-13T09:33:55.1484992Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/handlers.rs:40:
+2026-01-13T09:33:55.1487641Z      Json(req): Json<RegisterRequest>,
+2026-01-13T09:33:55.1489343Z  ) -> ApiResult<Json<RegisterResponse>> {
+2026-01-13T09:33:55.1490554Z      // Decode public key
+2026-01-13T09:33:55.1495432Z -    let public_key = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.public_key)
+2026-01-13T09:33:55.1497851Z -        .map_err(|_| ApiError::BadRequest("Invalid public key encoding".to_string()))?;
+2026-01-13T09:33:55.1499325Z +    let public_key =
+2026-01-13T09:33:55.1500568Z +        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.public_key)
+2026-01-13T09:33:55.1502528Z +            .map_err(|_| ApiError::BadRequest("Invalid public key encoding".to_string()))?;
+2026-01-13T09:33:55.1503890Z  
+2026-01-13T09:33:55.1504544Z      // Decode signature
+2026-01-13T09:33:55.1505987Z -    let signature = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.signature)
+2026-01-13T09:33:55.1508262Z -        .map_err(|_| ApiError::BadRequest("Invalid signature encoding".to_string()))?;
+2026-01-13T09:33:55.1509628Z +    let signature =
+2026-01-13T09:33:55.1510844Z +        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.signature)
+2026-01-13T09:33:55.1513510Z +            .map_err(|_| ApiError::BadRequest("Invalid signature encoding".to_string()))?;
+2026-01-13T09:33:55.1514906Z  
+2026-01-13T09:33:55.1515652Z      // Verify timestamp freshness (5 minute window)
+2026-01-13T09:33:55.1516986Z      let now = SystemTime::now()
+2026-01-13T09:33:55.1518354Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/handlers.rs:128:
+2026-01-13T09:33:55.1519783Z      };
+2026-01-13T09:33:55.1520396Z  
+2026-01-13T09:33:55.1521115Z      // Try to send directly if device is connected
+2026-01-13T09:33:55.1522426Z -    if state.relay.send_to(&target_device_id, message.clone()).await {
+2026-01-13T09:33:55.1523624Z +    if state
+2026-01-13T09:33:55.1524271Z +        .relay
+2026-01-13T09:33:55.1525538Z +        .send_to(&target_device_id, message.clone())
+2026-01-13T09:33:55.1526847Z +        .await
+2026-01-13T09:33:55.1527553Z +    {
+2026-01-13T09:33:55.1528259Z          return Ok(StatusCode::ACCEPTED);
+2026-01-13T09:33:55.1529167Z      }
+2026-01-13T09:33:55.1529768Z  
+2026-01-13T09:33:55.1531322Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/websocket.rs:50:
+2026-01-13T09:33:55.1533048Z          encrypted_payload: String,
+2026-01-13T09:33:55.1533914Z      },
+2026-01-13T09:33:55.1534588Z      #[serde(rename = "auth_response")]
+2026-01-13T09:33:55.1536006Z -    AuthResponse { success: bool, error: Option<String> },
+2026-01-13T09:33:55.1537281Z +    AuthResponse {
+2026-01-13T09:33:55.1538014Z +        success: bool,
+2026-01-13T09:33:55.1538770Z +        error: Option<String>,
+2026-01-13T09:33:55.1539861Z +    },
+2026-01-13T09:33:55.1540759Z      #[serde(rename = "error")]
+2026-01-13T09:33:55.1541608Z      Error { message: String },
+2026-01-13T09:33:55.1542406Z  }
+2026-01-13T09:33:55.1543524Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/websocket.rs:57:
+2026-01-13T09:33:55.1544940Z  
+2026-01-13T09:33:55.1545577Z  /// Handle WebSocket upgrade
+2026-01-13T09:33:55.1546425Z -pub async fn ws_handler(
+2026-01-13T09:33:55.1547429Z -    ws: WebSocketUpgrade,
+2026-01-13T09:33:55.1548279Z -    State(state): State<AppState>,
+2026-01-13T09:33:55.1549175Z -) -> impl IntoResponse {
+2026-01-13T09:33:55.1550705Z +pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
+2026-01-13T09:33:55.1552734Z      ws.on_upgrade(|socket| handle_socket(socket, state))
+2026-01-13T09:33:55.1553816Z  }
+2026-01-13T09:33:55.1554465Z  
+2026-01-13T09:33:55.1555625Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/websocket.rs:185:
+2026-01-13T09:33:55.1557371Z          _ => return Err("Expected text message".to_string()),
+2026-01-13T09:33:55.1558415Z      };
+2026-01-13T09:33:55.1559019Z  
+2026-01-13T09:33:55.1559780Z -    let msg: WsMessage = serde_json::from_str(&text)
+2026-01-13T09:33:55.1561005Z -        .map_err(|e| format!("Invalid message format: {}", e))?;
+2026-01-13T09:33:55.1562125Z +    let msg: WsMessage =
+2026-01-13T09:33:55.1563344Z +        serde_json::from_str(&text).map_err(|e| format!("Invalid message format: {}", e))?;
+2026-01-13T09:33:55.1564697Z  
+2026-01-13T09:33:55.1565463Z      let (device_id, timestamp, signature) = match msg {
+2026-01-13T09:33:55.1566637Z          WsMessage::Auth {
+2026-01-13T09:33:55.1567935Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/websocket.rs:235:
+2026-01-13T09:33:55.1569374Z      from_device: &str,
+2026-01-13T09:33:55.1570116Z      state: &AppState,
+2026-01-13T09:33:55.1570855Z  ) -> Result<(), String> {
+2026-01-13T09:33:55.1571743Z -    let msg: WsMessage = serde_json::from_str(text)
+2026-01-13T09:33:55.1572888Z -        .map_err(|e| format!("Invalid message: {}", e))?;
+2026-01-13T09:33:55.1573933Z +    let msg: WsMessage =
+2026-01-13T09:33:55.1575072Z +        serde_json::from_str(text).map_err(|e| format!("Invalid message: {}", e))?;
+2026-01-13T09:33:55.1576339Z  
+2026-01-13T09:33:55.1577050Z      match msg {
+2026-01-13T09:33:55.1577750Z          WsMessage::Send {
+2026-01-13T09:33:55.1579024Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/api/websocket.rs:259:
+2026-01-13T09:33:55.1580450Z                  // Queue for later
+2026-01-13T09:33:55.1581282Z                  state
+2026-01-13T09:33:55.1581988Z                      .db
+2026-01-13T09:33:55.1582759Z -                    .queue_message(
+2026-01-13T09:33:55.1583674Z -                        &relay_msg.id,
+2026-01-13T09:33:55.1584564Z -                        from_device,
+2026-01-13T09:33:55.1585419Z -                        &to_device,
+2026-01-13T09:33:55.1586309Z -                        &encrypted_payload,
+2026-01-13T09:33:55.1587685Z -                    )
+2026-01-13T09:33:55.1589704Z +                    .queue_message(&relay_msg.id, from_device, &to_device, &encrypted_payload)
+2026-01-13T09:33:55.1591844Z                      .await
+2026-01-13T09:33:55.1592855Z                      .map_err(|e| format!("Failed to queue message: {}", e))?;
+2026-01-13T09:33:55.1594047Z              }
+2026-01-13T09:33:55.1595263Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/auth/mod.rs:42:
+2026-01-13T09:33:55.1596875Z  
+2026-01-13T09:33:55.1597808Z  impl FromRequestParts<AppState> for AuthenticatedDevice {
+2026-01-13T09:33:55.1598993Z      type Rejection = ApiError;
+2026-01-13T09:33:55.1599827Z - 
+2026-01-13T09:33:55.1600423Z +
+2026-01-13T09:33:55.1601270Z      async fn from_request_parts(
+2026-01-13T09:33:55.1602132Z          parts: &mut Parts,
+2026-01-13T09:33:55.1602929Z          state: &AppState,
+2026-01-13T09:33:55.1604125Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/auth/mod.rs:68:
+2026-01-13T09:33:55.1605447Z  }
+2026-01-13T09:33:55.1606030Z  
+2026-01-13T09:33:55.1606956Z  /// Create a JWT token for a device
+2026-01-13T09:33:55.1608511Z -pub fn create_token(device_id: &str, secret: &str, expiration_secs: u64) -> Result<String, ApiError> {
+2026-01-13T09:33:55.1610072Z +pub fn create_token(
+2026-01-13T09:33:55.1610807Z +    device_id: &str,
+2026-01-13T09:33:55.1611530Z +    secret: &str,
+2026-01-13T09:33:55.1612242Z +    expiration_secs: u64,
+2026-01-13T09:33:55.1613067Z +) -> Result<String, ApiError> {
+2026-01-13T09:33:55.1613966Z      let now = SystemTime::now()
+2026-01-13T09:33:55.1614840Z          .duration_since(UNIX_EPOCH)
+2026-01-13T09:33:55.1615884Z          .unwrap()
+2026-01-13T09:33:55.1617146Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/config.rs:32:
+2026-01-13T09:33:55.1618513Z                  .unwrap_or(8080),
+2026-01-13T09:33:55.1619468Z              database_url: env::var("DATABASE_URL")
+2026-01-13T09:33:55.1620756Z                  .unwrap_or_else(|_| "sqlite:./data/toss.db?mode=rwc".to_string()),
+2026-01-13T09:33:55.1622078Z -            jwt_secret: env::var("JWT_SECRET")
+2026-01-13T09:33:55.1623064Z -                .unwrap_or_else(|_| {
+2026-01-13T09:33:55.1624243Z -                    tracing::warn!("JWT_SECRET not set, using random secret");
+2026-01-13T09:33:55.1625481Z -                    generate_random_secret()
+2026-01-13T09:33:55.1626401Z -                }),
+2026-01-13T09:33:55.1627431Z +            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| {
+2026-01-13T09:33:55.1628796Z +                tracing::warn!("JWT_SECRET not set, using random secret");
+2026-01-13T09:33:55.1629991Z +                generate_random_secret()
+2026-01-13T09:33:55.1630881Z +            }),
+2026-01-13T09:33:55.1631725Z              jwt_expiration: env::var("JWT_EXPIRATION")
+2026-01-13T09:33:55.1632709Z                  .ok()
+2026-01-13T09:33:55.1633492Z                  .and_then(|e| e.parse().ok())
+2026-01-13T09:33:55.1634882Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/db/mod.rs:189:
+2026-01-13T09:33:55.1636192Z      }
+2026-01-13T09:33:55.1636912Z  
+2026-01-13T09:33:55.1637587Z      /// Get queued messages for a device
+2026-01-13T09:33:55.1639139Z -    pub async fn get_queued_messages(&self, device_id: &str) -> Result<Vec<QueuedMessage>, ApiError> {
+2026-01-13T09:33:55.1640738Z +    pub async fn get_queued_messages(
+2026-01-13T09:33:55.1641609Z +        &self,
+2026-01-13T09:33:55.1642303Z +        device_id: &str,
+2026-01-13T09:33:55.1643148Z +    ) -> Result<Vec<QueuedMessage>, ApiError> {
+2026-01-13T09:33:55.1644294Z          let messages = sqlx::query_as::<_, QueuedMessage>(
+2026-01-13T09:33:55.1645329Z              r#"
+2026-01-13T09:33:55.1646326Z              SELECT id, from_device, to_device, encrypted_payload, created_at
+2026-01-13T09:33:55.2158394Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/error.rs:45:
+2026-01-13T09:33:55.2161188Z              ),
+2026-01-13T09:33:55.2162169Z              ApiError::Internal(msg) => {
+2026-01-13T09:33:55.2163511Z                  tracing::error!("Internal error: {}", msg);
+2026-01-13T09:33:55.2165174Z -                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+2026-01-13T09:33:55.2166683Z +                (
+2026-01-13T09:33:55.2167519Z +                    StatusCode::INTERNAL_SERVER_ERROR,
+2026-01-13T09:33:55.2168632Z +                    "Internal server error".to_string(),
+2026-01-13T09:33:55.2169623Z +                )
+2026-01-13T09:33:55.2170297Z              }
+2026-01-13T09:33:55.2171015Z              ApiError::Database(e) => {
+2026-01-13T09:33:55.2172057Z                  tracing::error!("Database error: {}", e);
+2026-01-13T09:33:55.2173515Z Diff in /home/runner/work/toss-share/toss-share/relay_server/src/error.rs:52:
+2026-01-13T09:33:55.2175436Z -                (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
+2026-01-13T09:33:55.2176779Z +                (
+2026-01-13T09:33:55.2177614Z +                    StatusCode::INTERNAL_SERVER_ERROR,
+2026-01-13T09:33:55.2178681Z +                    "Database error".to_string(),
+2026-01-13T09:33:55.2179683Z +                )
+2026-01-13T09:33:55.2180416Z              }
+2026-01-13T09:33:55.2181124Z          };
+2026-01-13T09:33:55.2181801Z  
+2026-01-13T09:33:55.2232324Z Diff in /home/runner/work/toss-share/toss-share/relay_server/tests/integration_tests.rs:3:
+2026-01-13T09:33:55.2235425Z  //! These tests verify the API endpoints and WebSocket functionality.
+2026-01-13T09:33:55.2236798Z  
+2026-01-13T09:33:55.2237470Z  use base64::Engine;
+2026-01-13T09:33:55.2238342Z -use ed25519_dalek::{SigningKey, Signer};
+2026-01-13T09:33:55.2239390Z +use ed25519_dalek::{Signer, SigningKey};
+2026-01-13T09:33:55.2240573Z  use rand::rngs::OsRng;
+2026-01-13T09:33:55.2241411Z  use serde_json::{json, Value};
+2026-01-13T09:33:55.2242343Z  use std::time::{SystemTime, UNIX_EPOCH};
+2026-01-13T09:33:55.2243908Z Diff in /home/runner/work/toss-share/toss-share/relay_server/tests/integration_tests.rs:13:
+2026-01-13T09:33:55.2245608Z      let signing_key = SigningKey::generate(&mut OsRng);
+2026-01-13T09:33:55.2246967Z      let verifying_key = signing_key.verifying_key();
+2026-01-13T09:33:55.2247987Z  
+2026-01-13T09:33:55.2248955Z -    let public_key_base64 = base64::engine::general_purpose::STANDARD
+2026-01-13T09:33:55.2250243Z -        .encode(verifying_key.to_bytes());
+2026-01-13T09:33:55.2251216Z +    let public_key_base64 =
+2026-01-13T09:33:55.2252479Z +        base64::engine::general_purpose::STANDARD.encode(verifying_key.to_bytes());
+2026-01-13T09:33:55.2253794Z  
+2026-01-13T09:33:55.2254698Z      let device_id = hex::encode(&verifying_key.to_bytes()[..16]);
+2026-01-13T09:33:55.2255835Z  
+2026-01-13T09:33:55.2257173Z Diff in /home/runner/work/toss-share/toss-share/relay_server/tests/integration_tests.rs:35:
+2026-01-13T09:33:55.2258913Z  
+2026-01-13T09:33:55.2260438Z      let message = format!("register:{}:{}", device_id, timestamp);
+2026-01-13T09:33:55.2262089Z      let signature = signing_key.sign(message.as_bytes());
+2026-01-13T09:33:55.2263500Z -    let signature_base64 = base64::engine::general_purpose::STANDARD
+2026-01-13T09:33:55.2264787Z -        .encode(signature.to_bytes());
+2026-01-13T09:33:55.2266350Z +    let signature_base64 = base64::engine::general_purpose::STANDARD.encode(signature.to_bytes());
+2026-01-13T09:33:55.2268034Z  
+2026-01-13T09:33:55.2268656Z      json!({
+2026-01-13T09:33:55.2269372Z          "device_id": device_id,
+2026-01-13T09:33:55.2270834Z Diff in /home/runner/work/toss-share/toss-share/relay_server/tests/integration_tests.rs:69:
+2026-01-13T09:33:55.2272401Z      fn test_create_register_request() {
+2026-01-13T09:33:55.2273610Z          let (signing_key, device_id, public_key) = generate_keypair();
+2026-01-13T09:33:55.2274801Z  
+2026-01-13T09:33:55.2275539Z -        let request = create_register_request(
+2026-01-13T09:33:55.2276659Z -            &signing_key,
+2026-01-13T09:33:55.2277485Z -            &device_id,
+2026-01-13T09:33:55.2278274Z -            &public_key,
+2026-01-13T09:33:55.2279081Z -            "Test Device",
+2026-01-13T09:33:55.2279866Z -        );
+2026-01-13T09:33:55.2281152Z +        let request = create_register_request(&signing_key, &device_id, &public_key, "Test Device");
+2026-01-13T09:33:55.2282660Z  
+2026-01-13T09:33:55.2283418Z          assert_eq!(request["device_id"], device_id);
+2026-01-13T09:33:55.2284598Z          assert_eq!(request["device_name"], "Test Device");
+2026-01-13T09:33:55.2286218Z Diff in /home/runner/work/toss-share/toss-share/relay_server/tests/integration_tests.rs:96:
+2026-01-13T09:33:55.2288053Z          let signature = signing_key.sign(message.as_bytes());
+2026-01-13T09:33:55.2289132Z  
+2026-01-13T09:33:55.2289836Z          // Verification should succeed
+2026-01-13T09:33:55.2291202Z -        assert!(verifying_key.verify_strict(message.as_bytes(), &signature).is_ok());
+2026-01-13T09:33:55.2292818Z +        assert!(verifying_key
+2026-01-13T09:33:55.2293809Z +            .verify_strict(message.as_bytes(), &signature)
+2026-01-13T09:33:55.2294862Z +            .is_ok());
+2026-01-13T09:33:55.2295601Z  
+2026-01-13T09:33:55.2296279Z          // Wrong message should fail
+2026-01-13T09:33:55.2297668Z          let wrong_message = format!("register:{}:{}", device_id, timestamp + 1);
+2026-01-13T09:33:55.2299544Z Diff in /home/runner/work/toss-share/toss-share/relay_server/tests/integration_tests.rs:103:
+2026-01-13T09:33:55.2301595Z -        assert!(verifying_key.verify_strict(wrong_message.as_bytes(), &signature).is_err());
+2026-01-13T09:33:55.2303084Z +        assert!(verifying_key
+2026-01-13T09:33:55.2304115Z +            .verify_strict(wrong_message.as_bytes(), &signature)
+2026-01-13T09:33:55.2305228Z +            .is_err());
+2026-01-13T09:33:55.2306165Z      }
+2026-01-13T09:33:55.2306904Z  }
+2026-01-13T09:33:55.2307528Z  
+2026-01-13T09:33:55.2318450Z ##[error]Process completed with exit code 1.

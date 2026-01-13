@@ -1,7 +1,7 @@
 //! mDNS-SD device discovery
 
-use std::net::SocketAddr;
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
+use std::net::SocketAddr;
 
 use crate::error::NetworkError;
 
@@ -36,8 +36,7 @@ pub struct MdnsDiscovery {
 impl MdnsDiscovery {
     /// Create a new discovery service
     pub fn new(device_id: &str, device_name: &str, port: u16) -> Result<Self, NetworkError> {
-        let daemon = ServiceDaemon::new()
-            .map_err(|e| NetworkError::Discovery(e.to_string()))?;
+        let daemon = ServiceDaemon::new().map_err(|e| NetworkError::Discovery(e.to_string()))?;
 
         Ok(Self {
             daemon,
@@ -94,9 +93,7 @@ impl MdnsDiscovery {
     pub fn parse_service(info: &ServiceInfo) -> Option<DiscoveredPeer> {
         let properties = info.get_properties();
 
-        let device_id = properties
-            .get("id")
-            .map(|v| v.val_str().to_string())?;
+        let device_id = properties.get("id").map(|v| v.val_str().to_string())?;
         let device_name = properties
             .get("name")
             .map(|v| v.val_str().to_string())

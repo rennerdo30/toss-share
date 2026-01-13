@@ -3,7 +3,7 @@
 //! These tests verify the API endpoints and WebSocket functionality.
 
 use base64::Engine;
-use ed25519_dalek::{SigningKey, Signer};
+use ed25519_dalek::{Signer, SigningKey};
 use rand::rngs::OsRng;
 use serde_json::{json, Value};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,8 +13,8 @@ fn generate_keypair() -> (SigningKey, String, String) {
     let signing_key = SigningKey::generate(&mut OsRng);
     let verifying_key = signing_key.verifying_key();
 
-    let public_key_base64 = base64::engine::general_purpose::STANDARD
-        .encode(verifying_key.to_bytes());
+    let public_key_base64 =
+        base64::engine::general_purpose::STANDARD.encode(verifying_key.to_bytes());
 
     let device_id = hex::encode(&verifying_key.to_bytes()[..16]);
 
@@ -35,8 +35,7 @@ fn create_register_request(
 
     let message = format!("register:{}:{}", device_id, timestamp);
     let signature = signing_key.sign(message.as_bytes());
-    let signature_base64 = base64::engine::general_purpose::STANDARD
-        .encode(signature.to_bytes());
+    let signature_base64 = base64::engine::general_purpose::STANDARD.encode(signature.to_bytes());
 
     json!({
         "device_id": device_id,
@@ -69,12 +68,7 @@ mod tests {
     fn test_create_register_request() {
         let (signing_key, device_id, public_key) = generate_keypair();
 
-        let request = create_register_request(
-            &signing_key,
-            &device_id,
-            &public_key,
-            "Test Device",
-        );
+        let request = create_register_request(&signing_key, &device_id, &public_key, "Test Device");
 
         assert_eq!(request["device_id"], device_id);
         assert_eq!(request["device_name"], "Test Device");
@@ -96,11 +90,15 @@ mod tests {
         let signature = signing_key.sign(message.as_bytes());
 
         // Verification should succeed
-        assert!(verifying_key.verify_strict(message.as_bytes(), &signature).is_ok());
+        assert!(verifying_key
+            .verify_strict(message.as_bytes(), &signature)
+            .is_ok());
 
         // Wrong message should fail
         let wrong_message = format!("register:{}:{}", device_id, timestamp + 1);
-        assert!(verifying_key.verify_strict(wrong_message.as_bytes(), &signature).is_err());
+        assert!(verifying_key
+            .verify_strict(wrong_message.as_bytes(), &signature)
+            .is_err());
     }
 }
 

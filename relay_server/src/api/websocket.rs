@@ -50,16 +50,16 @@ enum WsMessage {
         encrypted_payload: String,
     },
     #[serde(rename = "auth_response")]
-    AuthResponse { success: bool, error: Option<String> },
+    AuthResponse {
+        success: bool,
+        error: Option<String>,
+    },
     #[serde(rename = "error")]
     Error { message: String },
 }
 
 /// Handle WebSocket upgrade
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
@@ -185,8 +185,8 @@ async fn authenticate(
         _ => return Err("Expected text message".to_string()),
     };
 
-    let msg: WsMessage = serde_json::from_str(&text)
-        .map_err(|e| format!("Invalid message format: {}", e))?;
+    let msg: WsMessage =
+        serde_json::from_str(&text).map_err(|e| format!("Invalid message format: {}", e))?;
 
     let (device_id, timestamp, signature) = match msg {
         WsMessage::Auth {
@@ -235,8 +235,8 @@ async fn handle_client_message(
     from_device: &str,
     state: &AppState,
 ) -> Result<(), String> {
-    let msg: WsMessage = serde_json::from_str(text)
-        .map_err(|e| format!("Invalid message: {}", e))?;
+    let msg: WsMessage =
+        serde_json::from_str(text).map_err(|e| format!("Invalid message: {}", e))?;
 
     match msg {
         WsMessage::Send {
@@ -259,12 +259,7 @@ async fn handle_client_message(
                 // Queue for later
                 state
                     .db
-                    .queue_message(
-                        &relay_msg.id,
-                        from_device,
-                        &to_device,
-                        &encrypted_payload,
-                    )
+                    .queue_message(&relay_msg.id, from_device, &to_device, &encrypted_payload)
                     .await
                     .map_err(|e| format!("Failed to queue message: {}", e))?;
             }

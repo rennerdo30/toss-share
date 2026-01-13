@@ -189,7 +189,10 @@ impl Database {
     }
 
     /// Get queued messages for a device
-    pub async fn get_queued_messages(&self, device_id: &str) -> Result<Vec<QueuedMessage>, ApiError> {
+    pub async fn get_queued_messages(
+        &self,
+        device_id: &str,
+    ) -> Result<Vec<QueuedMessage>, ApiError> {
         let messages = sqlx::query_as::<_, QueuedMessage>(
             r#"
             SELECT id, from_device, to_device, encrypted_payload, created_at

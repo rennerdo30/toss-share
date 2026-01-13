@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-use crate::error::ProtocolError;
 use super::content::ClipboardContent;
+use crate::error::ProtocolError;
 
 /// Message type identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -207,8 +207,8 @@ pub struct KeyRotation {
 
 /// Custom serialization for 64-byte arrays (ed25519 signatures)
 mod signature_bytes {
-    use serde::{Deserialize, Deserializer, Serializer};
     use base64::Engine;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(bytes: &[u8; 64], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -226,9 +226,9 @@ mod signature_bytes {
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(&s)
             .map_err(serde::de::Error::custom)?;
-        bytes.try_into().map_err(|_| {
-            serde::de::Error::custom("Invalid signature length")
-        })
+        bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("Invalid signature length"))
     }
 }
 
@@ -319,7 +319,10 @@ mod tests {
     #[test]
     fn test_message_type_conversion() {
         assert_eq!(MessageType::try_from(0x01).unwrap(), MessageType::Ping);
-        assert_eq!(MessageType::try_from(0x10).unwrap(), MessageType::ClipboardUpdate);
+        assert_eq!(
+            MessageType::try_from(0x10).unwrap(),
+            MessageType::ClipboardUpdate
+        );
         assert!(MessageType::try_from(0x99).is_err());
     }
 

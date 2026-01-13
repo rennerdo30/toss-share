@@ -1,13 +1,10 @@
 //! QUIC transport for P2P connections
 
+use quinn::{ClientConfig, Connection, Endpoint, ServerConfig, TransportConfig, VarInt};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use quinn::{
-    ClientConfig, Connection, Endpoint, ServerConfig, TransportConfig,
-    VarInt,
-};
-use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use tokio::sync::Mutex;
 
 use crate::crypto::KEY_SIZE;
@@ -30,16 +27,15 @@ impl QuicTransport {
     /// Create a new QUIC transport
     pub async fn new(bind_addr: SocketAddr) -> Result<Self, NetworkError> {
         // Generate self-signed certificate
-        let (cert, key) = generate_self_signed_cert()
-            .map_err(|e| NetworkError::Tls(e.to_string()))?;
+        let (cert, key) =
+            generate_self_signed_cert().map_err(|e| NetworkError::Tls(e.to_string()))?;
 
         // Configure server
-        let server_config = configure_server(cert.clone(), key)
-            .map_err(|e| NetworkError::Tls(e.to_string()))?;
+        let server_config =
+            configure_server(cert.clone(), key).map_err(|e| NetworkError::Tls(e.to_string()))?;
 
         // Configure client (accepts any certificate for P2P)
-        let client_config = configure_client()
-            .map_err(|e| NetworkError::Tls(e.to_string()))?;
+        let client_config = configure_client().map_err(|e| NetworkError::Tls(e.to_string()))?;
 
         // Create endpoint
         let mut endpoint = Endpoint::server(server_config, bind_addr)
@@ -47,7 +43,8 @@ impl QuicTransport {
 
         endpoint.set_default_client_config(client_config);
 
-        let local_addr = endpoint.local_addr()
+        let local_addr = endpoint
+            .local_addr()
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
 
         Ok(Self {
@@ -63,7 +60,8 @@ impl QuicTransport {
 
     /// Connect to a peer
     pub async fn connect(&self, addr: SocketAddr) -> Result<PeerConnection, NetworkError> {
-        let connection = self.endpoint
+        let connection = self
+            .endpoint
             .connect(addr, "toss")
             .map_err(|e| NetworkError::ConnectionFailed(e.to_string()))?
             .await
@@ -152,12 +150,16 @@ impl PeerConnection {
 
     /// Get peer name
     pub fn peer_name(&self) -> Option<String> {
-        self.peer_name.try_lock().ok().and_then(|guard| guard.clone())
+        self.peer_name
+            .try_lock()
+            .ok()
+            .and_then(|guard| guard.clone())
     }
 
     /// Send raw bytes
     pub async fn send_raw(&self, data: &[u8]) -> Result<(), NetworkError> {
-        let mut send = self.connection
+        let mut send = self
+            .connection
             .open_uni()
             .await
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
@@ -174,7 +176,8 @@ impl PeerConnection {
 
     /// Receive raw bytes
     pub async fn receive_raw(&self) -> Result<Vec<u8>, NetworkError> {
-        let mut recv = self.connection
+        let mut recv = self
+            .connection
             .accept_uni()
             .await
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
@@ -190,11 +193,11 @@ impl PeerConnection {
     /// Send an encrypted message
     pub async fn send_message(&self, message: &Message) -> Result<(), NetworkError> {
         let key = self.session_key.lock().await;
-        let key = key.as_ref()
-            .ok_or(NetworkError::NotAuthenticated)?;
+        let key = key.as_ref().ok_or(NetworkError::NotAuthenticated)?;
 
         let header = message.header();
-        let payload = message.serialize()
+        let payload = message
+            .serialize()
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
 
         let frame = Frame::encrypt(&header, &payload, key)
@@ -206,19 +209,17 @@ impl PeerConnection {
     /// Receive and decrypt a message
     pub async fn receive_message(&self) -> Result<Message, NetworkError> {
         let key = self.session_key.lock().await;
-        let key = key.as_ref()
-            .ok_or(NetworkError::NotAuthenticated)?;
+        let key = key.as_ref().ok_or(NetworkError::NotAuthenticated)?;
 
         let data = self.receive_raw().await?;
 
-        let frame = Frame::from_bytes(&data)
+        let frame = Frame::from_bytes(&data).map_err(|e| NetworkError::Transport(e.to_string()))?;
+
+        let (header, payload) = frame
+            .decrypt(key)
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
 
-        let (header, payload) = frame.decrypt(key)
-            .map_err(|e| NetworkError::Transport(e.to_string()))?;
-
-        Message::deserialize(&header, &payload)
-            .map_err(|e| NetworkError::Transport(e.to_string()))
+        Message::deserialize(&header, &payload).map_err(|e| NetworkError::Transport(e.to_string()))
     }
 
     /// Close the connection
@@ -228,7 +229,8 @@ impl PeerConnection {
 }
 
 /// Generate a self-signed certificate for QUIC
-fn generate_self_signed_cert() -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Box<dyn std::error::Error>> {
+fn generate_self_signed_cert(
+) -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Box<dyn std::error::Error>> {
     let cert = rcgen::generate_simple_self_signed(vec!["toss".to_string()])?;
     let key_der = cert.signing_key.serialize_der();
     let key = PrivatePkcs8KeyDer::from(key_der).into();
@@ -261,7 +263,7 @@ fn configure_client() -> Result<ClientConfig, Box<dyn std::error::Error>> {
         .with_no_client_auth();
 
     let mut client_config = ClientConfig::new(Arc::new(
-        quinn::crypto::rustls::QuicClientConfig::try_from(crypto)?
+        quinn::crypto::rustls::QuicClientConfig::try_from(crypto)?,
     ));
 
     let mut transport = TransportConfig::default();

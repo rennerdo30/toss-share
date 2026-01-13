@@ -3,9 +3,9 @@
 use arboard::Clipboard;
 use parking_lot::Mutex;
 
+use super::formats::{decode_image, encode_image_to_png};
 use crate::error::ClipboardError;
 use crate::protocol::{ClipboardContent, ContentType};
-use super::formats::{decode_image, encode_image_to_png};
 
 /// Trait for clipboard operations
 pub trait ClipboardProvider: Send + Sync {
@@ -30,8 +30,8 @@ pub struct ClipboardHandler {
 impl ClipboardHandler {
     /// Create a new clipboard handler
     pub fn new() -> Result<Self, ClipboardError> {
-        let clipboard = Clipboard::new()
-            .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+        let clipboard =
+            Clipboard::new().map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
 
         Ok(Self {
             clipboard: Mutex::new(clipboard),
@@ -71,24 +71,29 @@ impl ClipboardProvider for ClipboardHandler {
             ContentType::PlainText | ContentType::Url => {
                 let text = String::from_utf8(content.data.clone())
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
-                clipboard.set_text(text)
+                clipboard
+                    .set_text(text)
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
             }
             ContentType::RichText => {
                 // For rich text, we write as plain text (arboard doesn't support HTML directly)
                 let text = String::from_utf8(content.data.clone())
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
-                clipboard.set_text(text)
+                clipboard
+                    .set_text(text)
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
             }
             ContentType::Image => {
                 let image = decode_image(&content.data)?;
-                clipboard.set_image(image)
+                clipboard
+                    .set_image(image)
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
             }
             ContentType::File => {
                 // Files are not directly supported - would need platform-specific handling
-                return Err(ClipboardError::UnsupportedFormat("File clipboard not supported".to_string()));
+                return Err(ClipboardError::UnsupportedFormat(
+                    "File clipboard not supported".to_string(),
+                ));
             }
         }
 
@@ -97,7 +102,8 @@ impl ClipboardProvider for ClipboardHandler {
 
     fn clear(&self) -> Result<(), ClipboardError> {
         let mut clipboard = self.clipboard.lock();
-        clipboard.clear()
+        clipboard
+            .clear()
             .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
         Ok(())
     }
