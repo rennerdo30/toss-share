@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:async';
 
 // Import generated FFI bindings
-import '../rust/api.dart/api.dart' as api;
+import 'package:toss/src/rust/api.dart/api.dart' as api;
 
 /// Pairing information returned from start_pairing
 class PairingInfo {
@@ -26,17 +26,20 @@ class DeviceInfo {
   final String name;
   final bool isOnline;
   final int lastSeen;
+  final String platform;
 
   const DeviceInfo({
     required this.id,
     required this.name,
     this.isOnline = false,
     this.lastSeen = 0,
+    this.platform = 'unknown',
   });
 }
 
 /// Clipboard item from core
 class ClipboardItemInfo {
+  final String id;
   final String contentType;
   final String preview;
   final int sizeBytes;
@@ -44,12 +47,86 @@ class ClipboardItemInfo {
   final String? sourceDevice;
 
   const ClipboardItemInfo({
+    required this.id,
     required this.contentType,
     required this.preview,
     required this.sizeBytes,
     required this.timestamp,
     this.sourceDevice,
   });
+}
+
+/// Decrypted clipboard content from history
+class ClipboardContent {
+  final String contentType;
+  final List<int> data;
+
+  const ClipboardContent({
+    required this.contentType,
+    required this.data,
+  });
+}
+
+/// Network event from Rust core
+class TossEvent {
+  final String type;
+  final Map<String, dynamic>? data;
+
+  const TossEvent({
+    required this.type,
+    this.data,
+  });
+
+  factory TossEvent.fromApi(api.TossEvent event) {
+    // Convert API event to Dart event using pattern matching
+    return event.when(
+      clipboardReceived: (item) => TossEvent(
+        type: 'clipboard_received',
+        data: {
+          'item': ClipboardItemInfo(
+            id: item.id,
+            contentType: item.contentType,
+            preview: item.preview,
+            sizeBytes: item.sizeBytes.toInt(),
+            timestamp: item.timestamp.toInt(),
+            sourceDevice: item.sourceDevice,
+          ),
+        },
+      ),
+      deviceConnected: (device) => TossEvent(
+        type: 'device_connected',
+        data: {
+          'device': DeviceInfo(
+            id: device.id,
+            name: device.name,
+            isOnline: device.isOnline,
+            lastSeen: device.lastSeen.toInt(),
+            platform: device.platform,
+          ),
+        },
+      ),
+      deviceDisconnected: (deviceId) => TossEvent(
+        type: 'device_disconnected',
+        data: {'device_id': deviceId},
+      ),
+      pairingRequest: (device) => TossEvent(
+        type: 'pairing_request',
+        data: {
+          'device': DeviceInfo(
+            id: device.id,
+            name: device.name,
+            isOnline: device.isOnline,
+            lastSeen: device.lastSeen.toInt(),
+            platform: device.platform,
+          ),
+        },
+      ),
+      error: (message) => TossEvent(
+        type: 'error',
+        data: {'message': message},
+      ),
+    );
+  }
 }
 
 /// Service for initializing and managing Toss core
@@ -159,6 +236,7 @@ class TossService {
         name: device.name,
         isOnline: device.isOnline,
         lastSeen: device.lastSeen.toInt(),
+        platform: device.platform,
       );
     } catch (e) {
       print('Warning: Failed to complete pairing with QR: $e');
@@ -166,6 +244,7 @@ class TossService {
         id: 'mock-paired-device',
         name: 'Paired Device',
         isOnline: false,
+        platform: 'unknown',
       );
     }
   }
@@ -179,6 +258,7 @@ class TossService {
         name: device.name,
         isOnline: device.isOnline,
         lastSeen: device.lastSeen.toInt(),
+        platform: device.platform,
       );
     } catch (e) {
       print('Warning: Failed to complete pairing with code: $e');
@@ -186,6 +266,7 @@ class TossService {
         id: 'mock-paired-device',
         name: 'Paired Device',
         isOnline: false,
+        platform: 'unknown',
       );
     }
   }
@@ -212,6 +293,7 @@ class TossService {
         name: d.name,
         isOnline: d.isOnline,
         lastSeen: d.lastSeen.toInt(),
+        platform: d.platform,
       )).toList();
     } catch (e) {
       print('Warning: Failed to get paired devices: $e');
@@ -228,6 +310,7 @@ class TossService {
         name: d.name,
         isOnline: d.isOnline,
         lastSeen: d.lastSeen.toInt(),
+        platform: d.platform,
       )).toList();
     } catch (e) {
       print('Warning: Failed to get connected devices: $e');
@@ -244,6 +327,16 @@ class TossService {
     }
   }
 
+  /// Rename a paired device
+  static Future<void> renameDevice(String deviceId, String newName) async {
+    try {
+      api.renameDevice(deviceId: deviceId, newName: newName);
+    } catch (e) {
+      print('Warning: Failed to rename device: $e');
+      rethrow;
+    }
+  }
+
   // ============================================================================
   // Clipboard Operations
   // ============================================================================
@@ -254,6 +347,7 @@ class TossService {
       final item = api.getCurrentClipboard();
       if (item == null) return null;
       return ClipboardItemInfo(
+        id: item.id,
         contentType: item.contentType,
         preview: item.preview,
         sizeBytes: item.sizeBytes.toInt(),
@@ -289,6 +383,7 @@ class TossService {
     try {
       final items = api.getClipboardHistory(limit: limit);
       return items.map((item) => ClipboardItemInfo(
+        id: item.id,
         contentType: item.contentType,
         preview: item.preview,
         sizeBytes: item.sizeBytes.toInt(),
@@ -319,6 +414,54 @@ class TossService {
     }
   }
 
+  /// Get decrypted content from clipboard history item
+  static Future<ClipboardContent?> getHistoryItemContent(String itemId) async {
+    try {
+      final content = api.getClipboardHistoryContent(itemId: itemId);
+      return ClipboardContent(
+        contentType: content.contentType,
+        data: content.data,
+      );
+    } catch (e) {
+      print('Warning: Failed to get history item content: $e');
+      return null;
+    }
+  }
+
+  // ============================================================================
+  // Settings
+  // ============================================================================
+
+  /// Update settings in Rust core
+  static Future<void> updateSettings({
+    required bool autoSync,
+    required bool syncText,
+    required bool syncRichText,
+    required bool syncImages,
+    required bool syncFiles,
+    required int maxFileSizeMb,
+    required bool historyEnabled,
+    required int historyDays,
+    String? relayUrl,
+  }) async {
+    try {
+      final settings = api.TossSettings(
+        autoSync: autoSync,
+        syncText: syncText,
+        syncRichText: syncRichText,
+        syncImages: syncImages,
+        syncFiles: syncFiles,
+        maxFileSizeMb: maxFileSizeMb,
+        historyEnabled: historyEnabled,
+        historyDays: historyDays,
+        relayUrl: relayUrl,
+      );
+      api.updateSettings(settings: settings);
+    } catch (e) {
+      print('Warning: Failed to update settings: $e');
+    }
+  }
+
   // ============================================================================
   // Network
   // ============================================================================
@@ -329,6 +472,28 @@ class TossService {
       await api.startNetwork();
     } catch (e) {
       print('Warning: Failed to start network: $e');
+    }
+  }
+
+  /// Poll for network events (non-blocking)
+  static TossEvent? pollEvent() {
+    try {
+      final event = api.pollEvent();
+      if (event == null) return null;
+      return TossEvent.fromApi(event);
+    } catch (e) {
+      print('Warning: Failed to poll event: $e');
+      return null;
+    }
+  }
+
+  /// Check if clipboard has changed since last check
+  static bool checkClipboardChanged() {
+    try {
+      return api.checkClipboardChanged();
+    } catch (e) {
+      print('Warning: Failed to check clipboard: $e');
+      return false;
     }
   }
 

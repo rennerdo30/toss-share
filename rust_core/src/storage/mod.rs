@@ -4,9 +4,11 @@
 
 mod device_storage;
 mod history_storage;
+mod secure_storage;
 
 pub use device_storage::{DeviceStorage, StoredDevice};
 pub use history_storage::{HistoryStorage, StoredHistoryItem};
+pub use secure_storage::{delete_identity_key, retrieve_identity_key, store_identity_key};
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -48,11 +50,18 @@ impl Storage {
                 session_key BLOB,
                 last_seen INTEGER,
                 created_at INTEGER NOT NULL,
-                is_active INTEGER DEFAULT 1
+                is_active INTEGER DEFAULT 1,
+                platform TEXT
             )
             "#,
             [],
         )?;
+        
+        // Add platform column if it doesn't exist (migration for existing databases)
+        let _ = conn.execute(
+            "ALTER TABLE devices ADD COLUMN platform TEXT",
+            [],
+        );
 
         // Create clipboard history table
         conn.execute(

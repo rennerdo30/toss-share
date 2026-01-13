@@ -183,6 +183,7 @@ class SettingsKeys {
 
   static const String autoSync = 'auto_sync';
   static const String syncText = 'sync_text';
+  static const String syncRichText = 'sync_rich_text';
   static const String syncImages = 'sync_images';
   static const String syncFiles = 'sync_files';
   static const String maxFileSizeMb = 'max_file_size_mb';

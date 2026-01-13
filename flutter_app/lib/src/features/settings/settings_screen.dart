@@ -9,12 +9,40 @@ import '../../core/models/app_update.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/providers/update_provider.dart';
+import '../../core/services/auto_start_service.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  Future<bool> _getAutoStartStatus() async {
+    return await AutoStartService.isEnabled();
+  }
+
+  Future<void> _toggleAutoStart(BuildContext context, bool enable) async {
+    final success = enable
+        ? await AutoStartService.enable()
+        : await AutoStartService.disable();
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Auto-start ${enable ? "enabled" : "disabled"}'
+                : 'Failed to ${enable ? "enable" : "disable"} auto-start',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final tossState = ref.watch(tossProvider);
     final themeMode = ref.watch(themeModeProvider);
@@ -75,6 +103,16 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings.syncText,
                   onChanged: (value) {
                     ref.read(settingsProvider.notifier).updateSyncText(value);
+                  },
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.format_paint),
+                  title: const Text('Sync Rich Text'),
+                  subtitle: const Text('HTML and RTF formatting'),
+                  value: settings.syncRichText,
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).updateSyncRichText(value);
                   },
                 ),
                 const Divider(height: 1),
@@ -154,6 +192,29 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
+
+          // System section (Windows only)
+          if (Platform.isWindows) ...[
+            _SectionHeader(title: 'System'),
+            Card(
+              child: FutureBuilder<bool>(
+                future: _getAutoStartStatus(),
+                builder: (context, snapshot) {
+                  final autoStartEnabled = snapshot.data ?? false;
+                  return SwitchListTile(
+                    secondary: const Icon(Icons.settings_power),
+                    title: const Text('Start with Windows'),
+                    subtitle: const Text('Launch Toss when Windows starts'),
+                  value: autoStartEnabled,
+                  onChanged: (value) async {
+                    await _toggleAutoStart(context, value);
+                  },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Appearance section
           _SectionHeader(title: 'Appearance'),

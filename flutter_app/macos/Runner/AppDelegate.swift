@@ -10,4 +10,34 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
   }
+  
+  override func applicationDidFinishLaunching(_ notification: Notification) {
+    super.applicationDidFinishLaunching(notification)
+    
+    // Set up method channel for auto-start
+    guard let controller = NSApplication.shared.windows.first?.contentViewController as? FlutterViewController else {
+      return
+    }
+    
+    let channel = FlutterMethodChannel(
+      name: "toss.app/auto_start",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    
+    channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+      switch call.method {
+      case "enableAutoStart":
+        let success = AutoStart.setAutoStart(true)
+        result(success)
+      case "disableAutoStart":
+        let success = AutoStart.setAutoStart(false)
+        result(success)
+      case "isAutoStartEnabled":
+        let enabled = AutoStart.isAutoStartEnabled()
+        result(enabled)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
 }

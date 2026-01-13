@@ -25,7 +25,25 @@ class Devices extends _$Devices {
       lastSeen: d.lastSeen > 0 
           ? DateTime.fromMillisecondsSinceEpoch(d.lastSeen)
           : null,
+      platform: _parsePlatform(d.platform),
     )).toList();
+  }
+
+  DevicePlatform _parsePlatform(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'macos':
+        return DevicePlatform.macos;
+      case 'windows':
+        return DevicePlatform.windows;
+      case 'linux':
+        return DevicePlatform.linux;
+      case 'ios':
+        return DevicePlatform.ios;
+      case 'android':
+        return DevicePlatform.android;
+      default:
+        return DevicePlatform.unknown;
+    }
   }
 
   void addDevice(Device device) {
@@ -37,6 +55,18 @@ class Devices extends _$Devices {
     await TossService.removeDevice(deviceId);
     // Update local state
     state = state.where((d) => d.id != deviceId).toList();
+  }
+
+  Future<void> renameDevice(String deviceId, String newName) async {
+    // Call Rust FFI to rename device
+    await TossService.renameDevice(deviceId, newName);
+    // Update local state
+    state = state.map((d) {
+      if (d.id == deviceId) {
+        return d.copyWith(name: newName);
+      }
+      return d;
+    }).toList();
   }
 
   void updateDeviceStatus(String deviceId, bool isOnline) {

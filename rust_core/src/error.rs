@@ -56,6 +56,9 @@ pub enum CryptoError {
 
     #[error("Session expired")]
     SessionExpired,
+
+    #[error("Storage error: {0}")]
+    Storage(String),
 }
 
 /// Network operation errors

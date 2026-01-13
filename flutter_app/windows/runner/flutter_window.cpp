@@ -1,8 +1,10 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "auto_start.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -26,6 +28,44 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
+
+  // Register method channel for auto-start
+  auto messenger = flutter_controller_->engine()->messenger();
+  const std::string channel_name = "com.toss/auto_start";
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      messenger, channel_name, &flutter::StandardMethodCodec::GetInstance());
+  
+  // Keep channel alive by storing in a static variable
+  static std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_storage;
+  channel_storage = std::move(channel);
+
+  channel->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "enableAutoStart") {
+          auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+          if (args) {
+            auto app_path_it = args->find(flutter::EncodableValue("appPath"));
+            if (app_path_it != args->end()) {
+              auto app_path = std::get<std::string>(app_path_it->second);
+              bool success = EnableAutoStart(app_path.c_str());
+              result->Success(flutter::EncodableValue(success));
+            } else {
+              result->Error("INVALID_ARGUMENT", "appPath is required");
+            }
+          } else {
+            result->Error("INVALID_ARGUMENT", "Arguments must be a map");
+          }
+        } else if (call.method_name() == "disableAutoStart") {
+          bool success = DisableAutoStart();
+          result->Success(flutter::EncodableValue(success));
+        } else if (call.method_name() == "isAutoStartEnabled") {
+          bool enabled = IsAutoStartEnabled();
+          result->Success(flutter::EncodableValue(enabled));
+        } else {
+          result->NotImplemented();
+        }
+      });
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();

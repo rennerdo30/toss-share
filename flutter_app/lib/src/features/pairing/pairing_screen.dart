@@ -5,6 +5,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/services/toss_service.dart';
+
 class PairingScreen extends ConsumerStatefulWidget {
   const PairingScreen({super.key});
 
@@ -35,14 +37,14 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   Future<void> _startPairing() async {
     setState(() => _isLoading = true);
 
-    // TODO: Call Rust FFI start_pairing()
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      _pairingCode = '123456'; // Mock
-      _qrData = '{"v":1,"code":"123456","pk":"mock-public-key","name":"My Device"}';
-      _isLoading = false;
-    });
+    final pairingInfo = await TossService.startPairing();
+    if (mounted) {
+      setState(() {
+        _pairingCode = pairingInfo.code;
+        _qrData = pairingInfo.qrData;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -79,10 +81,10 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   }
 
   void _handleQrScanned(String data) async {
-    // TODO: Call Rust FFI complete_pairing_qr()
+    final device = await TossService.completePairingQR(data);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Device paired successfully!')),
+        SnackBar(content: Text('Device "${device.name}" paired successfully!')),
       );
       context.pop();
     }

@@ -4,11 +4,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/models/device.dart';
 
-class DevicesScreen extends ConsumerWidget {
+class DevicesScreen extends ConsumerStatefulWidget {
   const DevicesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DevicesScreen> createState() => _DevicesScreenState();
+}
+
+class _DevicesScreenState extends ConsumerState<DevicesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load devices when screen is first shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(devicesProvider.notifier).refresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final devices = ref.watch(devicesProvider);
 
     return Scaffold(
@@ -27,9 +41,66 @@ class DevicesScreen extends ConsumerWidget {
                   onRemove: () {
                     _showRemoveDialog(context, ref, device);
                   },
+                  onRename: () {
+                    _showRenameDialog(context, ref, device);
+                  },
                 );
               },
             ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, WidgetRef ref, Device device) {
+    final controller = TextEditingController(text: device.name);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Device'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Device Name',
+            hintText: 'Enter device name',
+          ),
+          maxLength: 100,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isEmpty) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Device name cannot be empty')),
+                  );
+                }
+                return;
+              }
+              try {
+                await ref.read(devicesProvider.notifier).renameDevice(device.id, newName);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Device renamed successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to rename device: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Rename'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -45,9 +116,11 @@ class DevicesScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(devicesProvider.notifier).removeDevice(device.id);
-              Navigator.pop(context);
+            onPressed: () async {
+              await ref.read(devicesProvider.notifier).removeDevice(device.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Remove'),
           ),
@@ -57,17 +130,19 @@ class DevicesScreen extends ConsumerWidget {
   }
 }
 
-class _DeviceListItem extends StatelessWidget {
+class _DeviceListItem extends ConsumerWidget {
   final Device device;
   final VoidCallback onRemove;
+  final VoidCallback onRename;
 
   const _DeviceListItem({
     required this.device,
     required this.onRemove,
+    required this.onRename,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
         leading: Stack(
@@ -121,7 +196,9 @@ class _DeviceListItem extends StatelessWidget {
             ),
           ],
           onSelected: (value) {
-            if (value == 'remove') {
+            if (value == 'rename') {
+              onRename();
+            } else if (value == 'remove') {
               onRemove();
             }
           },

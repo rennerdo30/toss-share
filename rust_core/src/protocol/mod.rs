@@ -11,7 +11,7 @@ pub use content::{ClipboardContent, ContentMetadata, ContentType};
 pub use frame::Frame;
 pub use message::{
     ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage, KeyRotation,
-    Message, MessageHeader, MessageType, Ping, Platform, Pong,
+    KeyRotationReason, Message, MessageHeader, MessageType, Ping, Platform, Pong,
 };
 
 /// Maximum message size (50 MB)

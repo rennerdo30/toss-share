@@ -7,6 +7,8 @@ import 'src/app.dart';
 import 'src/core/services/toss_service.dart';
 import 'src/core/services/storage_service.dart';
 import 'src/core/services/update_service.dart';
+import 'src/core/services/tray_service.dart';
+import 'src/core/services/notification_service.dart';
 import 'src/core/providers/update_provider.dart';
 
 void main() async {
@@ -48,6 +50,14 @@ void main() async {
 
   // Initialize Toss core
   await TossService.initialize();
+
+  // Initialize notification service
+  await NotificationService().initialize();
+
+  // Initialize system tray (desktop only)
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await TrayService().initialize();
+  }
 
   // Create provider container for background update check
   final container = ProviderContainer();

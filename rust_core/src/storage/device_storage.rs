@@ -14,6 +14,7 @@ pub struct StoredDevice {
     pub last_seen: Option<u64>,
     pub created_at: u64,
     pub is_active: bool,
+    pub platform: Option<String>, // Platform: "macos", "windows", "linux", "ios", "android", "unknown"
 }
 
 /// Device storage operations
@@ -32,8 +33,8 @@ impl<'conn> DeviceStorage<'conn> {
         conn.execute(
             r#"
             INSERT OR REPLACE INTO devices 
-            (id, name, public_key, session_key, last_seen, created_at, is_active)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            (id, name, public_key, session_key, last_seen, created_at, is_active, platform)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
             "#,
             rusqlite::params![
                 device.id,
@@ -43,6 +44,7 @@ impl<'conn> DeviceStorage<'conn> {
                 device.last_seen,
                 device.created_at,
                 device.is_active as i32,
+                device.platform,
             ],
         )?;
         Ok(())
@@ -52,7 +54,7 @@ impl<'conn> DeviceStorage<'conn> {
     pub fn get_device(&self, device_id: &str) -> SqliteResult<Option<StoredDevice>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, name, public_key, session_key, last_seen, created_at, is_active FROM devices WHERE id = ?1"
+            "SELECT id, name, public_key, session_key, last_seen, created_at, is_active, platform FROM devices WHERE id = ?1"
         )?;
 
         let device = stmt.query_row([device_id], |row| {
@@ -64,6 +66,7 @@ impl<'conn> DeviceStorage<'conn> {
                 last_seen: row.get(4)?,
                 created_at: row.get(5)?,
                 is_active: row.get::<_, i32>(6)? != 0,
+                platform: row.get(7).ok(), // Platform is optional, may not exist in old databases
             })
         });
 
@@ -78,7 +81,7 @@ impl<'conn> DeviceStorage<'conn> {
     pub fn get_all_devices(&self) -> SqliteResult<Vec<StoredDevice>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, name, public_key, session_key, last_seen, created_at, is_active FROM devices WHERE is_active = 1 ORDER BY created_at DESC"
+            "SELECT id, name, public_key, session_key, last_seen, created_at, is_active, platform FROM devices WHERE is_active = 1 ORDER BY created_at DESC"
         )?;
 
         let devices = stmt.query_map([], |row| {
@@ -90,6 +93,7 @@ impl<'conn> DeviceStorage<'conn> {
                 last_seen: row.get(4)?,
                 created_at: row.get(5)?,
                 is_active: row.get::<_, i32>(6)? != 0,
+                platform: row.get(7).ok(), // Platform is optional, may not exist in old databases
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -126,6 +130,16 @@ impl<'conn> DeviceStorage<'conn> {
     pub fn delete_device(&self, device_id: &str) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute("DELETE FROM devices WHERE id = ?1", [device_id])?;
+        Ok(())
+    }
+
+    /// Update device name
+    pub fn update_device_name(&self, device_id: &str, new_name: &str) -> SqliteResult<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE devices SET name = ?1 WHERE id = ?2",
+            rusqlite::params![new_name, device_id],
+        )?;
         Ok(())
     }
 }

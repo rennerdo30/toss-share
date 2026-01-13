@@ -6,6 +6,7 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include "auto_start.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -74,6 +75,37 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  // Set up method channel for auto-start
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  g_autoptr(FlMethodChannel) channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)),
+      "toss.app/auto_start", FL_METHOD_CODEC(codec));
+  
+  fl_method_channel_set_method_call_handler(
+      channel,
+      [](FlMethodChannel* channel, FlMethodCall* method_call,
+         gpointer user_data) {
+        const gchar* method = fl_method_call_get_name(method_call);
+        FlValue* args = fl_method_call_get_args(method_call);
+        
+        if (g_strcmp0(method, "enableAutoStart") == 0) {
+          gboolean success = auto_start_set_enabled(TRUE);
+          g_autoptr(FlValue) result = fl_value_new_bool(success);
+          fl_method_call_respond_success(method_call, result, nullptr);
+        } else if (g_strcmp0(method, "disableAutoStart") == 0) {
+          gboolean success = auto_start_set_enabled(FALSE);
+          g_autoptr(FlValue) result = fl_value_new_bool(success);
+          fl_method_call_respond_success(method_call, result, nullptr);
+        } else if (g_strcmp0(method, "isAutoStartEnabled") == 0) {
+          gboolean enabled = auto_start_is_enabled();
+          g_autoptr(FlValue) result = fl_value_new_bool(enabled);
+          fl_method_call_respond_success(method_call, result, nullptr);
+        } else {
+          fl_method_call_respond_not_implemented(method_call, nullptr);
+        }
+      },
+      nullptr, nullptr);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

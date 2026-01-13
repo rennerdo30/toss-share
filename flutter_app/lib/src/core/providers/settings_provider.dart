@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/storage_service.dart';
+import '../services/toss_service.dart';
 
 part 'settings_provider.g.dart';
 
@@ -9,6 +10,7 @@ part 'settings_provider.g.dart';
 class AppSettings {
   final bool autoSync;
   final bool syncText;
+  final bool syncRichText;
   final bool syncImages;
   final bool syncFiles;
   final int maxFileSizeMb;
@@ -20,6 +22,7 @@ class AppSettings {
   const AppSettings({
     this.autoSync = true,
     this.syncText = true,
+    this.syncRichText = true,
     this.syncImages = true,
     this.syncFiles = true,
     this.maxFileSizeMb = 50,
@@ -32,6 +35,7 @@ class AppSettings {
   AppSettings copyWith({
     bool? autoSync,
     bool? syncText,
+    bool? syncRichText,
     bool? syncImages,
     bool? syncFiles,
     int? maxFileSizeMb,
@@ -43,6 +47,7 @@ class AppSettings {
     return AppSettings(
       autoSync: autoSync ?? this.autoSync,
       syncText: syncText ?? this.syncText,
+      syncRichText: syncRichText ?? this.syncRichText,
       syncImages: syncImages ?? this.syncImages,
       syncFiles: syncFiles ?? this.syncFiles,
       maxFileSizeMb: maxFileSizeMb ?? this.maxFileSizeMb,
@@ -63,6 +68,7 @@ class Settings extends _$Settings {
     return AppSettings(
       autoSync: StorageService.getSetting<bool>(SettingsKeys.autoSync, defaultValue: true) ?? true,
       syncText: StorageService.getSetting<bool>(SettingsKeys.syncText, defaultValue: true) ?? true,
+      syncRichText: StorageService.getSetting<bool>(SettingsKeys.syncRichText, defaultValue: true) ?? true,
       syncImages: StorageService.getSetting<bool>(SettingsKeys.syncImages, defaultValue: true) ?? true,
       syncFiles: StorageService.getSetting<bool>(SettingsKeys.syncFiles, defaultValue: true) ?? true,
       maxFileSizeMb: StorageService.getSetting<int>(SettingsKeys.maxFileSizeMb, defaultValue: 50) ?? 50,
@@ -80,6 +86,11 @@ class Settings extends _$Settings {
 
   void updateSyncText(bool value) {
     state = state.copyWith(syncText: value);
+    _save();
+  }
+
+  void updateSyncRichText(bool value) {
+    state = state.copyWith(syncRichText: value);
     _save();
   }
 
@@ -122,6 +133,7 @@ class Settings extends _$Settings {
     // Persist all settings to storage
     StorageService.setSetting(SettingsKeys.autoSync, state.autoSync);
     StorageService.setSetting(SettingsKeys.syncText, state.syncText);
+    StorageService.setSetting(SettingsKeys.syncRichText, state.syncRichText);
     StorageService.setSetting(SettingsKeys.syncImages, state.syncImages);
     StorageService.setSetting(SettingsKeys.syncFiles, state.syncFiles);
     StorageService.setSetting(SettingsKeys.maxFileSizeMb, state.maxFileSizeMb);
@@ -131,7 +143,16 @@ class Settings extends _$Settings {
     StorageService.setSetting(SettingsKeys.showNotifications, state.showNotifications);
 
     // Update Rust FFI settings
-    // Note: This will be fully implemented once FFI bindings are available
-    // TossService.updateSettings(state);
+    TossService.updateSettings(
+      autoSync: state.autoSync,
+      syncText: state.syncText,
+      syncRichText: state.syncRichText,
+      syncImages: state.syncImages,
+      syncFiles: state.syncFiles,
+      maxFileSizeMb: state.maxFileSizeMb,
+      historyEnabled: state.historyEnabled,
+      historyDays: state.historyDays,
+      relayUrl: state.relayUrl,
+    );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/clipboard_item.dart';
+import '../services/toss_service.dart';
 
 part 'clipboard_provider.g.dart';
 
@@ -22,8 +23,45 @@ class CurrentClipboard extends _$CurrentClipboard {
   }
 
   Future<void> refresh() async {
-    // Refresh from Rust FFI
-    // This will be implemented once FFI bindings are available
+    final item = await TossService.getCurrentClipboard();
+    if (item != null) {
+      state = _convertToClipboardItem(item, 'current');
+    }
+  }
+
+  ClipboardItem _convertToClipboardItem(ClipboardItemInfo info, [String? prefix]) {
+    // Generate ID from timestamp and hash if available
+    final id = prefix != null
+        ? '$prefix-${info.timestamp}'
+        : info.sourceDevice != null
+            ? '${info.sourceDevice}-${info.timestamp}'
+            : 'local-${info.timestamp}';
+    
+    return ClipboardItem(
+      id: id,
+      contentType: _parseContentType(info.contentType),
+      preview: info.preview,
+      sizeBytes: info.sizeBytes,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(info.timestamp),
+      sourceDeviceId: info.sourceDevice,
+    );
+  }
+
+  ClipboardContentType _parseContentType(String type) {
+    // Parse content type string from Rust (e.g., "PlainText", "Image", etc.)
+    final lower = type.toLowerCase();
+    if (lower.contains('text') && !lower.contains('rich')) {
+      return ClipboardContentType.text;
+    } else if (lower.contains('rich')) {
+      return ClipboardContentType.richText;
+    } else if (lower.contains('image')) {
+      return ClipboardContentType.image;
+    } else if (lower.contains('file')) {
+      return ClipboardContentType.file;
+    } else if (lower.contains('url')) {
+      return ClipboardContentType.url;
+    }
+    return ClipboardContentType.text;
   }
 }
 
@@ -49,8 +87,34 @@ class ClipboardHistory extends _$ClipboardHistory {
   }
 
   Future<void> loadHistory() async {
-    // Load from Rust FFI / local storage
-    // Note: This will be fully implemented once FFI bindings are available
-    // For now, history is managed locally via addItem/removeItem
+    final items = await TossService.getClipboardHistory();
+    state = items.map((info) => _convertToClipboardItem(info)).toList();
+  }
+
+  ClipboardItem _convertToClipboardItem(ClipboardItemInfo info) {
+    return ClipboardItem(
+      id: info.id,
+      contentType: _parseContentType(info.contentType),
+      preview: info.preview,
+      sizeBytes: info.sizeBytes,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(info.timestamp),
+      sourceDeviceId: info.sourceDevice,
+    );
+  }
+
+  ClipboardContentType _parseContentType(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('text') && !lower.contains('rich')) {
+      return ClipboardContentType.text;
+    } else if (lower.contains('rich')) {
+      return ClipboardContentType.richText;
+    } else if (lower.contains('image')) {
+      return ClipboardContentType.image;
+    } else if (lower.contains('file')) {
+      return ClipboardContentType.file;
+    } else if (lower.contains('url')) {
+      return ClipboardContentType.url;
+    }
+    return ClipboardContentType.text;
   }
 }

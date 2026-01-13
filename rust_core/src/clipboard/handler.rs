@@ -3,7 +3,9 @@
 use arboard::Clipboard;
 use parking_lot::Mutex;
 
+use super::file_handler::{FileClipboardProvider, FileList, DefaultFileClipboardProvider};
 use super::formats::{decode_image, encode_image_to_png};
+use super::rich_text::{RichTextClipboardProvider, RichTextFormat, DefaultRichTextClipboardProvider};
 use crate::error::ClipboardError;
 use crate::protocol::{ClipboardContent, ContentType};
 
@@ -25,6 +27,8 @@ pub trait ClipboardProvider: Send + Sync {
 /// Clipboard handler using arboard
 pub struct ClipboardHandler {
     clipboard: Mutex<Clipboard>,
+    file_provider: Box<dyn FileClipboardProvider>,
+    rich_text_provider: Box<dyn RichTextClipboardProvider>,
 }
 
 impl ClipboardHandler {
@@ -35,6 +39,8 @@ impl ClipboardHandler {
 
         Ok(Self {
             clipboard: Mutex::new(clipboard),
+            file_provider: Box::new(DefaultFileClipboardProvider),
+            rich_text_provider: Box::new(DefaultRichTextClipboardProvider),
         })
     }
 }
@@ -43,7 +49,7 @@ impl ClipboardProvider for ClipboardHandler {
     fn read(&self) -> Result<Option<ClipboardContent>, ClipboardError> {
         let mut clipboard = self.clipboard.lock();
 
-        // Try to read text first
+        // Try to read text first (rich text detection happens after we have content)
         if let Ok(text) = clipboard.get_text() {
             if !text.is_empty() {
                 return Ok(Some(ClipboardContent::text(&text)));
@@ -58,6 +64,11 @@ impl ClipboardProvider for ClipboardHandler {
                 Some((image.width as u32, image.height as u32)),
                 Some("image/png".to_string()),
             )));
+        }
+
+        // Try to read files (platform-specific)
+        if let Ok(Some(file_list)) = self.file_provider.read_files() {
+            return Ok(Some(file_list.to_content()));
         }
 
         // Nothing readable
@@ -76,12 +87,25 @@ impl ClipboardProvider for ClipboardHandler {
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
             }
             ContentType::RichText => {
-                // For rich text, we write as plain text (arboard doesn't support HTML directly)
-                let text = String::from_utf8(content.data.clone())
-                    .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
-                clipboard
-                    .set_text(text)
-                    .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+                // Try to detect format and use platform-specific provider
+                if let Some(format) = RichTextFormat::detect(content) {
+                    // Try platform-specific rich text write
+                    if let Err(_) = self.rich_text_provider.write_rich_text(content, format) {
+                        // Fallback to plain text if rich text write fails
+                        let text = String::from_utf8(content.data.clone())
+                            .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+                        clipboard
+                            .set_text(text)
+                            .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+                    }
+                } else {
+                    // No format detected, write as plain text
+                    let text = String::from_utf8(content.data.clone())
+                        .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+                    clipboard
+                        .set_text(text)
+                        .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
+                }
             }
             ContentType::Image => {
                 let image = decode_image(&content.data)?;
@@ -90,10 +114,11 @@ impl ClipboardProvider for ClipboardHandler {
                     .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
             }
             ContentType::File => {
-                // Files are not directly supported - would need platform-specific handling
-                return Err(ClipboardError::UnsupportedFormat(
-                    "File clipboard not supported".to_string(),
-                ));
+                // Parse file list from content
+                let file_list = FileList::from_content(content)?;
+                
+                // Write files using platform-specific provider
+                self.file_provider.write_files(&file_list)?;
             }
         }
 
@@ -114,7 +139,11 @@ impl ClipboardProvider for ClipboardHandler {
             ContentType::Url => true,
             ContentType::RichText => true, // Written as plain text
             ContentType::Image => true,
-            ContentType::File => false, // Not directly supported
+            ContentType::File => {
+                // Check if file provider supports files
+                // For now, return true (will fail at runtime if not supported)
+                true
+            }
         }
     }
 }

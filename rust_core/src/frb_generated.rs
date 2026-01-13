@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 2146846246;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 843725647;
 
 // Section: executor
 
@@ -71,6 +71,35 @@ fn wire__crate__api__cancel_pairing_impl(
                 let output_ok = Result::<_, ()>::Ok({
                     crate::api::cancel_pairing();
                 })?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__check_clipboard_changed_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "check_clipboard_changed",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Result::<_, ()>::Ok(crate::api::check_clipboard_changed())?;
                 Ok(output_ok)
             })())
         },
@@ -196,6 +225,36 @@ fn wire__crate__api__get_clipboard_history_impl(
         },
     )
 }
+fn wire__crate__api__get_clipboard_history_content_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_clipboard_history_content",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_item_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_clipboard_history_content(api_item_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__get_connected_devices_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -307,6 +366,36 @@ fn wire__crate__api__get_device_name_impl(
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Result::<_, ()>::Ok(crate::api::get_device_name())?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__get_device_session_key_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_device_session_key",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_device_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_device_session_key(api_device_id)?;
                 Ok(output_ok)
             })())
         },
@@ -485,6 +574,37 @@ fn wire__crate__api__remove_history_item_impl(
             deserializer.end();
             transform_result_sse::<_, String>((move || {
                 let output_ok = crate::api::remove_history_item(api_item_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__rename_device_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "rename_device",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_device_id = <String>::sse_decode(&mut deserializer);
+            let api_new_name = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::rename_device(api_device_id, api_new_name)?;
                 Ok(output_ok)
             })())
         },
@@ -844,15 +964,29 @@ impl SseDecode for bool {
     }
 }
 
+impl SseDecode for crate::api::ClipboardContentDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_contentType = <String>::sse_decode(deserializer);
+        let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+        return crate::api::ClipboardContentDto {
+            content_type: var_contentType,
+            data: var_data,
+        };
+    }
+}
+
 impl SseDecode for crate::api::ClipboardItemDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
         let mut var_contentType = <String>::sse_decode(deserializer);
         let mut var_preview = <String>::sse_decode(deserializer);
         let mut var_sizeBytes = <u64>::sse_decode(deserializer);
         let mut var_timestamp = <u64>::sse_decode(deserializer);
         let mut var_sourceDevice = <Option<String>>::sse_decode(deserializer);
         return crate::api::ClipboardItemDto {
+            id: var_id,
             content_type: var_contentType,
             preview: var_preview,
             size_bytes: var_sizeBytes,
@@ -869,11 +1003,13 @@ impl SseDecode for crate::api::DeviceInfoDto {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_isOnline = <bool>::sse_decode(deserializer);
         let mut var_lastSeen = <u64>::sse_decode(deserializer);
+        let mut var_platform = <String>::sse_decode(deserializer);
         return crate::api::DeviceInfoDto {
             id: var_id,
             name: var_name,
             is_online: var_isOnline,
             last_seen: var_lastSeen,
+            platform: var_platform,
         };
     }
 }
@@ -1015,6 +1151,7 @@ impl SseDecode for crate::api::TossSettings {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_autoSync = <bool>::sse_decode(deserializer);
         let mut var_syncText = <bool>::sse_decode(deserializer);
+        let mut var_syncRichText = <bool>::sse_decode(deserializer);
         let mut var_syncImages = <bool>::sse_decode(deserializer);
         let mut var_syncFiles = <bool>::sse_decode(deserializer);
         let mut var_maxFileSizeMb = <u32>::sse_decode(deserializer);
@@ -1024,6 +1161,7 @@ impl SseDecode for crate::api::TossSettings {
         return crate::api::TossSettings {
             auto_sync: var_autoSync,
             sync_text: var_syncText,
+            sync_rich_text: var_syncRichText,
             sync_images: var_syncImages,
             sync_files: var_syncFiles,
             max_file_size_mb: var_maxFileSizeMb,
@@ -1076,13 +1214,13 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        16 => wire__crate__api__send_clipboard_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__send_text_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__shutdown_toss_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__start_event_listener_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__start_network_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__stop_network_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__toss_settings_default_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__send_clipboard_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__send_text_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__shutdown_toss_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__start_event_listener_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__start_network_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__stop_network_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__toss_settings_default_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1096,23 +1234,27 @@ fn pde_ffi_dispatcher_sync_impl(
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
         1 => wire__crate__api__cancel_pairing_impl(ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__clear_clipboard_history_impl(ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__complete_pairing_code_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__complete_pairing_qr_impl(ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__get_clipboard_history_impl(ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__get_connected_devices_impl(ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__get_current_clipboard_impl(ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__get_device_id_impl(ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__get_device_name_impl(ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__get_paired_devices_impl(ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__get_settings_impl(ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__init_toss_impl(ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__poll_event_impl(ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__remove_device_impl(ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__remove_history_item_impl(ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__set_device_name_impl(ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__start_pairing_impl(ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__update_settings_impl(ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__check_clipboard_changed_impl(ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__clear_clipboard_history_impl(ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__complete_pairing_code_impl(ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__complete_pairing_qr_impl(ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__get_clipboard_history_impl(ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__get_clipboard_history_content_impl(ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__get_connected_devices_impl(ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__get_current_clipboard_impl(ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__get_device_id_impl(ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__get_device_name_impl(ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__get_device_session_key_impl(ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__get_paired_devices_impl(ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__get_settings_impl(ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__init_toss_impl(ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__poll_event_impl(ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__remove_device_impl(ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__remove_history_item_impl(ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__rename_device_impl(ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__set_device_name_impl(ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__start_pairing_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__update_settings_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1120,9 +1262,31 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::ClipboardContentDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.content_type.into_into_dart().into_dart(),
+            self.data.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::ClipboardContentDto
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::ClipboardContentDto>
+    for crate::api::ClipboardContentDto
+{
+    fn into_into_dart(self) -> crate::api::ClipboardContentDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::ClipboardItemDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.id.into_into_dart().into_dart(),
             self.content_type.into_into_dart().into_dart(),
             self.preview.into_into_dart().into_dart(),
             self.size_bytes.into_into_dart().into_dart(),
@@ -1148,6 +1312,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::DeviceInfoDto {
             self.name.into_into_dart().into_dart(),
             self.is_online.into_into_dart().into_dart(),
             self.last_seen.into_into_dart().into_dart(),
+            self.platform.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1213,6 +1378,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::TossSettings {
         [
             self.auto_sync.into_into_dart().into_dart(),
             self.sync_text.into_into_dart().into_dart(),
+            self.sync_rich_text.into_into_dart().into_dart(),
             self.sync_images.into_into_dart().into_dart(),
             self.sync_files.into_into_dart().into_dart(),
             self.max_file_size_mb.into_into_dart().into_dart(),
@@ -1244,9 +1410,18 @@ impl SseEncode for bool {
     }
 }
 
+impl SseEncode for crate::api::ClipboardContentDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.content_type, serializer);
+        <Vec<u8>>::sse_encode(self.data, serializer);
+    }
+}
+
 impl SseEncode for crate::api::ClipboardItemDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
         <String>::sse_encode(self.content_type, serializer);
         <String>::sse_encode(self.preview, serializer);
         <u64>::sse_encode(self.size_bytes, serializer);
@@ -1262,6 +1437,7 @@ impl SseEncode for crate::api::DeviceInfoDto {
         <String>::sse_encode(self.name, serializer);
         <bool>::sse_encode(self.is_online, serializer);
         <u64>::sse_encode(self.last_seen, serializer);
+        <String>::sse_encode(self.platform, serializer);
     }
 }
 
@@ -1381,6 +1557,7 @@ impl SseEncode for crate::api::TossSettings {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.auto_sync, serializer);
         <bool>::sse_encode(self.sync_text, serializer);
+        <bool>::sse_encode(self.sync_rich_text, serializer);
         <bool>::sse_encode(self.sync_images, serializer);
         <bool>::sse_encode(self.sync_files, serializer);
         <u32>::sse_encode(self.max_file_size_mb, serializer);

@@ -5,9 +5,11 @@
 //! - Change detection via polling
 //! - Content type detection
 
+mod file_handler;
 mod formats;
 mod handler;
 mod monitor;
+mod rich_text;
 
 #[cfg(target_os = "windows")]
 pub mod windows_formats;

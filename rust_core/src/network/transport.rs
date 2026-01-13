@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use crate::crypto::KEY_SIZE;
 use crate::error::NetworkError;
 use crate::protocol::{Frame, Message};
+use std::time::SystemTime;
 
 /// Max idle timeout for connections
 const IDLE_TIMEOUT_SECS: u64 = 30;
@@ -84,6 +85,47 @@ impl QuicTransport {
     }
 }
 
+/// Session tracking for key rotation
+struct SessionTracker {
+    created_at: SystemTime,
+    message_count: u64,
+}
+
+impl SessionTracker {
+    fn new() -> Self {
+        Self {
+            created_at: SystemTime::now(),
+            message_count: 0,
+        }
+    }
+
+    fn increment_message_count(&mut self) {
+        self.message_count += 1;
+    }
+
+    fn should_rotate(&self) -> bool {
+        const MAX_MESSAGES: u64 = 1000;
+        const MAX_AGE_SECS: u64 = 24 * 60 * 60; // 24 hours
+
+        if self.message_count >= MAX_MESSAGES {
+            return true;
+        }
+
+        if let Ok(age) = SystemTime::now().duration_since(self.created_at) {
+            if age.as_secs() >= MAX_AGE_SECS {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn reset(&mut self) {
+        self.created_at = SystemTime::now();
+        self.message_count = 0;
+    }
+}
+
 /// Connection to a peer
 pub struct PeerConnection {
     connection: Connection,
@@ -92,6 +134,7 @@ pub struct PeerConnection {
     peer_device_id: Mutex<Option<[u8; 32]>>,
     peer_name: Mutex<Option<String>>,
     is_local: bool,
+    session_tracker: Mutex<SessionTracker>,
 }
 
 impl PeerConnection {
@@ -104,6 +147,7 @@ impl PeerConnection {
             peer_device_id: Mutex::new(None),
             peer_name: Mutex::new(None),
             is_local,
+            session_tracker: Mutex::new(SessionTracker::new()),
         }
     }
 
@@ -192,6 +236,12 @@ impl PeerConnection {
 
     /// Send an encrypted message
     pub async fn send_message(&self, message: &Message) -> Result<(), NetworkError> {
+        // Increment message count (only for non-rotation messages)
+        if !matches!(message, Message::KeyRotation(_)) {
+            let mut tracker = self.session_tracker.lock().await;
+            tracker.increment_message_count();
+        }
+
         let key = self.session_key.lock().await;
         let key = key.as_ref().ok_or(NetworkError::NotAuthenticated)?;
 
@@ -204,6 +254,18 @@ impl PeerConnection {
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
 
         self.send_raw(&frame.to_bytes()).await
+    }
+
+    /// Check if session key should be rotated
+    pub async fn should_rotate_key(&self) -> bool {
+        let tracker = self.session_tracker.lock().await;
+        tracker.should_rotate()
+    }
+
+    /// Reset session tracker after rotation
+    pub async fn reset_session_tracker(&self) {
+        let mut tracker = self.session_tracker.lock().await;
+        tracker.reset();
     }
 
     /// Receive and decrypt a message
