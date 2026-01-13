@@ -1,0 +1,72 @@
+# Platform Support
+
+Platform-specific implementation details.
+
+## Overview
+
+Toss supports the following platforms:
+
+- **macOS** 11+
+- **Windows** 10/11
+- **Linux** (X11 and Wayland)
+- **iOS** 14+
+- **Android** 10+
+
+## Platform-Specific Features
+
+### macOS
+
+- **Accessibility Permissions**: Required for clipboard monitoring
+- **Keychain**: Secure storage for device keys
+- **System Tray**: Menu bar integration
+
+See [macOS Implementation](../platform-specific/macos.md) for details.
+
+### Windows
+
+- **Clipboard Formats**: Support for multiple clipboard formats
+- **Credential Manager**: Secure storage for device keys
+- **System Tray**: Taskbar integration
+
+See [Windows Implementation](../platform-specific/windows.md) for details.
+
+### Linux
+
+- **Display Servers**: Support for both X11 and Wayland
+- **Clipboard APIs**: xcb for X11, wl-clipboard for Wayland
+- **System Tray**: Desktop environment integration
+
+See [Linux Implementation](../platform-specific/linux.md) for details.
+
+### iOS
+
+- **Background Limitations**: Limited background clipboard access
+- **App Extensions**: Share extensions for clipboard access
+- **Shortcuts Integration**: Siri Shortcuts support
+- **Keychain**: Secure storage for device keys
+
+See [iOS Implementation](../platform-specific/ios.md) for details.
+
+### Android
+
+- **Foreground Service**: Required for clipboard access on Android 10+
+- **Notifications**: Persistent notification for foreground service
+- **KeyStore**: Secure storage for device keys
+
+See [Android Implementation](../platform-specific/android.md) for details.
+
+## Implementation Status
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| macOS | ✅ Ready | Structure complete, needs native code |
+| Windows | ✅ Ready | Structure complete, needs native code |
+| Linux | ✅ Ready | Structure complete, needs native code |
+| iOS | ✅ Ready | Structure complete, needs native code |
+| Android | ✅ Ready | Structure complete, needs native code |
+
+## Next Steps
+
+- [Platform-Specific Guides](../platform-specific/overview.md) - Detailed platform guides
+- [Architecture](architecture.md) - System design
+- [Testing](testing.md) - Testing guide

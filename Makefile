@@ -7,7 +7,8 @@
         fmt lint check docker run-relay help \
         release release-all package-all package-relay \
         release-macos release-linux release-windows release-android release-ios \
-        setup check-deps check-deps-macos pod-install
+        setup check-deps check-deps-macos pod-install \
+        generate-ffi verify-ffi
 
 # Default target
 all: build
@@ -187,8 +188,27 @@ run-flutter:
 ## Generate Rust FFI bindings for Flutter
 generate-ffi:
 	@echo "Generating FFI bindings..."
-	@cd flutter_app && flutter_rust_bridge_codegen generate
-	@echo "✓ FFI bindings generated"
+	@echo "Checking prerequisites..."
+	@FLUTTER_RUST_BRIDGE_CODEGEN=$$(command -v flutter_rust_bridge_codegen 2>/dev/null || echo "$$HOME/.cargo/bin/flutter_rust_bridge_codegen"); \
+	if [ ! -f "$$FLUTTER_RUST_BRIDGE_CODEGEN" ]; then \
+		echo "ERROR: flutter_rust_bridge_codegen not found. Install with:"; \
+		echo "  cargo install flutter_rust_bridge_codegen --version 2.11.1"; \
+		exit 1; \
+	fi
+	@echo "Verifying Rust core compiles..."
+	@cd rust_core && cargo check --quiet || { \
+		echo "ERROR: Rust core has compilation errors. Fix them first."; \
+		exit 1; \
+	}
+	@echo "Generating FFI bindings..."
+	@FLUTTER_RUST_BRIDGE_CODEGEN=$$(command -v flutter_rust_bridge_codegen 2>/dev/null || echo "$$HOME/.cargo/bin/flutter_rust_bridge_codegen"); \
+	cd flutter_app && "$$FLUTTER_RUST_BRIDGE_CODEGEN" generate --config-file frb_options.yaml || { \
+		echo "ERROR: FFI generation failed. Check frb_options.yaml and Rust API."; \
+		exit 1; \
+	}
+	@echo "✓ FFI bindings generated successfully"
+	@echo "  - Dart: flutter_app/lib/src/rust/api.dart"
+	@echo "  - C Header: rust_core/src/api/toss_api.h"
 
 ## Generate Riverpod providers
 generate-providers:
@@ -367,6 +387,7 @@ help:
 	@echo "  run-relay      Run relay server locally"
 	@echo "  run-flutter    Run Flutter app"
 	@echo "  generate-ffi   Generate Rust FFI bindings"
+	@echo "  verify-ffi    Verify FFI setup before generation"
 	@echo ""
 	@echo "Clean:"
 	@echo "  clean          Clean all build artifacts"

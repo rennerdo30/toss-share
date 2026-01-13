@@ -20,6 +20,11 @@ class CurrentClipboard extends _$CurrentClipboard {
   void clear() {
     state = null;
   }
+
+  Future<void> refresh() async {
+    // Refresh from Rust FFI
+    // This will be implemented once FFI bindings are available
+  }
 }
 
 /// Provider for clipboard history
@@ -44,6 +49,8 @@ class ClipboardHistory extends _$ClipboardHistory {
   }
 
   Future<void> loadHistory() async {
-    // TODO: Load from Rust FFI / local storage
+    // Load from Rust FFI / local storage
+    // Note: This will be fully implemented once FFI bindings are available
+    // For now, history is managed locally via addItem/removeItem
   }
 }

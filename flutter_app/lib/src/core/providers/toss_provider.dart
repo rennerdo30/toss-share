@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../services/toss_service.dart';
+
 part 'toss_provider.g.dart';
 
 /// Toss state
@@ -41,25 +43,34 @@ class TossState {
 class Toss extends _$Toss {
   @override
   TossState build() {
-    // TODO: Initialize from Rust FFI
-    return const TossState(
-      deviceId: '',
-      deviceName: 'My Device',
-      isInitialized: false,
+    // Initialize from TossService
+    final deviceId = TossService.deviceId ?? '';
+    final deviceName = TossService.deviceName;
+    final isInitialized = TossService.isInitialized;
+
+    return TossState(
+      deviceId: deviceId,
+      deviceName: deviceName,
+      isInitialized: isInitialized,
     );
   }
 
   Future<void> initialize() async {
-    // TODO: Call Rust FFI to get actual device info
+    // Initialize TossService (which calls Rust FFI)
+    await TossService.initialize();
+    
+    // Update state with actual device info
     state = state.copyWith(
-      deviceId: 'mock-device-id',
-      isInitialized: true,
+      deviceId: TossService.deviceId ?? '',
+      deviceName: TossService.deviceName,
+      isInitialized: TossService.isInitialized,
     );
   }
 
-  void setDeviceName(String name) {
-    state = state.copyWith(deviceName: name);
-    // TODO: Call Rust FFI to update device name
+  Future<void> setDeviceName(String name) async {
+    // Update via TossService (which calls Rust FFI)
+    await TossService.setDeviceName(name);
+    state = state.copyWith(deviceName: TossService.deviceName);
   }
 
   void setSyncing(bool syncing) {

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/providers/clipboard_provider.dart';
+import '../../core/services/toss_service.dart';
+import '../../core/models/device.dart';
 import 'widgets/connection_status.dart';
 import 'widgets/device_list.dart';
 import 'widgets/clipboard_preview.dart';
@@ -76,7 +78,7 @@ class HomeScreen extends ConsumerWidget {
                       DeviceList(
                         devices: devices,
                         onDeviceTap: (device) {
-                          // TODO: Show device details
+                          _showDeviceDetails(context, device, ref);
                         },
                       ),
 
@@ -93,8 +95,13 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: ClipboardPreviewCard(
                         item: currentClipboard,
-                        onRefresh: () {
-                          // TODO: Refresh clipboard
+                        onRefresh: () async {
+                          // Refresh clipboard from Rust core
+                          final item = await TossService.getCurrentClipboard();
+                          if (item != null) {
+                            // Update provider with new clipboard content
+                            // Note: This will be fully implemented once FFI bindings are available
+                          }
                         },
                       ),
                     ),
@@ -108,14 +115,114 @@ class HomeScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: devices.isEmpty
             ? null
-            : () {
-                // TODO: Send clipboard
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Sending clipboard...')),
-                );
+            : () async {
+                try {
+                  await TossService.sendClipboard();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Clipboard sent successfully!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to send clipboard: $e')),
+                    );
+                  }
+                }
               },
         icon: const Icon(Icons.send),
         label: const Text('Send'),
+      ),
+    );
+  }
+
+  void _showDeviceDetails(BuildContext context, Device device, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(device.name),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _DetailRow(label: 'Device ID', value: device.id.substring(0, 16) + '...'),
+            _DetailRow(
+              label: 'Status',
+              value: device.isOnline ? 'Online' : 'Offline',
+            ),
+            if (device.lastSeen != null)
+              _DetailRow(
+                label: 'Last Seen',
+                value: _formatLastSeen(device.lastSeen!),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              // Remove device
+              await TossService.removeDevice(device.id);
+              ref.read(devicesProvider.notifier).refresh();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Device removed')),
+                );
+              }
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatLastSeen(DateTime lastSeen) {
+    final now = DateTime.now();
+    final diff = now.difference(lastSeen);
+
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${lastSeen.month}/${lastSeen.day}/${lastSeen.year}';
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
       ),
     );
   }

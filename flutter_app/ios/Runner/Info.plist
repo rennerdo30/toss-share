@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+	</array>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.toss.clipboard.sync</string>
+	</array>
 </dict>
 </plist>

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PairingScreen extends ConsumerStatefulWidget {
   const PairingScreen({super.key});
@@ -183,11 +185,35 @@ class _ScanCodeTab extends StatefulWidget {
 class _ScanCodeTabState extends State<_ScanCodeTab> {
   final _codeController = TextEditingController();
   bool _isScanning = false;
+  MobileScannerController? _scannerController;
+  bool _hasPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestCameraPermission();
+  }
 
   @override
   void dispose() {
     _codeController.dispose();
+    _scannerController?.dispose();
     super.dispose();
+  }
+
+  Future<void> _requestCameraPermission() async {
+    final status = await Permission.camera.request();
+    if (mounted) {
+      setState(() {
+        _hasPermission = status.isGranted;
+        if (_hasPermission) {
+          _scannerController = MobileScannerController(
+            detectionSpeed: DetectionSpeed.noDuplicates,
+            facing: CameraFacing.back,
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -196,41 +222,78 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Camera placeholder (would use mobile_scanner in production)
-          Container(
-            height: 250,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.qr_code_scanner,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _isScanning ? 'Scanning...' : 'Camera Preview',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          // Camera scanner
+          if (!_hasPermission)
+            Container(
+              height: 250,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.camera_alt_outlined,
+                    size: 64,
                     color: Theme.of(context).colorScheme.outline,
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Camera permission required',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _requestCameraPermission,
+                    child: const Text('Grant Permission'),
+                  ),
+                ],
+              ),
+            )
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 250,
+                width: double.infinity,
+                child: Stack(
+                  children: [
+                    MobileScanner(
+                      controller: _scannerController,
+                      onDetect: (capture) {
+                        final List<Barcode> barcodes = capture.barcodes;
+                        if (barcodes.isNotEmpty && _isScanning) {
+                          final barcode = barcodes.first;
+                          if (barcode.rawValue != null) {
+                            // Stop scanning
+                            setState(() => _isScanning = false);
+                            // Handle scanned QR code
+                            widget.onScanned(barcode.rawValue!);
+                          }
+                        }
+                      },
+                    ),
+                    if (!_isScanning)
+                      Container(
+                        color: Colors.black54,
+                        child: Center(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() => _isScanning = true);
+                            },
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text('Start Scanning'),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() => _isScanning = !_isScanning);
-                    // TODO: Start actual camera scanning
-                  },
-                  icon: Icon(_isScanning ? Icons.stop : Icons.play_arrow),
-                  label: Text(_isScanning ? 'Stop' : 'Start Scanning'),
-                ),
-              ],
+              ),
             ),
-          ),
           const SizedBox(height: 24),
 
           // Or divider

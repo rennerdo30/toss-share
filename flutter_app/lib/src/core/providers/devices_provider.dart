@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/device.dart';
+import '../services/toss_service.dart';
 
 part 'devices_provider.g.dart';
 
@@ -10,22 +11,32 @@ part 'devices_provider.g.dart';
 class Devices extends _$Devices {
   @override
   List<Device> build() {
-    // TODO: Load from Rust FFI
+    // Load from TossService (which calls Rust FFI)
     return [];
   }
 
   Future<void> refresh() async {
-    // TODO: Call Rust FFI to get paired devices
-    state = [];
+    // Call Rust FFI to get paired devices
+    final devices = await TossService.getPairedDevices();
+    state = devices.map((d) => Device(
+      id: d.id,
+      name: d.name,
+      isOnline: d.isOnline,
+      lastSeen: d.lastSeen > 0 
+          ? DateTime.fromMillisecondsSinceEpoch(d.lastSeen)
+          : null,
+    )).toList();
   }
 
   void addDevice(Device device) {
     state = [...state, device];
   }
 
-  void removeDevice(String deviceId) {
+  Future<void> removeDevice(String deviceId) async {
+    // Call Rust FFI to remove device
+    await TossService.removeDevice(deviceId);
+    // Update local state
     state = state.where((d) => d.id != deviceId).toList();
-    // TODO: Call Rust FFI to remove device
   }
 
   void updateDeviceStatus(String deviceId, bool isOnline) {

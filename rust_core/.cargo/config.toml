@@ -1,0 +1,28 @@
+# Cargo configuration for Toss Core
+# This file sets up quality gates and build settings
+
+[build]
+# Use stable toolchain
+rustflags = ["-D", "warnings"]
+
+[lints.clippy]
+# Enforce clippy warnings
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+
+# Disable some overly pedantic lints
+too_many_lines = "allow"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
+
+# Security-related lints
+disallowed_types = ["std::net::TcpStream"]  # Prefer TLS
+disallowed_methods = ["std::fs::read", "std::fs::write"]  # Use secure alternatives
+
+# Test configuration
+[target.'cfg(test)']
+# Run clipboard tests single-threaded to avoid conflicts
+test-threads = 1

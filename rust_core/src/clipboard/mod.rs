@@ -9,6 +9,12 @@ mod formats;
 mod handler;
 mod monitor;
 
+#[cfg(target_os = "windows")]
+pub mod windows_formats;
+
+#[cfg(target_os = "linux")]
+pub mod linux_display;
+
 pub use formats::{decode_image, encode_image_to_png};
 pub use handler::{ClipboardHandler, ClipboardProvider};
 pub use monitor::ClipboardMonitor;

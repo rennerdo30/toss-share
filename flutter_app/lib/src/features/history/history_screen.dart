@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/clipboard_provider.dart';
 import '../../core/models/clipboard_item.dart';
+import '../../core/services/toss_service.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -34,11 +36,41 @@ class HistoryScreen extends ConsumerWidget {
                 final item = history[index];
                 return _HistoryItem(
                   item: item,
-                  onCopy: () {
-                    // TODO: Copy to clipboard
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard')),
-                    );
+                  onCopy: () async {
+                    try {
+                      // Copy based on content type
+                      switch (item.contentType) {
+                        case ClipboardContentType.text:
+                        case ClipboardContentType.richText:
+                        case ClipboardContentType.url:
+                          // Copy text to clipboard
+                          await Clipboard.setData(ClipboardData(text: item.preview));
+                          // Also send via Toss if available
+                          await TossService.sendText(item.preview);
+                          break;
+                        case ClipboardContentType.image:
+                          // For images, we'd need to decode and set image data
+                          // This is a simplified version - full implementation would
+                          // require image data from storage
+                          await Clipboard.setData(ClipboardData(text: item.preview));
+                          break;
+                        case ClipboardContentType.file:
+                          // Files would need special handling
+                          await Clipboard.setData(ClipboardData(text: item.preview));
+                          break;
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Copied to clipboard')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to copy: $e')),
+                        );
+                      }
+                    }
                   },
                   onDelete: () {
                     ref.read(clipboardHistoryProvider.notifier).removeItem(item.id);

@@ -1,0 +1,27 @@
+# Flutter Rust Bridge Configuration
+# This file configures code generation for Rust FFI bindings
+# For more details, see https://cjycode.com/flutter_rust_bridge/guides/generate_rust_code.html
+
+# Rust crate root directory
+rust_root: ../rust_core
+
+# Rust input (module path)
+rust_input: crate::api
+
+# Path to the Dart output file
+dart_output: lib/src/rust/api.dart
+
+# Path to the C header output file (optional)
+c_output: ../rust_core/src/api/toss_api.h
+
+# Dart entrypoint class name
+dart_entrypoint_class_name: TossApi
+
+# Enable Dart format on generated code
+dart_format: true
+
+# Skip build runner for generated files
+build_runner: false
+
+# Enable Rust format on generated code
+rust_format: true

@@ -1,0 +1,64 @@
+# Pairing Devices
+
+Connect your devices to start syncing clipboard content.
+
+## Pairing Methods
+
+Toss supports two methods for pairing devices:
+
+### 1. QR Code (Recommended)
+
+1. On **Device A**: Open Toss and click "Add Device"
+2. A QR code will be displayed on the screen
+3. On **Device B**: Open Toss and click "Scan QR Code"
+4. Point Device B's camera at the QR code on Device A
+5. Devices will automatically pair once the QR code is scanned
+
+### 2. 6-Digit Code
+
+1. On **Device A**: Open Toss and click "Add Device"
+2. A 6-digit pairing code will be displayed
+3. On **Device B**: Open Toss and click "Enter Code"
+4. Enter the 6-digit code from Device A
+5. Devices will pair after code verification
+
+## Pairing Process
+
+During pairing:
+
+1. **Key Exchange**: Devices exchange public keys using X25519
+2. **Verification**: Both devices verify the pairing code/QR code
+3. **Session Key**: A shared session key is derived for encryption
+4. **Connection**: Devices establish a secure connection (P2P or via relay)
+
+## Security
+
+- All pairing uses end-to-end encryption
+- Pairing codes expire after 5 minutes
+- Each device generates a unique identity key
+- Session keys are derived securely using X25519 key exchange
+
+## Troubleshooting
+
+### QR Code Not Scanning
+
+- Ensure good lighting
+- Hold device steady
+- Make sure QR code is fully visible
+- Try the 6-digit code method instead
+
+### Pairing Code Expired
+
+- Generate a new pairing code on Device A
+- Codes expire after 5 minutes for security
+
+### Connection Failed
+
+- Check that both devices are on the same network (for P2P)
+- Verify internet connection (for relay fallback)
+- Ensure firewall allows Toss connections
+
+## Next Steps
+
+- [Using Toss](using-toss.md) - Learn how to use Toss after pairing
+- [Overview](overview.md) - Return to user guide

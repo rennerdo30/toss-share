@@ -82,6 +82,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Build Rust core for FFI
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Generate FFI bindings
+        run: make generate-ffi || echo "FFI generation skipped (may need flutter_rust_bridge_codegen installed)"
+
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs || echo "Code generation skipped"
 

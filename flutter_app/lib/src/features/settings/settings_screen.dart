@@ -202,8 +202,25 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Source Code'),
                   subtitle: const Text('github.com/rennerdo30/toss-share'),
                   trailing: const Icon(Icons.open_in_new),
-                  onTap: () {
-                    launchUrl(Uri.parse('https://github.com/rennerdo30/toss-share'));
+                  onTap: () async {
+                    final uri = Uri.parse('https://github.com/rennerdo30/toss-share');
+                    try {
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not open URL')),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error opening URL: $e')),
+                        );
+                      }
+                    }
                   },
                 ),
               ],

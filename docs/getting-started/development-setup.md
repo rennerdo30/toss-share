@@ -1,0 +1,204 @@
+# Development Setup
+
+Set up your development environment for Toss.
+
+## Prerequisites
+
+Ensure you have all dependencies installed:
+
+```bash
+./scripts/setup.sh
+```
+
+Required:
+- Rust 1.75+
+- Flutter 3.24+
+- Platform-specific build tools (Xcode, Android SDK, etc.)
+
+## First Steps
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/rennerdo30/toss-share.git
+cd toss-share
+```
+
+### 2. Verify FFI Setup
+
+Before generating FFI bindings, verify everything is configured:
+
+```bash
+make verify-ffi
+```
+
+This checks:
+- ✅ Rust toolchain
+- ✅ Flutter SDK
+- ✅ flutter_rust_bridge_codegen
+- ✅ Configuration files
+- ✅ Rust compilation
+
+### 3. Generate FFI Bindings
+
+```bash
+make generate-ffi
+```
+
+This generates:
+- `flutter_app/lib/src/rust/api.dart` - Dart bindings
+- `rust_core/src/api/toss_api.h` - C header
+
+### 4. Build the Project
+
+```bash
+# Build Rust core
+make build-rust
+
+# Build Flutter app
+make build-flutter
+
+# Or build everything
+make build
+```
+
+### 5. Run the Application
+
+```bash
+# Run Flutter app
+make run-flutter
+
+# Or manually
+cd flutter_app && flutter run
+```
+
+## Development Workflow
+
+### Daily Development
+
+1. **Start Development**
+   ```bash
+   # Verify setup
+   make verify-ffi
+   
+   # Generate code (if needed)
+   make generate-ffi
+   
+   # Run app
+   make run-flutter
+   ```
+
+2. **Make Changes**
+   - Edit Rust code in `rust_core/src/`
+   - Edit Flutter code in `flutter_app/lib/`
+   - Update FFI API in `rust_core/src/api/mod.rs`
+
+3. **After Rust API Changes**
+   ```bash
+   # Regenerate FFI bindings
+   make generate-ffi
+   ```
+
+4. **Test Changes**
+   ```bash
+   # Run tests
+   make test-all
+   
+   # Or individually
+   make test-rust
+   make test-flutter
+   ```
+
+## Code Quality
+
+```bash
+# Format code
+make fmt
+
+# Lint code
+make lint
+
+# Run all checks
+make check
+```
+
+## Project Structure
+
+```
+toss/
+├── rust_core/          # Rust core library
+│   └── src/
+│       ├── api/       # FFI API (mod.rs)
+│       ├── clipboard/ # Clipboard operations
+│       ├── crypto/    # Encryption
+│       ├── network/   # Networking (P2P, Relay)
+│       └── storage/   # SQLite storage
+├── flutter_app/       # Flutter application
+│   └── lib/
+│       ├── src/
+│       │   ├── core/  # Services, providers
+│       │   └── features/ # UI screens
+│       └── rust/      # Generated FFI bindings
+├── relay_server/      # Relay server (optional)
+└── docs/              # Documentation
+```
+
+## Common Tasks
+
+### Generate FFI Bindings
+```bash
+make generate-ffi
+```
+
+### Run Tests
+```bash
+make test-all
+```
+
+### Build for Release
+```bash
+make release
+```
+
+### Clean Build Artifacts
+```bash
+make clean
+```
+
+## Troubleshooting
+
+### FFI Generation Issues
+
+**Problem**: `flutter_rust_bridge_codegen: command not found`
+```bash
+dart pub global activate flutter_rust_bridge_codegen
+```
+
+**Problem**: Rust compilation errors
+```bash
+cd rust_core && cargo check
+# Fix errors shown
+```
+
+### Build Issues
+
+**Problem**: Flutter build fails
+```bash
+cd flutter_app
+flutter clean
+flutter pub get
+flutter build
+```
+
+**Problem**: Rust build fails
+```bash
+cd rust_core
+cargo clean
+cargo build
+```
+
+## Next Steps
+
+- [Architecture](../developer-guide/architecture.md) - Understand the system design
+- [API Reference](../developer-guide/api-reference.md) - API documentation
+- [Platform Support](../developer-guide/platform-support.md) - Platform-specific details

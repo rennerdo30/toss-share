@@ -203,7 +203,7 @@ impl RelayClient {
     }
 
     /// Disconnect from the relay server
-    pub async fn disconnect(&mut self) {
+    pub async fn disconnect(&self) {
         if let Some(mut ws) = self.ws.lock().await.take() {
             let _ = ws.close(None).await;
         }

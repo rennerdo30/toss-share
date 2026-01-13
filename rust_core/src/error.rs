@@ -147,3 +147,86 @@ impl From<serde_json::Error> for ProtocolError {
         ProtocolError::Serialization(e.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_toss_error_display() {
+        let err = TossError::Crypto(CryptoError::KeyGeneration("test".to_string()));
+        assert!(err.to_string().contains("Crypto error"));
+        assert!(err.to_string().contains("test"));
+    }
+
+    #[test]
+    fn test_crypto_error_variants() {
+        let key_gen = CryptoError::KeyGeneration("failed".to_string());
+        assert!(key_gen.to_string().contains("Key generation failed"));
+
+        let encryption = CryptoError::Encryption("aes error".to_string());
+        assert!(encryption.to_string().contains("Encryption failed"));
+
+        let decryption = CryptoError::Decryption("decrypt error".to_string());
+        assert!(decryption.to_string().contains("Decryption failed"));
+
+        let invalid_key = CryptoError::InvalidKey;
+        assert!(invalid_key.to_string().contains("Invalid key format"));
+
+        let invalid_sig = CryptoError::InvalidSignature;
+        assert!(invalid_sig.to_string().contains("Invalid signature"));
+    }
+
+    #[test]
+    fn test_network_error_variants() {
+        let conn_failed = NetworkError::ConnectionFailed("timeout".to_string());
+        assert!(conn_failed.to_string().contains("Connection failed"));
+
+        let timeout = NetworkError::Timeout;
+        assert!(timeout.to_string().contains("Connection timeout"));
+
+        let not_auth = NetworkError::NotAuthenticated;
+        assert!(not_auth.to_string().contains("Not authenticated"));
+
+        let peer_not_found = NetworkError::PeerNotFound("device-123".to_string());
+        assert!(peer_not_found.to_string().contains("Peer not found"));
+    }
+
+    #[test]
+    fn test_protocol_error_variants() {
+        let invalid_format = ProtocolError::InvalidFormat("bad format".to_string());
+        assert!(invalid_format.to_string().contains("Invalid message format"));
+
+        let unsupported = ProtocolError::UnsupportedVersion(99);
+        assert!(unsupported.to_string().contains("Unsupported version"));
+
+        let too_large = ProtocolError::MessageTooLarge(10000, 5000);
+        assert!(too_large.to_string().contains("Message too large"));
+        assert!(too_large.to_string().contains("10000"));
+        assert!(too_large.to_string().contains("5000"));
+    }
+
+    #[test]
+    fn test_clipboard_error_variants() {
+        let access_denied = ClipboardError::AccessDenied;
+        assert!(access_denied.to_string().contains("Clipboard access denied"));
+
+        let empty = ClipboardError::Empty;
+        assert!(empty.to_string().contains("Clipboard is empty"));
+
+        let unsupported = ClipboardError::UnsupportedFormat("custom".to_string());
+        assert!(unsupported.to_string().contains("Unsupported format"));
+    }
+
+    #[test]
+    fn test_error_conversions() {
+        // Test that errors can be converted through the chain
+        let crypto_err = CryptoError::KeyGeneration("test".to_string());
+        let toss_err: TossError = crypto_err.into();
+        assert!(matches!(toss_err, TossError::Crypto(_)));
+
+        let network_err = NetworkError::ConnectionFailed("test".to_string());
+        let toss_err: TossError = network_err.into();
+        assert!(matches!(toss_err, TossError::Network(_)));
+    }
+}

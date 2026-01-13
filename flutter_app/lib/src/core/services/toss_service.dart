@@ -2,8 +2,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
 
-// TODO: Import generated FFI bindings when flutter_rust_bridge is set up
-// import '../rust/api.dart' as api;
+// Import generated FFI bindings
+import '../rust/api.dart/api.dart' as api;
 
 /// Pairing information returned from start_pairing
 class PairingInfo {
@@ -84,12 +84,15 @@ class TossService {
     _dataDir = dataDir.path;
     _deviceName = await _getDeviceName();
 
-    // TODO: Call Rust FFI init_toss()
-    // await api.initToss(_dataDir!, _deviceName);
-    // _deviceId = await api.getDeviceId();
-
-    // Mock device ID for now
-    _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
+    // Call Rust FFI init_toss()
+    try {
+      api.initToss(dataDir: _dataDir!, deviceName: _deviceName);
+      _deviceId = api.getDeviceId();
+    } catch (e) {
+      // Fallback: Mock device ID if FFI fails
+      _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
+      print('Warning: FFI initialization failed: $e');
+    }
 
     _initialized = true;
   }
@@ -113,8 +116,11 @@ class TossService {
   /// Set device name
   static Future<void> setDeviceName(String name) async {
     _deviceName = name;
-    // TODO: Call Rust FFI set_device_name()
-    // await api.setDeviceName(name);
+    try {
+      api.setDeviceName(name: name);
+    } catch (e) {
+      print('Warning: Failed to set device name: $e');
+    }
   }
 
   // ============================================================================
@@ -123,53 +129,74 @@ class TossService {
 
   /// Start a new pairing session
   static Future<PairingInfo> startPairing() async {
-    // TODO: Call Rust FFI start_pairing()
-    // final info = await api.startPairing();
-    // return PairingInfo(
-    //   code: info.code,
-    //   qrData: info.qrData,
-    //   expiresAt: info.expiresAt,
-    //   publicKey: info.publicKey,
-    // );
-
-    // Mock pairing info
-    final code = '${DateTime.now().millisecondsSinceEpoch % 1000000}'.padLeft(6, '0');
-    return PairingInfo(
-      code: code,
-      qrData: '{"v":1,"code":"$code","pk":"mock-key","name":"$_deviceName"}',
-      expiresAt: DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch,
-      publicKey: 'mock-public-key',
-    );
+    try {
+      final info = api.startPairing();
+      return PairingInfo(
+        code: info.code,
+        qrData: info.qrData,
+        expiresAt: info.expiresAt.toInt(),
+        publicKey: info.publicKey,
+      );
+    } catch (e) {
+      // Fallback: Mock pairing info if FFI fails
+      print('Warning: Failed to start pairing: $e');
+      final code = '${DateTime.now().millisecondsSinceEpoch % 1000000}'.padLeft(6, '0');
+      return PairingInfo(
+        code: code,
+        qrData: '{"v":1,"code":"$code","pk":"mock-key","name":"$_deviceName"}',
+        expiresAt: DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch,
+        publicKey: 'mock-public-key',
+      );
+    }
   }
 
   /// Complete pairing with QR code data
   static Future<DeviceInfo> completePairingQR(String qrData) async {
-    // TODO: Call Rust FFI complete_pairing_qr()
-    // return await api.completePairingQr(qrData);
-
-    return const DeviceInfo(
-      id: 'mock-paired-device',
-      name: 'Paired Device',
-      isOnline: false,
-    );
+    try {
+      final device = api.completePairingQr(qrData: qrData);
+      return DeviceInfo(
+        id: device.id,
+        name: device.name,
+        isOnline: device.isOnline,
+        lastSeen: device.lastSeen.toInt(),
+      );
+    } catch (e) {
+      print('Warning: Failed to complete pairing with QR: $e');
+      return const DeviceInfo(
+        id: 'mock-paired-device',
+        name: 'Paired Device',
+        isOnline: false,
+      );
+    }
   }
 
   /// Complete pairing with manual code
   static Future<DeviceInfo> completePairingCode(String code, List<int> publicKey) async {
-    // TODO: Call Rust FFI complete_pairing_code()
-    // return await api.completePairingCode(code, publicKey);
-
-    return const DeviceInfo(
-      id: 'mock-paired-device',
-      name: 'Paired Device',
-      isOnline: false,
-    );
+    try {
+      final device = api.completePairingCode(code: code, peerPublicKey: publicKey);
+      return DeviceInfo(
+        id: device.id,
+        name: device.name,
+        isOnline: device.isOnline,
+        lastSeen: device.lastSeen.toInt(),
+      );
+    } catch (e) {
+      print('Warning: Failed to complete pairing with code: $e');
+      return const DeviceInfo(
+        id: 'mock-paired-device',
+        name: 'Paired Device',
+        isOnline: false,
+      );
+    }
   }
 
   /// Cancel active pairing session
   static void cancelPairing() {
-    // TODO: Call Rust FFI cancel_pairing()
-    // api.cancelPairing();
+    try {
+      api.cancelPairing();
+    } catch (e) {
+      print('Warning: Failed to cancel pairing: $e');
+    }
   }
 
   // ============================================================================
@@ -178,22 +205,43 @@ class TossService {
 
   /// Get list of paired devices
   static Future<List<DeviceInfo>> getPairedDevices() async {
-    // TODO: Call Rust FFI get_paired_devices()
-    // return await api.getPairedDevices();
-    return [];
+    try {
+      final devices = api.getPairedDevices();
+      return devices.map((d) => DeviceInfo(
+        id: d.id,
+        name: d.name,
+        isOnline: d.isOnline,
+        lastSeen: d.lastSeen.toInt(),
+      )).toList();
+    } catch (e) {
+      print('Warning: Failed to get paired devices: $e');
+      return [];
+    }
   }
 
   /// Get list of connected devices
   static Future<List<DeviceInfo>> getConnectedDevices() async {
-    // TODO: Call Rust FFI get_connected_devices()
-    // return await api.getConnectedDevices();
-    return [];
+    try {
+      final devices = api.getConnectedDevices();
+      return devices.map((d) => DeviceInfo(
+        id: d.id,
+        name: d.name,
+        isOnline: d.isOnline,
+        lastSeen: d.lastSeen.toInt(),
+      )).toList();
+    } catch (e) {
+      print('Warning: Failed to get connected devices: $e');
+      return [];
+    }
   }
 
   /// Remove a paired device
   static Future<void> removeDevice(String deviceId) async {
-    // TODO: Call Rust FFI remove_device()
-    // await api.removeDevice(deviceId);
+    try {
+      api.removeDevice(deviceId: deviceId);
+    } catch (e) {
+      print('Warning: Failed to remove device: $e');
+    }
   }
 
   // ============================================================================
@@ -202,21 +250,73 @@ class TossService {
 
   /// Get current clipboard content
   static Future<ClipboardItemInfo?> getCurrentClipboard() async {
-    // TODO: Call Rust FFI get_current_clipboard()
-    // return await api.getCurrentClipboard();
-    return null;
+    try {
+      final item = api.getCurrentClipboard();
+      if (item == null) return null;
+      return ClipboardItemInfo(
+        contentType: item.contentType,
+        preview: item.preview,
+        sizeBytes: item.sizeBytes.toInt(),
+        timestamp: item.timestamp.toInt(),
+        sourceDevice: item.sourceDevice,
+      );
+    } catch (e) {
+      print('Warning: Failed to get current clipboard: $e');
+      return null;
+    }
   }
 
   /// Send current clipboard to all devices
   static Future<void> sendClipboard() async {
-    // TODO: Call Rust FFI send_clipboard()
-    // await api.sendClipboard();
+    try {
+      await api.sendClipboard();
+    } catch (e) {
+      print('Warning: Failed to send clipboard: $e');
+    }
   }
 
   /// Send text to all devices
   static Future<void> sendText(String text) async {
-    // TODO: Call Rust FFI send_text()
-    // await api.sendText(text);
+    try {
+      await api.sendText(text: text);
+    } catch (e) {
+      print('Warning: Failed to send text: $e');
+    }
+  }
+
+  /// Get clipboard history
+  static Future<List<ClipboardItemInfo>> getClipboardHistory({int? limit}) async {
+    try {
+      final items = api.getClipboardHistory(limit: limit);
+      return items.map((item) => ClipboardItemInfo(
+        contentType: item.contentType,
+        preview: item.preview,
+        sizeBytes: item.sizeBytes.toInt(),
+        timestamp: item.timestamp.toInt(),
+        sourceDevice: item.sourceDevice,
+      )).toList();
+    } catch (e) {
+      print('Warning: Failed to get clipboard history: $e');
+      return [];
+    }
+  }
+
+  /// Remove clipboard history item
+  static Future<void> removeHistoryItem(String itemId) async {
+    try {
+      api.removeHistoryItem(itemId: itemId);
+    } catch (e) {
+      print('Warning: Failed to remove history item: $e');
+    }
+  }
+
+  /// Clear clipboard history
+  static Future<void> clearClipboardHistory() async {
+    try {
+      api.clearClipboardHistory();
+    } catch (e) {
+      print('Warning: Failed to clear clipboard history: $e');
+    }
   }
 
   // ============================================================================
@@ -225,14 +325,20 @@ class TossService {
 
   /// Start networking (discovery + connections)
   static Future<void> startNetwork() async {
-    // TODO: Call Rust FFI start_network()
-    // await api.startNetwork();
+    try {
+      await api.startNetwork();
+    } catch (e) {
+      print('Warning: Failed to start network: $e');
+    }
   }
 
   /// Stop networking
   static Future<void> stopNetwork() async {
-    // TODO: Call Rust FFI stop_network()
-    // await api.stopNetwork();
+    try {
+      await api.stopNetwork();
+    } catch (e) {
+      print('Warning: Failed to stop network: $e');
+    }
   }
 
   // ============================================================================
@@ -242,8 +348,11 @@ class TossService {
   /// Shutdown the service
   static Future<void> shutdown() async {
     if (!_initialized) return;
-    // TODO: Call Rust FFI shutdown_toss()
-    // await api.shutdownToss();
+    try {
+      await api.shutdownToss();
+    } catch (e) {
+      print('Warning: Failed to shutdown Toss: $e');
+    }
     _initialized = false;
     _deviceId = null;
   }

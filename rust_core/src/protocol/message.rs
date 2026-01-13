@@ -316,6 +316,98 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_message_serialization_roundtrip() {
+        // Test ClipboardUpdate serialization using the Message::serialize method
+        let content = ClipboardContent::text("Hello, World!");
+        let update = ClipboardUpdate::new(content);
+        let message = Message::ClipboardUpdate(update.clone());
+
+        // Serialize using Message's serialize method
+        let serialized = message.serialize().unwrap();
+        let header = message.header();
+        
+        // Deserialize using Message's deserialize method
+        let deserialized = Message::deserialize(&header, &serialized).unwrap();
+        
+        match deserialized {
+            Message::ClipboardUpdate(deserialized_update) => {
+                assert_eq!(update.content_hash, deserialized_update.content_hash);
+                assert_eq!(
+                    update.content.as_text(),
+                    deserialized_update.content.as_text()
+                );
+            }
+            _ => panic!("Expected ClipboardUpdate"),
+        }
+    }
+
+    #[test]
+    fn test_clipboard_ack_serialization() {
+        let ack = ClipboardAck {
+            message_id: 12345,
+            content_hash: [0xAB; 32],
+            success: true,
+            error: None,
+        };
+        let message = Message::ClipboardAck(ack.clone());
+
+        let serialized = message.serialize().unwrap();
+        let header = message.header();
+        let deserialized = Message::deserialize(&header, &serialized).unwrap();
+
+        match deserialized {
+            Message::ClipboardAck(deserialized_ack) => {
+                assert_eq!(ack.message_id, deserialized_ack.message_id);
+                assert_eq!(ack.content_hash, deserialized_ack.content_hash);
+                assert_eq!(ack.success, deserialized_ack.success);
+            }
+            _ => panic!("Expected ClipboardAck"),
+        }
+    }
+
+    #[test]
+    fn test_device_info_serialization() {
+        let device_id = [0x12; 32];
+        let device_info = DeviceInfo::new(device_id, "Test Device".to_string());
+        let message = Message::DeviceInfo(device_info.clone());
+
+        let serialized = message.serialize().unwrap();
+        let header = message.header();
+        let deserialized = Message::deserialize(&header, &serialized).unwrap();
+
+        match deserialized {
+            Message::DeviceInfo(deserialized_info) => {
+                assert_eq!(device_info.device_id, deserialized_info.device_id);
+                assert_eq!(device_info.device_name, deserialized_info.device_name);
+            }
+            _ => panic!("Expected DeviceInfo"),
+        }
+    }
+
+    #[test]
+    fn test_error_message_serialization() {
+        let error = ErrorMessage {
+            code: 1001,
+            message: "Test error".to_string(),
+            related_message_id: Some(42),
+        };
+        let message = Message::Error(error.clone());
+
+        let serialized = message.serialize().unwrap();
+        let header = message.header();
+        let deserialized = Message::deserialize(&header, &serialized).unwrap();
+
+        match deserialized {
+            Message::Error(deserialized_error) => {
+                assert_eq!(error.code, deserialized_error.code);
+                assert_eq!(error.message, deserialized_error.message);
+                assert_eq!(error.related_message_id, deserialized_error.related_message_id);
+            }
+            _ => panic!("Expected Error"),
+        }
+    }
+
+    #[test]
     fn test_message_type_conversion() {
         assert_eq!(MessageType::try_from(0x01).unwrap(), MessageType::Ping);
         assert_eq!(

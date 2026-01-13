@@ -1,0 +1,149 @@
+# iOS and Android Platform-Specific Implementation
+
+This document describes the implementation requirements for iOS and Android platforms.
+
+## iOS Background Limitations
+
+### Overview
+
+iOS has strict limitations on background clipboard access. The app cannot monitor clipboard changes when in the background. However, there are several workarounds:
+
+1. **App Extensions** - Share extensions can access clipboard
+2. **Shortcuts Integration** - Siri Shortcuts can trigger sync
+3. **Widgets** - Home screen widgets can trigger sync
+4. **Foreground Optimization** - Optimize sync when app is active
+
+### Implementation Status
+
+**Basic Structure**: Created `ios_background_service.dart` with:
+- Shortcut action registration
+- Widget update methods
+- Foreground sync optimization
+- App extension setup structure
+
+**Files**:
+- `flutter_app/lib/src/core/services/ios_background_service.dart`
+- `flutter_app/ios/Runner/Info.plist` (updated with background modes)
+
+### Required Native Code
+
+1. **App Extension** (`ios/ShareExtension/`):
+   - Share extension target
+   - Clipboard access from extension
+   - Communication with main app
+
+2. **Shortcuts Integration** (`ios/Runner/AppDelegate.swift`):
+   - Handle `UIApplicationShortcutItem`
+   - Register shortcut actions
+   - Trigger sync on shortcut invocation
+
+3. **Widget** (`ios/Widget/`):
+   - Home screen widget target
+   - Quick sync button
+   - Status display
+
+### Next Steps
+
+1. Create Share Extension target in Xcode
+2. Implement shortcut handlers in AppDelegate
+3. Create widget extension
+4. Test on iOS device
+
+## Android 10+ Clipboard Restrictions
+
+### Overview
+
+Android 10 (API 29) and later restrict background clipboard access. Apps can only access clipboard when:
+- App is in foreground
+- App has a foreground service running
+
+### Implementation Status
+
+**Basic Structure**: Created `android_foreground_service.dart` with:
+- Foreground service management
+- Notification handling
+- Android version detection
+- Clipboard restriction workarounds
+
+**Files**:
+- `flutter_app/lib/src/core/services/android_foreground_service.dart`
+- `flutter_app/android/app/src/main/AndroidManifest.xml` (needs updates)
+
+### Required Native Code
+
+1. **Foreground Service** (`android/app/src/main/kotlin/.../ClipboardService.kt`):
+   - Extend `Service` class
+   - Implement `startForeground()` with notification
+   - Monitor clipboard changes
+   - Handle service lifecycle
+
+2. **Service Notification**:
+   - Persistent notification (required for foreground service)
+   - Show sync status
+   - Allow user to stop service
+
+3. **Manifest Permissions**:
+   ```xml
+   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+   ```
+
+### AndroidManifest.xml Updates Needed
+
+```xml
+<manifest>
+    <!-- Add foreground service permission -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <application>
+        <!-- Add foreground service declaration -->
+        <service
+            android:name=".ClipboardService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="com.toss.CLIPBOARD_SERVICE" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
+```
+
+### Next Steps
+
+1. Create `ClipboardService.kt` in Android project
+2. Update `AndroidManifest.xml` with permissions and service declaration
+3. Implement notification channel
+4. Test on Android 10+ device
+
+## Testing
+
+### iOS Testing
+
+1. Test on iOS device (simulator has limitations)
+2. Test app extension functionality
+3. Test Siri Shortcuts integration
+4. Test widget functionality
+5. Test foreground sync performance
+
+### Android Testing
+
+1. Test on Android 10+ device
+2. Verify foreground service starts correctly
+3. Test notification display
+4. Test clipboard access with service running
+5. Test service lifecycle (start/stop)
+
+## Priority
+
+- **iOS Background** (#31): Medium priority - App can work with foreground-only sync
+- **Android 10+** (#32): High priority - Required for Android 10+ devices
+
+## References
+
+- [iOS App Extensions](https://developer.apple.com/app-extensions/)
+- [iOS Shortcuts](https://developer.apple.com/documentation/sirikit)
+- [Android Foreground Services](https://developer.android.com/guide/components/foreground-services)
+- [Android 10 Clipboard Restrictions](https://developer.android.com/about/versions/10/privacy/changes#clipboard-data)

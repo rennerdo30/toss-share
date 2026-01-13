@@ -1,0 +1,112 @@
+# Platform-Specific Implementation Guide
+
+This document describes platform-specific requirements and implementations for Toss.
+
+## macOS
+
+### Accessibility Permissions
+
+macOS requires accessibility permissions for clipboard monitoring. The app must:
+
+1. Request accessibility permissions on first launch
+2. Check permission status before accessing clipboard
+3. Provide instructions if permissions are denied
+4. Handle permission denied gracefully
+
+**Implementation Status**: Basic structure created in `permissions_service.dart`. Full implementation requires native code integration.
+
+**Files**:
+- `flutter_app/lib/src/core/services/permissions_service.dart`
+- `flutter_app/macos/Runner/Info.plist` (needs `NSAccessibilityUsageDescription`)
+
+## Windows
+
+### Clipboard Format Handling
+
+Windows supports multiple clipboard formats that need special handling:
+
+- **CF_TEXT**: ANSI text (legacy)
+- **CF_UNICODETEXT**: Unicode text (preferred)
+- **CF_HDROP**: File list (HDROP)
+- **CF_DIB**: Device-independent bitmap
+- **CF_BITMAP**: Bitmap handle
+
+**Implementation Status**: Format constants and structure created in `windows_formats.rs`. Full implementation requires Windows API integration.
+
+**Files**:
+- `rust_core/src/clipboard/windows_formats.rs`
+
+**Priority**: Handle CF_UNICODETEXT for text, CF_HDROP for files, CF_DIB for images.
+
+## Linux
+
+### Display Server Support
+
+Linux supports both X11 and Wayland, each with different clipboard APIs:
+
+- **X11**: Uses xcb or Xlib for clipboard access
+- **Wayland**: Uses wl-clipboard or similar protocols
+
+**Implementation Status**: Detection logic created in `linux_display.rs`. Full implementation requires both X11 and Wayland backends.
+
+**Files**:
+- `rust_core/src/clipboard/linux_display.rs`
+
+**Priority**: 
+1. Detect display server (X11 vs Wayland)
+2. Implement X11 clipboard (xcb)
+3. Implement Wayland clipboard (wl-clipboard)
+4. Handle display server switching
+
+## iOS
+
+### Background Limitations
+
+iOS has limited background clipboard access. Options include:
+
+1. **App Extension**: Share extension for clipboard access
+2. **Shortcuts Integration**: iOS Shortcuts app integration
+3. **Widget**: Quick sync widget
+4. **Foreground Only**: Optimize for foreground sync
+
+**Implementation Status**: Basic structure created in `ios_background_service.dart`. Full implementation requires native code (Share Extension, Shortcuts handlers, Widget).
+
+**Files**:
+- `flutter_app/lib/src/core/services/ios_background_service.dart`
+- `flutter_app/ios/Runner/Info.plist` (updated with background modes)
+- See `docs/IOS_ANDROID_IMPLEMENTATION.md` for detailed implementation guide
+
+## Android
+
+### Android 10+ Clipboard Restrictions
+
+Android 10+ limits background clipboard access. Solutions:
+
+1. **Foreground Service**: Persistent foreground service
+2. **Persistent Notification**: Required for foreground service
+3. **Workarounds**: Handle clipboard access restrictions
+
+**Implementation Status**: Basic structure created in `android_foreground_service.dart`. Full implementation requires native Kotlin service and manifest updates.
+
+**Files**:
+- `flutter_app/lib/src/core/services/android_foreground_service.dart`
+- `flutter_app/android/app/src/main/AndroidManifest.xml` (needs foreground service permissions and service declaration)
+- See `docs/IOS_ANDROID_IMPLEMENTATION.md` for detailed implementation guide
+
+## Implementation Priority
+
+1. **macOS Permissions** (#28) - Required for MVP on macOS
+2. **Windows Clipboard Formats** (#29) - Required for proper Windows support
+3. **Linux X11/Wayland** (#30) - Required for Linux support
+4. **iOS Background** (#31) - Nice to have for iOS
+5. **Android 10+** (#32) - Required for Android 10+
+
+## Testing
+
+Each platform-specific feature should be tested on the target platform:
+
+- macOS: Test on macOS with accessibility permissions
+- Windows: Test on Windows with various clipboard formats
+- Linux: Test on both X11 and Wayland environments
+- iOS: Test on iOS device with background limitations
+- Android: Test on Android 10+ device

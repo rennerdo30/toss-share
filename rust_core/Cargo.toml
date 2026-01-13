@@ -44,7 +44,10 @@ futures = "0.3"
 futures-util = "0.3"
 
 # FFI
-flutter_rust_bridge = "2"
+flutter_rust_bridge = "=2.11.1"
+
+# Storage
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 # Utilities
 thiserror = "2"
@@ -63,3 +66,7 @@ tempfile = "3"
 
 [features]
 default = []
+
+[lints.rust]
+# Suppress frb_expand warnings from flutter_rust_bridge
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

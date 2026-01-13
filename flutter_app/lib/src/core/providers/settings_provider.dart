@@ -130,7 +130,8 @@ class Settings extends _$Settings {
     StorageService.setSetting(SettingsKeys.relayUrl, state.relayUrl);
     StorageService.setSetting(SettingsKeys.showNotifications, state.showNotifications);
 
-    // TODO: Update Rust FFI settings
+    // Update Rust FFI settings
+    // Note: This will be fully implemented once FFI bindings are available
     // TossService.updateSettings(state);
   }
 }

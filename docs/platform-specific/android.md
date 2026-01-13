@@ -1,0 +1,68 @@
+# Android Platform Support
+
+Android-specific implementation details for Toss.
+
+## Android 10+ Clipboard Restrictions
+
+Android 10 (API 29) and later restrict background clipboard access. Apps can only access clipboard when:
+- App is in foreground
+- App has a foreground service running
+
+## Implementation Status
+
+**Basic Structure**: Created `android_foreground_service.dart` with:
+- Foreground service management
+- Notification handling
+- Android version detection
+- Clipboard restriction workarounds
+
+**Files**:
+- `flutter_app/lib/src/core/services/android_foreground_service.dart`
+- `flutter_app/android/app/src/main/AndroidManifest.xml` (needs updates)
+
+## Required Native Code
+
+### 1. Foreground Service
+
+Create `android/app/src/main/kotlin/.../ClipboardService.kt`:
+- Extend `Service` class
+- Implement `startForeground()` with notification
+- Monitor clipboard changes
+- Handle service lifecycle
+
+### 2. Service Notification
+
+- Persistent notification (required for foreground service)
+- Show sync status
+- Allow user to stop service
+
+### 3. Manifest Permissions
+
+Update `AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+<service
+    android:name=".ClipboardService"
+    android:enabled="true"
+    android:exported="false"
+    android:foregroundServiceType="dataSync">
+    <intent-filter>
+        <action android:name="com.toss.CLIPBOARD_SERVICE" />
+    </intent-filter>
+</service>
+```
+
+## Next Steps
+
+1. Create `ClipboardService.kt` in Android project
+2. Update `AndroidManifest.xml` with permissions and service declaration
+3. Implement notification channel
+4. Test on Android 10+ device
+
+## See Also
+
+- [iOS and Android Implementation Guide](ios-android.md) - Detailed implementation guide
+- [Platform Overview](overview.md) - Return to platform overview

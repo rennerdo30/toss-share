@@ -1,0 +1,138 @@
+name: Code Quality Gates
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+env:
+  CARGO_TERM_COLOR: always
+  MIN_COVERAGE: 70
+
+jobs:
+  coverage-check:
+    name: Test Coverage Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./rust_core
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Run tests with coverage
+        run: cargo tarpaulin --out Xml --output-dir ./coverage --timeout 120
+
+      - name: Check coverage threshold
+        run: |
+          # Extract coverage percentage from XML
+          COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' coverage/cobertura.xml | head -1)
+          COVERAGE_PERCENT=$(echo "$COVERAGE * 100" | bc | cut -d. -f1)
+          
+          echo "Current coverage: ${COVERAGE_PERCENT}%"
+          echo "Required coverage: ${MIN_COVERAGE}%"
+          
+          if [ "$COVERAGE_PERCENT" -lt "$MIN_COVERAGE" ]; then
+            echo "❌ Coverage ${COVERAGE_PERCENT}% is below required ${MIN_COVERAGE}%"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE_PERCENT}% meets requirement"
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/cobertura.xml
+          flags: rust_core
+          fail_ci_if_error: false
+
+  clippy-check:
+    name: Clippy Warnings Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./rust_core
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        continue-on-error: false
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit (rust_core)
+        working-directory: ./rust_core
+        run: cargo audit --deny warnings
+        continue-on-error: false
+
+      - name: Run security audit (relay_server)
+        working-directory: ./relay_server
+        run: cargo audit --deny warnings
+        continue-on-error: false
+
+  flutter-analyze:
+    name: Flutter Analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./flutter_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: false
+
+  pr-review-requirements:
+    name: PR Review Requirements
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PR has description
+        run: |
+          if [ -z "${{ github.event.pull_request.body }}" ]; then
+            echo "❌ PR description is required"
+            exit 1
+          fi
+          echo "✅ PR has description"
+
+      - name: Check PR references issue or TODO
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          if [[ ! "$BODY" =~ (Fixes|Closes|Resolves|#\d+|TODO) ]]; then
+            echo "⚠️  PR should reference an issue or TODO item"
+          else
+            echo "✅ PR references issue or TODO"
+          fi
+        continue-on-error: true
