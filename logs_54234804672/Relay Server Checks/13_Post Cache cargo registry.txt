@@ -1,5 +1,0 @@
-﻿2026-01-13T09:54:49.1683425Z Post job cleanup.
-2026-01-13T09:54:49.3082930Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/toss-share/toss-share --files-from manifest.txt --use-compress-program zstdmt
-2026-01-13T09:54:53.9539389Z Sent 0 of 386381830 (0.0%), 0.0 MBs/sec
-2026-01-13T09:54:54.8949894Z Sent 386381830 of 386381830 (100.0%), 189.5 MBs/sec
-2026-01-13T09:54:55.0999858Z Cache saved with key: Linux-relay-

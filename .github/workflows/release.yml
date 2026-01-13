@@ -5,27 +5,10 @@ on:
     tags:
       - "v*.*.*"
 
-env:
-  FLUTTER_VERSION: "3.24.0"
-
 jobs:
-  build-desktop:
-    name: Build ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-            artifact: toss-linux-x64
-          - os: macos-latest
-            platform: macos
-            artifact: toss-macos-universal
-          - os: windows-latest
-            platform: windows
-            artifact: toss-windows-x64
-
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -35,15 +18,13 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
 
       - name: Build Rust core
         working-directory: ./rust_core
@@ -53,46 +34,22 @@ jobs:
         working-directory: ./flutter_app
         run: |
           flutter pub get
-          flutter build ${{ matrix.platform }} --release
+          flutter build linux --release
 
-      - name: Package Linux
-        if: matrix.platform == 'linux'
+      - name: Package
         run: |
           cd flutter_app/build/linux/x64/release/bundle
-          tar -czvf ../../../../../${{ matrix.artifact }}.tar.gz .
-
-      - name: Package macOS
-        if: matrix.platform == 'macos'
-        run: |
-          cd flutter_app/build/macos/Build/Products/Release
-          zip -r ../../../../../${{ matrix.artifact }}.zip Toss.app
-
-      - name: Package Windows
-        if: matrix.platform == 'windows'
-        run: |
-          cd flutter_app/build/windows/x64/runner/Release
-          Compress-Archive -Path * -DestinationPath ../../../../../${{ matrix.artifact }}.zip
+          tar -czvf ../../../../../toss-linux-x64.tar.gz .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: flutter_app/${{ matrix.artifact }}.*
+          name: toss-linux-x64
+          path: flutter_app/toss-linux-x64.tar.gz
 
-  build-mobile:
-    name: Build ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            platform: ios
-            artifact: toss-ios
-          - os: ubuntu-latest
-            platform: android
-            artifact: toss-android
-
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -102,44 +59,100 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - name: Setup Java (Android)
-        if: matrix.platform == 'android'
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          cd flutter_app/macos && pod install --repo-update
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Build Flutter app
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          flutter build macos --release
+
+      - name: Package
+        run: |
+          cd flutter_app/build/macos/Build/Products/Release
+          zip -r ../../../../../toss-macos-universal.zip Toss.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: toss-macos-universal
+          path: flutter_app/toss-macos-universal.zip
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Build Flutter app
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          flutter build windows --release
+
+      - name: Package
+        run: |
+          cd flutter_app/build/windows/x64/runner/Release
+          Compress-Archive -Path * -DestinationPath ../../../../../toss-windows-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: toss-windows-x64
+          path: flutter_app/toss-windows-x64.zip
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "17"
 
       - name: Build Android APK
-        if: matrix.platform == 'android'
         working-directory: ./flutter_app
         run: |
           flutter pub get
           flutter build apk --release
 
-      - name: Build iOS (no signing)
-        if: matrix.platform == 'ios'
-        working-directory: ./flutter_app
-        run: |
-          flutter pub get
-          flutter build ios --release --no-codesign
-
-      - name: Upload Android artifact
-        if: matrix.platform == 'android'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: toss-android
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Upload iOS artifact
-        if: matrix.platform == 'ios'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: flutter_app/build/ios/iphoneos/Runner.app
 
   build-relay:
     name: Build Relay Server
@@ -166,7 +179,7 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: [build-desktop, build-mobile, build-relay]
+    needs: [build-linux, build-macos, build-windows, build-android, build-relay]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -178,8 +191,11 @@ jobs:
         with:
           path: artifacts
 
+      - name: List artifacts
+        run: find artifacts -type f
+
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: true
           generate_release_notes: true
