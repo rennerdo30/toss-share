@@ -156,30 +156,33 @@ class _EmptyClipboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.content_paste_off,
-              size: 48,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Clipboard is empty',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.content_paste_off,
+                size: 48,
                 color: Theme.of(context).colorScheme.outline,
               ),
-            ),
-            if (onRefresh != null) ...[
               const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: onRefresh,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
+              Text(
+                'Clipboard is empty',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
+              if (onRefresh != null) ...[
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: onRefresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
