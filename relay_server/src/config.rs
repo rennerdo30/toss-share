@@ -54,9 +54,11 @@ impl Config {
 }
 
 fn generate_random_secret() -> String {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    (0..32).map(|_| rng.gen_range(b'a'..=b'z') as char).collect()
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+    let mut rng = StdRng::from_os_rng();
+    (0..32)
+        .map(|_| rng.random_range(b'a'..=b'z') as char)
+        .collect()
 }
 
 impl Default for Config {

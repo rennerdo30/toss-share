@@ -18,40 +18,40 @@ dependencies:
   flutter_rust_bridge: ^2.0.0
 
   # Navigation
-  go_router: ^14.2.0
+  go_router: ^17.0.1
 
   # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
   # QR Code
-  mobile_scanner: ^5.1.1
+  mobile_scanner: ^7.1.4
   qr_flutter: ^4.1.0
 
   # Desktop Features
-  window_manager: ^0.3.8
-  tray_manager: ^0.2.2
+  window_manager: ^0.5.1
+  tray_manager: ^0.5.2
 
   # Permissions
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
 
   # Utilities
   path_provider: ^2.1.3
-  share_plus: ^9.0.0
+  share_plus: ^12.0.1
   url_launcher: ^6.3.0
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
   uuid: ^4.4.0
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # UI
   flutter_svg: ^2.0.10+1
-  cached_network_image: ^3.3.1
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   build_runner: ^2.4.9
   riverpod_generator: ^2.4.0
   freezed: ^2.5.2

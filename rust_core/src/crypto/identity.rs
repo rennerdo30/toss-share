@@ -1,7 +1,7 @@
 //! Device identity using Ed25519 signatures
 
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
+use rand_core::OsRng;
 use sha2::{Digest, Sha256};
 
 use crate::error::CryptoError;

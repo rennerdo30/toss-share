@@ -243,7 +243,7 @@ package-relay: build-relay
 	@echo "✓ Packaged to dist/relay-server/toss-relay-docker.tar.gz"
 
 ## Build and package everything for all platforms
-release-all: clean build package-relay release-macos release-linux release-windows release-android release-ios
+release-all: clean build release package-relay release-macos release-linux release-windows release-android release-ios
 	@echo ""
 	@echo "=============================================="
 	@echo "Release build complete!"
@@ -273,37 +273,39 @@ release-macos: check-deps-macos
 release-linux:
 	@echo "Building Linux release..."
 	@mkdir -p dist/linux
-	@cd flutter_app && flutter build linux --release 2>/dev/null && \
-		cp -r flutter_app/build/linux/x64/release/bundle/* dist/linux/ || \
-		echo "⚠ Linux build not available (may need to run on Linux)"
+	@cd flutter_app && (flutter build linux --release 2>&1 | grep -v "error:" | tail -3 && \
+		cp -r build/linux/x64/release/bundle/* ../dist/linux/ 2>/dev/null) || \
+		echo "⚠ Linux build not available (requires Linux host - cannot build on macOS)"
 	@echo "✓ Linux release in dist/linux/"
 
 ## Build Windows release
 release-windows:
 	@echo "Building Windows release..."
 	@mkdir -p dist/windows
-	@cd flutter_app && flutter build windows --release 2>/dev/null && \
-		cp -r flutter_app/build/windows/x64/runner/Release/* dist/windows/ || \
-		cp -r flutter_app/build/windows/runner/Release/* dist/windows/ 2>/dev/null || \
-		echo "⚠ Windows build not available (may need to run on Windows)"
+	@cd flutter_app && (flutter build windows --release 2>&1 | grep -v "error:" | tail -3 && \
+		(cp -r build/windows/x64/runner/Release/* ../dist/windows/ 2>/dev/null || \
+		 cp -r build/windows/runner/Release/* ../dist/windows/ 2>/dev/null)) || \
+		echo "⚠ Windows build not available (requires Windows host - cannot build on macOS)"
 	@echo "✓ Windows release in dist/windows/"
 
 ## Build Android release (APK)
 release-android:
 	@echo "Building Android release..."
 	@mkdir -p dist/android
-	@cd flutter_app && flutter build apk --release 2>/dev/null && \
-		cp flutter_app/build/app/outputs/flutter-apk/app-release.apk dist/android/toss.apk || \
-		echo "⚠ Android build not available (may need Android SDK)"
+	@cd flutter_app && (flutter build apk --release 2>/dev/null && \
+		(cp build/app/outputs/flutter-apk/app-release.apk ../dist/android/toss.apk || \
+		 cp build/app/outputs/apk/release/app-release.apk ../dist/android/toss.apk) || \
+		echo "⚠ Android build not available (may need Android SDK)")
 	@echo "✓ Android release in dist/android/"
 
 ## Build iOS release
 release-ios:
 	@echo "Building iOS release..."
 	@mkdir -p dist/ios
-	@cd flutter_app && flutter build ios --release --no-codesign 2>/dev/null && \
-		cp -r flutter_app/build/ios/iphoneos/Runner.app dist/ios/Toss.app || \
-		echo "⚠ iOS build not available (may need to run on macOS with Xcode)"
+	@cd flutter_app && (flutter build ios --release --no-codesign 2>&1 | grep -v "error:" | tail -5 && \
+		(cp -r build/ios/iphoneos/Runner.app ../dist/ios/Toss.app 2>/dev/null || \
+		 echo "⚠ iOS build failed - may need iOS SDK installed in Xcode (Settings > Components)") || \
+		echo "⚠ iOS build not available (may need to run on macOS with Xcode and iOS SDK)")
 	@echo "✓ iOS release in dist/ios/"
 
 ## Create distributable archives

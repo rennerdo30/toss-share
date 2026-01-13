@@ -1,8 +1,7 @@
 //! Authentication and authorization
 
 use axum::{
-    async_trait,
-    extract::FromRequestParts,
+    extract::{FromRef, FromRequestParts},
     http::request::Parts,
     RequestPartsExt,
 };
@@ -13,9 +12,16 @@ use axum_extra::{
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{error::ApiError, AppState};
+use crate::{config::Config, error::ApiError, AppState};
+
+impl FromRef<AppState> for Arc<Config> {
+    fn from_ref(state: &AppState) -> Self {
+        state.config.clone()
+    }
+}
 
 /// JWT claims
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,24 +40,23 @@ pub struct AuthenticatedDevice {
     pub device_id: String,
 }
 
-#[async_trait]
 impl FromRequestParts<AppState> for AuthenticatedDevice {
     type Rejection = ApiError;
-
+ 
     async fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        // Extract Bearer token
+        let config = Arc::<Config>::from_ref(state);
+
         let TypedHeader(Authorization(bearer)) = parts
             .extract::<TypedHeader<Authorization<Bearer>>>()
             .await
             .map_err(|_| ApiError::Unauthorized("Missing authorization header".to_string()))?;
 
-        // Decode and validate JWT
         let token_data = decode::<Claims>(
             bearer.token(),
-            &DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),
+            &DecodingKey::from_secret(config.jwt_secret.as_bytes()),
             &Validation::default(),
         )
         .map_err(|e| ApiError::Unauthorized(format!("Invalid token: {}", e)))?;

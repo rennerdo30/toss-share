@@ -137,11 +137,11 @@ impl Frame {
 mod tests {
     use super::*;
     use crate::protocol::MessageType;
-    use rand::RngCore;
+    use rand::{rngs::StdRng, RngCore, SeedableRng};
 
     fn random_key() -> [u8; KEY_SIZE] {
         let mut key = [0u8; KEY_SIZE];
-        rand::thread_rng().fill_bytes(&mut key);
+        StdRng::from_os_rng().fill_bytes(&mut key);
         key
     }
 

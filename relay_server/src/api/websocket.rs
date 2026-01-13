@@ -76,7 +76,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                 error: None,
             };
             if let Ok(json) = serde_json::to_string(&response) {
-                let _ = sender.send(Message::Text(json)).await;
+                let _ = sender.send(Message::Text(json.into())).await;
             }
             id
         }
@@ -87,7 +87,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                 error: Some(e),
             };
             if let Ok(json) = serde_json::to_string(&response) {
-                let _ = sender.send(Message::Text(json)).await;
+                let _ = sender.send(Message::Text(json.into())).await;
             }
             return;
         }
@@ -116,7 +116,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
             };
             let envelope = WsMessage::Relay { message: relay_msg };
             if let Ok(json) = serde_json::to_string(&envelope) {
-                if sender.send(Message::Text(json)).await.is_err() {
+                if sender.send(Message::Text(json.into())).await.is_err() {
                     break;
                 }
             }
@@ -132,10 +132,10 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
             Some(msg) = receiver.next() => {
                 match msg {
                     Ok(Message::Text(text)) => {
-                        if let Err(e) = handle_client_message(&text, &device_id, &state).await {
+                        if let Err(e) = handle_client_message(&text.to_string(), &device_id, &state).await {
                             let error = WsMessage::Error { message: e };
                             if let Ok(json) = serde_json::to_string(&error) {
-                                let _ = sender.send(Message::Text(json)).await;
+                                let _ = sender.send(Message::Text(json.into())).await;
                             }
                         }
                     }
@@ -152,7 +152,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
             Some(relay_msg) = rx.recv() => {
                 let envelope = WsMessage::Relay { message: relay_msg };
                 if let Ok(json) = serde_json::to_string(&envelope) {
-                    if sender.send(Message::Text(json)).await.is_err() {
+                    if sender.send(Message::Text(json.into())).await.is_err() {
                         break;
                     }
                 }
@@ -181,7 +181,7 @@ async fn authenticate(
         .map_err(|e| format!("WebSocket error: {}", e))?;
 
     let text = match auth_msg {
-        Message::Text(t) => t,
+        Message::Text(t) => t.to_string(),
         _ => return Err("Expected text message".to_string()),
     };
 

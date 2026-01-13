@@ -4,7 +4,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
-use rand::RngCore;
+use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 use crate::error::CryptoError;
 use super::{KEY_SIZE, NONCE_SIZE, TAG_SIZE};
@@ -54,7 +54,7 @@ pub fn encrypt(key: &[u8; KEY_SIZE], plaintext: &[u8], aad: &[u8]) -> Result<Enc
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    StdRng::from_os_rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     // Encrypt with AAD
@@ -91,7 +91,7 @@ mod tests {
 
     fn test_key() -> [u8; KEY_SIZE] {
         let mut key = [0u8; KEY_SIZE];
-        rand::thread_rng().fill_bytes(&mut key);
+        rand::rngs::StdRng::from_os_rng().fill_bytes(&mut key);
         key
     }
 

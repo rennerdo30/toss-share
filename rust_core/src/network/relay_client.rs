@@ -168,7 +168,7 @@ impl RelayClient {
         let ws = ws.as_mut()
             .ok_or_else(|| NetworkError::Relay("Not connected".to_string()))?;
 
-        ws.send(WsMessage::Text(message.to_string()))
+        ws.send(WsMessage::Text(message.to_string().into()))
             .await
             .map_err(|e| NetworkError::Relay(format!("Send failed: {}", e)))
     }
@@ -181,7 +181,7 @@ impl RelayClient {
 
         loop {
             match ws.next().await {
-                Some(Ok(WsMessage::Text(text))) => return Ok(text),
+                Some(Ok(WsMessage::Text(text))) => return Ok(text.to_string()),
                 Some(Ok(WsMessage::Ping(data))) => {
                     ws.send(WsMessage::Pong(data)).await.ok();
                 }

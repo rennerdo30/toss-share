@@ -230,7 +230,7 @@ impl PeerConnection {
 /// Generate a self-signed certificate for QUIC
 fn generate_self_signed_cert() -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Box<dyn std::error::Error>> {
     let cert = rcgen::generate_simple_self_signed(vec!["toss".to_string()])?;
-    let key_der = cert.key_pair.serialize_der();
+    let key_der = cert.signing_key.serialize_der();
     let key = PrivatePkcs8KeyDer::from(key_der).into();
     let cert_der = cert.cert.der().to_vec();
     let cert = CertificateDer::from(cert_der);

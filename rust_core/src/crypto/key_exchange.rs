@@ -1,6 +1,6 @@
 //! X25519 key exchange
 
-use rand::rngs::OsRng;
+use rand_core::OsRng;
 use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret as X25519SharedSecret};
 
 /// Ephemeral key pair for X25519 key exchange
