@@ -39,8 +39,13 @@ This project is published on **GitHub** as an open-source project. All contribut
   - Publish to app stores (optional)
 
 - **Nightly Builds** (`.github/workflows/nightly.yml`)
-  - Scheduled builds for testing
-  - Integration tests across platforms
+  - Runs on every push to main branch
+  - Builds all platforms (Linux, macOS, Windows, Android)
+  - Creates/updates `nightly` pre-release on GitHub Releases page
+
+- **Security** (`.github/workflows/security.yml`)
+  - Runs `cargo audit` for dependency vulnerabilities
+  - Dependency review on pull requests
 
 ## Architecture
 

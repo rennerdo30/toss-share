@@ -3,9 +3,6 @@ name: Nightly Build
 on:
   push:
     branches: [main]
-  schedule:
-    # Run at 2 AM UTC every day
-    - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 env:
