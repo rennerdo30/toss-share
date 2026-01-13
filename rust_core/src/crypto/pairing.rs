@@ -162,8 +162,8 @@ impl PairingSession {
 
 /// Generate a 6-digit pairing code
 fn generate_pairing_code() -> String {
-    let mut rng = StdRng::from_os_rng();
-    let code: u32 = rng.random_range(0..1_000_000);
+    let mut rng = StdRng::from_entropy();
+    let code: u32 = rng.gen_range(0..1_000_000);
     format!("{:06}", code)
 }
 

@@ -58,7 +58,7 @@ pub fn encrypt(
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    StdRng::from_os_rng().fill_bytes(&mut nonce_bytes);
+    StdRng::from_entropy().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     // Encrypt with AAD
@@ -111,7 +111,7 @@ mod tests {
 
     fn test_key() -> [u8; KEY_SIZE] {
         let mut key = [0u8; KEY_SIZE];
-        rand::rngs::StdRng::from_os_rng().fill_bytes(&mut key);
+        rand::rngs::StdRng::from_entropy().fill_bytes(&mut key);
         key
     }
 

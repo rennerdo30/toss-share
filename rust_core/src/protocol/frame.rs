@@ -149,7 +149,7 @@ mod tests {
 
     fn random_key() -> [u8; KEY_SIZE] {
         let mut key = [0u8; KEY_SIZE];
-        StdRng::from_os_rng().fill_bytes(&mut key);
+        StdRng::from_entropy().fill_bytes(&mut key);
         key
     }
 

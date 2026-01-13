@@ -12,15 +12,15 @@ crate-type = ["cdylib", "staticlib", "lib"]
 
 [dependencies]
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 
 # Crypto
-x25519-dalek = { version = "2", features = ["static_secrets"] }
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 aes-gcm = "0.10"
 hkdf = "0.12"
 sha2 = "0.10"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
-rand = "0.9"
+rand = "0.8"
 rand_core = "0.6"
 
 # Networking
