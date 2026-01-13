@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app.dart';
+import '../../core/models/app_update.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/toss_provider.dart';
+import '../../core/providers/update_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -13,6 +18,7 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final tossState = ref.watch(tossProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final updateState = ref.watch(updateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -39,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Device ID'),
                   subtitle: Text(
                     tossState.deviceId.isNotEmpty
-                        ? tossState.deviceId.substring(0, 16) + '...'
+                        ? '${tossState.deviceId.substring(0, 16)}...'
                         : 'Not initialized',
                   ),
                 ),
@@ -183,16 +189,21 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.info),
                   title: const Text('Version'),
-                  subtitle: const Text('0.1.0'),
+                  subtitle: Text(ref.read(updateProvider.notifier).currentVersion),
                 ),
                 const Divider(height: 1),
+                // Update status (desktop only)
+                if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
+                  _buildUpdateTile(context, ref, updateState),
+                  const Divider(height: 1),
+                ],
                 ListTile(
                   leading: const Icon(Icons.code),
                   title: const Text('Source Code'),
                   subtitle: const Text('github.com/rennerdo30/toss-share'),
                   trailing: const Icon(Icons.open_in_new),
                   onTap: () {
-                    // TODO: Open URL
+                    launchUrl(Uri.parse('https://github.com/rennerdo30/toss-share'));
                   },
                 ),
               ],
@@ -213,6 +224,64 @@ class SettingsScreen extends ConsumerWidget {
       case ThemeMode.dark:
         return 'Dark';
     }
+  }
+
+  Widget _buildUpdateTile(BuildContext context, WidgetRef ref, UpdateState updateState) {
+    IconData icon;
+    Widget? trailing;
+    VoidCallback? onTap;
+
+    switch (updateState.status) {
+      case UpdateStatus.idle:
+      case UpdateStatus.upToDate:
+        icon = Icons.check_circle;
+        trailing = TextButton(
+          onPressed: () => ref.read(updateProvider.notifier).checkForUpdates(),
+          child: const Text('Check'),
+        );
+        break;
+      case UpdateStatus.checking:
+        icon = Icons.sync;
+        trailing = const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        );
+        break;
+      case UpdateStatus.available:
+        icon = Icons.download;
+        break;
+      case UpdateStatus.downloading:
+        icon = Icons.downloading;
+        trailing = SizedBox(
+          width: 48,
+          child: LinearProgressIndicator(value: updateState.downloadProgress),
+        );
+        break;
+      case UpdateStatus.ready:
+        icon = Icons.restart_alt;
+        trailing = TextButton(
+          onPressed: () => ref.read(updateProvider.notifier).applyAndRestart(),
+          child: const Text('Restart'),
+        );
+        onTap = () => ref.read(updateProvider.notifier).applyAndRestart();
+        break;
+      case UpdateStatus.error:
+        icon = Icons.error;
+        trailing = TextButton(
+          onPressed: () => ref.read(updateProvider.notifier).checkForUpdates(),
+          child: const Text('Retry'),
+        );
+        break;
+    }
+
+    return ListTile(
+      leading: Icon(icon),
+      title: const Text('Updates'),
+      subtitle: Text(updateState.status.displayName),
+      trailing: trailing,
+      onTap: onTap,
+    );
   }
 
   void _showDeviceNameDialog(BuildContext context, WidgetRef ref, String currentName) {

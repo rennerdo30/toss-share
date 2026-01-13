@@ -192,4 +192,10 @@ class SettingsKeys {
   static const String showNotifications = 'show_notifications';
   static const String themeMode = 'theme_mode';
   static const String deviceName = 'device_name';
+
+  // Auto-updater keys
+  static const String pendingUpdatePath = 'pending_update_path';
+  static const String pendingUpdateSha = 'pending_update_sha';
+  static const String currentBuildSha = 'current_build_sha';
+  static const String lastUpdateCheck = 'last_update_check';
 }

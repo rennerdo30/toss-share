@@ -44,6 +44,11 @@ dependencies:
   uuid: ^4.4.0
   intl: ^0.20.2
 
+  # Auto-updater
+  http: ^1.2.0
+  package_info_plus: ^8.0.0
+  archive: ^3.6.0
+
   # UI
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.4.1
