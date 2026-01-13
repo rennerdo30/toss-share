@@ -214,7 +214,7 @@ mod tests {
         // Device A creates a session
         let session_a = PairingSession::new("Device A");
         let code_a = session_a.code().to_string();
-        let public_key_a = *session_a.public_key_bytes();
+        let _public_key_a = *session_a.public_key_bytes();
 
         // Device B creates a session (normally would scan QR)
         let session_b = PairingSession::new("Device B");

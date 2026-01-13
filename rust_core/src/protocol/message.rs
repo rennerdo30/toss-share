@@ -314,7 +314,6 @@ fn current_timestamp_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::ContentType;
 
     #[test]
     fn test_message_type_conversion() {
