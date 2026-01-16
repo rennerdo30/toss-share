@@ -135,12 +135,16 @@ class TossService {
   TossService._();
 
   static bool _initialized = false;
+  static bool _ffiAvailable = false;
   static String? _dataDir;
   static String? _deviceId;
   static String _deviceName = 'Toss Device';
 
   /// Check if service is initialized
   static bool get isInitialized => _initialized;
+
+  /// Check if FFI is available (native library loaded)
+  static bool get isFfiAvailable => _ffiAvailable;
 
   /// Get current device ID
   static String? get deviceId => _deviceId;
@@ -165,18 +169,26 @@ class TossService {
     // Initialize flutter_rust_bridge first
     try {
       await TossApi.init();
+      _ffiAvailable = true;
     } catch (e) {
+      _ffiAvailable = false;
       print('Warning: flutter_rust_bridge initialization failed: $e');
     }
 
     // Call Rust FFI init_toss()
-    try {
-      api.initToss(dataDir: _dataDir!, deviceName: _deviceName);
-      _deviceId = api.getDeviceId();
-    } catch (e) {
-      // Fallback: Mock device ID if FFI fails
+    if (_ffiAvailable) {
+      try {
+        api.initToss(dataDir: _dataDir!, deviceName: _deviceName);
+        _deviceId = api.getDeviceId();
+      } catch (e) {
+        // Fallback: Mock device ID if FFI fails
+        _ffiAvailable = false;
+        _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
+        print('Warning: FFI initialization failed: $e');
+      }
+    } else {
+      // Fallback: Mock device ID when FFI not available
       _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
-      print('Warning: FFI initialization failed: $e');
     }
 
     _initialized = true;
@@ -274,6 +286,7 @@ class TossService {
 
   /// Get list of paired devices
   static Future<List<DeviceInfo>> getPairedDevices() async {
+    if (!_ffiAvailable) return [];
     try {
       final devices = api.getPairedDevices();
       return devices.map((d) => DeviceInfo(
@@ -291,6 +304,7 @@ class TossService {
 
   /// Get list of connected devices
   static Future<List<DeviceInfo>> getConnectedDevices() async {
+    if (!_ffiAvailable) return [];
     try {
       final devices = api.getConnectedDevices();
       return devices.map((d) => DeviceInfo(
@@ -368,6 +382,7 @@ class TossService {
 
   /// Get clipboard history
   static Future<List<ClipboardItemInfo>> getClipboardHistory({int? limit}) async {
+    if (!_ffiAvailable) return [];
     try {
       final items = api.getClipboardHistory(limit: limit);
       return items.map((item) => ClipboardItemInfo(
@@ -456,6 +471,7 @@ class TossService {
 
   /// Start networking (discovery + connections)
   static Future<void> startNetwork() async {
+    if (!_ffiAvailable) return;
     try {
       await api.startNetwork();
     } catch (e) {
@@ -465,6 +481,7 @@ class TossService {
 
   /// Poll for network events (non-blocking)
   static TossEvent? pollEvent() {
+    if (!_ffiAvailable) return null;
     try {
       final event = api.pollEvent();
       if (event == null) return null;
@@ -477,6 +494,7 @@ class TossService {
 
   /// Check if clipboard has changed since last check
   static bool checkClipboardChanged() {
+    if (!_ffiAvailable) return false;
     try {
       return api.checkClipboardChanged();
     } catch (e) {
