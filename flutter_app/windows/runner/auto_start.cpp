@@ -23,7 +23,7 @@ extern "C" __declspec(dllexport) bool EnableAutoStart(const char* appPath) {
         0,
         REG_SZ,
         (const BYTE*)value.c_str(),
-        value.length() + 1
+        static_cast<DWORD>(value.length() + 1)
     );
 
     RegCloseKey(hKey);

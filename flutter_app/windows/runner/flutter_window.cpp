@@ -3,6 +3,9 @@
 #include <optional>
 #include <string>
 
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+#include <flutter/encodable_value.h>
 #include "flutter/generated_plugin_registrant.h"
 #include "auto_start.h"
 
