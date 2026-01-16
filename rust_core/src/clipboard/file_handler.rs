@@ -145,6 +145,7 @@ pub mod windows_impl {
 
     impl WindowsFileClipboardProvider {
         /// Create a new Windows file clipboard provider
+        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }

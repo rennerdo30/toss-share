@@ -86,8 +86,9 @@ static void my_application_activate(GApplication* application) {
       channel,
       [](FlMethodChannel* channel, FlMethodCall* method_call,
          gpointer user_data) {
+        (void)channel;  // Unused
+        (void)user_data;  // Unused
         const gchar* method = fl_method_call_get_name(method_call);
-        FlValue* args = fl_method_call_get_args(method_call);
         
         if (g_strcmp0(method, "enableAutoStart") == 0) {
           gboolean success = auto_start_set_enabled(TRUE);

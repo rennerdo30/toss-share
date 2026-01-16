@@ -92,11 +92,9 @@ gboolean auto_start_set_enabled(gboolean enabled) {
     
     gboolean success = TRUE;
     if (g_file_test(desktop_file, G_FILE_TEST_EXISTS)) {
-      GError* error = nullptr;
-      success = g_file_delete(desktop_file, nullptr, &error);
-      if (!success && error != nullptr) {
-        g_warning("Failed to delete desktop file: %s", error->message);
-        g_error_free(error);
+      if (g_unlink(desktop_file) != 0) {
+        g_warning("Failed to delete desktop file: %s", desktop_file);
+        success = FALSE;
       }
     }
     
