@@ -33,6 +33,12 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
+
       - name: Build Flutter app
         working-directory: ./flutter_app
         run: |
@@ -70,6 +76,12 @@ jobs:
       - name: Build Rust core
         working-directory: ./rust_core
         run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
 
       - name: Build Flutter app
         working-directory: ./flutter_app
@@ -112,6 +124,13 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        shell: bash
+        run: make generate-ffi
+
       - name: Build Flutter app
         working-directory: ./flutter_app
         run: |
@@ -148,6 +167,19 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
 
       - name: Build Android APK
         working-directory: ./flutter_app

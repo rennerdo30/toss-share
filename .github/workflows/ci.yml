@@ -79,6 +79,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -86,8 +89,12 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
       - name: Generate FFI bindings
-        run: make generate-ffi || echo "FFI generation skipped (may need flutter_rust_bridge_codegen installed)"
+        working-directory: .
+        run: make generate-ffi
 
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs || echo "Code generation skipped"
@@ -157,6 +164,12 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
+
       - name: Build Flutter app
         working-directory: ./flutter_app
         run: |
@@ -190,6 +203,12 @@ jobs:
       - name: Build Rust core
         working-directory: ./rust_core
         run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
 
       - name: Install CocoaPods and build Flutter app
         working-directory: ./flutter_app
@@ -227,6 +246,13 @@ jobs:
       - name: Build Rust core
         working-directory: ./rust_core
         run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        shell: bash
+        run: make generate-ffi
 
       - name: Build Flutter app
         working-directory: ./flutter_app
