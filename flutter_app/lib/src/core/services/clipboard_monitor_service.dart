@@ -3,11 +3,14 @@
 //! Monitors clipboard changes and automatically syncs when auto-sync is enabled.
 
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'toss_service.dart';
 import 'notification_service.dart';
-import '../providers/settings_provider.dart';
+import 'tray_service.dart';
+import '../providers/settings_provider.dart' show settingsProvider, ConflictResolutionMode;
 import '../providers/devices_provider.dart';
 import '../providers/clipboard_provider.dart';
 import '../models/clipboard_item.dart';
@@ -21,6 +24,12 @@ class ClipboardMonitorService {
   Timer? _monitorTimer;
   Timer? _eventPollTimer;
   bool _isMonitoring = false;
+
+  // Rate limiting: minimum time between clipboard syncs
+  static const Duration _minSyncInterval = Duration(milliseconds: 500);
+  DateTime? _lastSyncTime;
+  bool _pendingSync = false;
+  Timer? _rateLimitTimer;
 
   /// Start monitoring clipboard changes
   void startMonitoring(WidgetRef ref) {
@@ -37,14 +46,7 @@ class ClipboardMonitorService {
 
       // Check if clipboard changed
       if (TossService.checkClipboardChanged()) {
-        // Send clipboard to all devices
-        TossService.sendClipboard().catchError((e) {
-          // Only log non-critical errors (like sync disabled for content type)
-          if (!e.toString().contains('sync disabled') && 
-              !e.toString().contains('too large')) {
-            print('Warning: Failed to auto-sync clipboard: $e');
-          }
-        });
+        _scheduleSync();
       }
     });
 
@@ -64,6 +66,48 @@ class ClipboardMonitorService {
     _monitorTimer = null;
     _eventPollTimer?.cancel();
     _eventPollTimer = null;
+    _rateLimitTimer?.cancel();
+    _rateLimitTimer = null;
+    _pendingSync = false;
+  }
+
+  /// Schedule a clipboard sync with rate limiting
+  void _scheduleSync() {
+    final now = DateTime.now();
+
+    // Check if we can sync immediately
+    if (_lastSyncTime == null ||
+        now.difference(_lastSyncTime!) >= _minSyncInterval) {
+      _performSync();
+      return;
+    }
+
+    // Rate limited - schedule for later if not already pending
+    if (!_pendingSync) {
+      _pendingSync = true;
+      final delay = _minSyncInterval - now.difference(_lastSyncTime!);
+      _rateLimitTimer?.cancel();
+      _rateLimitTimer = Timer(delay, () {
+        if (_isMonitoring && _pendingSync) {
+          _performSync();
+        }
+        _pendingSync = false;
+      });
+    }
+  }
+
+  /// Perform the actual clipboard sync
+  void _performSync() {
+    _lastSyncTime = DateTime.now();
+    _pendingSync = false;
+
+    TossService.sendClipboard().catchError((e) {
+      // Only log non-critical errors (like sync disabled for content type)
+      if (!e.toString().contains('sync disabled') &&
+          !e.toString().contains('too large')) {
+        debugPrint('Warning: Failed to auto-sync clipboard: $e');
+      }
+    });
   }
 
   /// Handle network events
@@ -75,29 +119,91 @@ class ClipboardMonitorService {
         // Update clipboard history provider
         final itemData = event.data?['item'] as ClipboardItemInfo?;
         if (itemData != null) {
-          // Add to history provider
-          ref.read(clipboardHistoryProvider.notifier).addItem(
-            _convertToClipboardItem(itemData),
-          );
-          
-          // Show notification if enabled
-          if (settings.showNotifications) {
-            NotificationService().showClipboardReceived(itemData.preview);
+          final newItem = _convertToClipboardItem(itemData);
+
+          // Check per-device sync setting
+          if (newItem.sourceDeviceId != null) {
+            final devices = ref.read(devicesProvider);
+            final sourceDevice = devices.where((d) => d.id == newItem.sourceDeviceId).firstOrNull;
+            if (sourceDevice != null && !sourceDevice.syncEnabled) {
+              debugPrint('Per-device sync disabled for ${sourceDevice.name}, ignoring clipboard');
+              break;
+            }
+          }
+
+          // Conflict resolution based on user preference
+          final currentClipboard = ref.read(currentClipboardProvider);
+          bool shouldUpdate;
+
+          switch (settings.conflictResolution) {
+            case ConflictResolutionMode.local:
+              // Never update from remote - prefer local clipboard
+              shouldUpdate = false;
+              break;
+            case ConflictResolutionMode.remote:
+              // Always accept incoming clipboard
+              shouldUpdate = true;
+              break;
+            case ConflictResolutionMode.newest:
+            default:
+              // Use timestamp-based resolution (default)
+              shouldUpdate = currentClipboard == null ||
+                  newItem.timestamp.isAfter(currentClipboard.timestamp);
+              break;
+          }
+
+          if (shouldUpdate) {
+            // Update current clipboard
+            ref.read(currentClipboardProvider.notifier).update(newItem);
+
+            // Add to history provider
+            ref.read(clipboardHistoryProvider.notifier).addItem(newItem);
+
+            // Show notification if enabled
+            if (settings.showNotifications && settings.notifyOnClipboard) {
+              NotificationService().showClipboardReceived(itemData.preview);
+            }
+          } else {
+            debugPrint(
+                'Conflict resolution (${settings.conflictResolution.name}): Ignoring clipboard');
+            // Show conflict notification if enabled
+            if (settings.showNotifications) {
+              final sourceDevice = newItem.sourceDeviceName ?? 'Unknown device';
+              NotificationService().showConflictDetected(sourceDevice);
+            }
           }
         }
         break;
       case 'device_connected':
         // Update devices provider
         ref.read(devicesProvider.notifier).refresh();
+        final connectedCount = ref.read(devicesProvider).where((d) => d.isOnline).length;
+        // Update tray icon status on desktop
+        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          TrayService().updateConnectionStatus(true, connectedCount);
+        }
+        // Show connection notification if enabled
+        if (settings.showNotifications && settings.notifyOnConnection) {
+          NotificationService().showConnectionStatus(true, connectedCount);
+        }
         break;
       case 'device_disconnected':
         // Update devices provider
         ref.read(devicesProvider.notifier).refresh();
+        final remainingCount = ref.read(devicesProvider).where((d) => d.isOnline).length;
+        // Update tray icon status on desktop
+        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          TrayService().updateConnectionStatus(remainingCount > 0, remainingCount);
+        }
+        // Show disconnection notification if enabled
+        if (settings.showNotifications && settings.notifyOnConnection) {
+          NotificationService().showConnectionStatus(remainingCount > 0, remainingCount);
+        }
         break;
       case 'pairing_request':
         // Show notification
         final deviceData = event.data?['device'] as DeviceInfo?;
-        if (deviceData != null && settings.showNotifications) {
+        if (deviceData != null && settings.showNotifications && settings.notifyOnPairing) {
           NotificationService().showPairingRequest(deviceData.name);
         }
         break;
@@ -108,7 +214,7 @@ class ClipboardMonitorService {
           if (settings.showNotifications) {
             NotificationService().showError(message);
           } else {
-            print('Toss error: $message');
+            debugPrint('Toss error: $message');
           }
         }
         break;

@@ -1,8 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/device.dart';
 import '../services/toss_service.dart';
+import '../services/storage_service.dart';
 
 part 'devices_provider.g.dart';
 
@@ -22,11 +22,24 @@ class Devices extends _$Devices {
       id: d.id,
       name: d.name,
       isOnline: d.isOnline,
-      lastSeen: d.lastSeen > 0 
+      lastSeen: d.lastSeen > 0
           ? DateTime.fromMillisecondsSinceEpoch(d.lastSeen)
           : null,
       platform: _parsePlatform(d.platform),
+      syncEnabled: _getDeviceSyncEnabled(d.id),
     )).toList();
+  }
+
+  /// Get per-device sync setting from storage
+  bool _getDeviceSyncEnabled(String deviceId) {
+    final key = 'device_sync_enabled_$deviceId';
+    return StorageService.getSetting<bool>(key, defaultValue: true) ?? true;
+  }
+
+  /// Set per-device sync setting
+  void _setDeviceSyncEnabled(String deviceId, bool enabled) {
+    final key = 'device_sync_enabled_$deviceId';
+    StorageService.setSetting(key, enabled);
   }
 
   DevicePlatform _parsePlatform(String platform) {
@@ -73,6 +86,17 @@ class Devices extends _$Devices {
     state = state.map((d) {
       if (d.id == deviceId) {
         return d.copyWith(isOnline: isOnline);
+      }
+      return d;
+    }).toList();
+  }
+
+  /// Toggle sync enabled for a device
+  void toggleDeviceSync(String deviceId, bool enabled) {
+    _setDeviceSyncEnabled(deviceId, enabled);
+    state = state.map((d) {
+      if (d.id == deviceId) {
+        return d.copyWith(syncEnabled: enabled);
       }
       return d;
     }).toList();

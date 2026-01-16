@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ConnectionStatusBanner extends StatelessWidget {
   final int connectedCount;
   final bool isSyncing;
+  final bool relayConfigured;
 
   const ConnectionStatusBanner({
     super.key,
     required this.connectedCount,
     this.isSyncing = false,
+    this.relayConfigured = false,
   });
 
   @override
@@ -51,6 +53,19 @@ class ConnectionStatusBanner extends StatelessWidget {
               ),
             ),
           ),
+
+          // Relay indicator
+          if (relayConfigured) ...[
+            Tooltip(
+              message: 'Cloud relay enabled',
+              child: Icon(
+                Icons.cloud_done,
+                size: 16,
+                color: foregroundColor.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
 
           // Sync indicator
           if (isSyncing)

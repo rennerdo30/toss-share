@@ -102,56 +102,150 @@ mod tests {
     }
 }
 
-// TODO: Add actual HTTP integration tests when server can be started programmatically
-// These would test:
-// - POST /api/register - device registration
-// - POST /api/relay/:target - message relay
-// - GET /api/ws - WebSocket upgrade
-// - Authentication flow with JWT tokens
-
 #[cfg(test)]
 mod api_integration_tests {
-    // These tests would require starting the server
-    // For now, they serve as documentation of what should be tested
+    use super::*;
+    use toss_relay::TestServer;
 
-    #[test]
-    #[ignore = "Requires server setup"]
-    fn test_device_registration_flow() {
-        // 1. Generate keypair
-        // 2. Create signed register request
-        // 3. POST to /api/register
-        // 4. Verify JWT token in response
-        todo!("Implement when server test harness is ready")
+    #[tokio::test]
+    async fn test_device_registration_flow() {
+        // Start test server
+        let server = TestServer::start().await.expect("Failed to start test server");
+
+        // Generate keypair
+        let (signing_key, device_id, public_key) = generate_keypair();
+
+        // Create registration request
+        let request = create_register_request(&signing_key, &device_id, &public_key, "Test Device");
+
+        // Send registration request
+        let client = reqwest::Client::new();
+        let response = client
+            .post(server.url("/api/register"))
+            .json(&request)
+            .send()
+            .await
+            .expect("Failed to send request");
+
+        // Check response
+        let status = response.status();
+        let body: Value = response.json().await.unwrap_or(json!({}));
+
+        // Should succeed with a token
+        assert!(
+            status.is_success(),
+            "Registration failed with status {}: {:?}",
+            status,
+            body
+        );
+        assert!(
+            body.get("token").is_some() || body.get("success").is_some(),
+            "Response should contain token or success: {:?}",
+            body
+        );
+
+        // Cleanup
+        server.shutdown().await;
     }
 
-    #[test]
-    #[ignore = "Requires server setup"]
-    fn test_websocket_authentication() {
-        // 1. Register device first
-        // 2. Connect to WebSocket
-        // 3. Send auth message with signature
-        // 4. Verify auth response
-        todo!("Implement when server test harness is ready")
+    #[tokio::test]
+    async fn test_health_endpoint() {
+        // Start test server
+        let server = TestServer::start().await.expect("Failed to start test server");
+
+        // Check health endpoint
+        let client = reqwest::Client::new();
+        let response = client
+            .get(server.url("/api/health"))
+            .send()
+            .await
+            .expect("Failed to send request");
+
+        assert!(response.status().is_success(), "Health check should succeed");
+
+        // Cleanup
+        server.shutdown().await;
     }
 
-    #[test]
-    #[ignore = "Requires server setup"]
-    fn test_message_relay() {
-        // 1. Register two devices
-        // 2. Connect both via WebSocket
-        // 3. Send relay message from device A to device B
-        // 4. Verify device B receives the message
-        todo!("Implement when server test harness is ready")
+    #[tokio::test]
+    async fn test_invalid_registration_signature() {
+        // Start test server
+        let server = TestServer::start().await.expect("Failed to start test server");
+
+        // Generate keypair
+        let (_signing_key, device_id, public_key) = generate_keypair();
+
+        // Create request with invalid signature
+        let request = json!({
+            "device_id": device_id,
+            "public_key": public_key,
+            "device_name": "Test Device",
+            "timestamp": SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            "signature": "invalid_signature_base64"
+        });
+
+        // Send registration request
+        let client = reqwest::Client::new();
+        let response = client
+            .post(server.url("/api/register"))
+            .json(&request)
+            .send()
+            .await
+            .expect("Failed to send request");
+
+        // Should fail with bad request or unauthorized
+        assert!(
+            response.status().is_client_error(),
+            "Invalid signature should be rejected"
+        );
+
+        // Cleanup
+        server.shutdown().await;
     }
 
-    #[test]
-    #[ignore = "Requires server setup"]
-    fn test_message_queuing() {
-        // 1. Register device A and B
-        // 2. Only connect device A
-        // 3. Send message from A to B (should be queued)
-        // 4. Connect device B
-        // 5. Verify B receives queued message
-        todo!("Implement when server test harness is ready")
+    #[tokio::test]
+    async fn test_duplicate_registration() {
+        // Start test server
+        let server = TestServer::start().await.expect("Failed to start test server");
+
+        // Generate keypair
+        let (signing_key, device_id, public_key) = generate_keypair();
+
+        // Create registration request
+        let request = create_register_request(&signing_key, &device_id, &public_key, "Test Device");
+
+        let client = reqwest::Client::new();
+
+        // First registration should succeed
+        let response1 = client
+            .post(server.url("/api/register"))
+            .json(&request)
+            .send()
+            .await
+            .expect("Failed to send first request");
+        assert!(response1.status().is_success(), "First registration should succeed");
+
+        // Create new request with fresh timestamp for second registration
+        let request2 = create_register_request(&signing_key, &device_id, &public_key, "Test Device Updated");
+
+        // Second registration should also succeed (update device name)
+        let response2 = client
+            .post(server.url("/api/register"))
+            .json(&request2)
+            .send()
+            .await
+            .expect("Failed to send second request");
+
+        // Re-registration with same device should succeed (upsert behavior)
+        assert!(
+            response2.status().is_success(),
+            "Re-registration should succeed with upsert behavior"
+        );
+
+        // Cleanup
+        server.shutdown().await;
     }
 }

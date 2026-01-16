@@ -1,11 +1,28 @@
 # Toss Project - Next Steps Guide
 
-**Last Updated**: 2024-12-19  
-**Status**: MVP Complete - Ready for FFI Generation
+**Last Updated**: 2025-01-17
+**Status**: ✅ MVP Complete - All Code Implementation Done
 
 ## Overview
 
-The Toss MVP implementation is complete. All 26 planned items have been implemented, tested, and documented. This guide outlines the immediate next steps to get the application running end-to-end.
+The Toss MVP implementation is **fully complete**. All code-implementable items have been done:
+- ✅ FFI bindings generated and integrated
+- ✅ All TossService methods wired to Rust FFI
+- ✅ 150 tests passing (55 Flutter + 88 Rust Core + 7 Relay Server)
+- ✅ Per-device sync, conflict resolution, rate limiting implemented
+- ✅ Session key encryption implemented
+- ✅ Relay server test harness implemented
+
+## Remaining Work (Non-Code)
+
+The following require runtime testing or native IDE work:
+- Runtime testing on physical devices
+- Platform-specific native code (Xcode/Android Studio)
+- Future enhancements (browser extensions, team features, compression)
+
+## Historical Reference
+
+The sections below document the FFI integration process that has been **completed**.
 
 ## Step 1: Generate FFI Bindings
 
@@ -81,27 +98,28 @@ flutter_rust_bridge_codegen generate --config frb_options.yaml
    import '../rust/api.dart' as api;
    ```
 
-2. **Uncomment all FFI function calls**:
-   - Replace all `// TODO: Call FFI` comments
-   - Replace all placeholder/mock implementations
-   - Wire up actual `api.*` function calls
+2. **Uncomment all FFI function calls** ✅ DONE:
+   - All FFI comments have been replaced with actual calls
+   - All placeholder/mock implementations removed
+   - All `api.*` function calls wired up
 
-3. **Update method implementations**:
-   - `initialize()` → `api.initToss()`
-   - `getDeviceId()` → `api.getDeviceId()`
-   - `startPairing()` → `api.startPairing()`
-   - `completePairingQR()` → `api.completePairingQr()`
-   - `getPairedDevices()` → `api.getPairedDevices()`
-   - `sendClipboard()` → `api.sendClipboard()`
-   - `pollEvent()` → `api.pollEvent()`
-   - And all other methods...
+3. **Update method implementations** ✅ DONE:
+   - `initialize()` → `api.initToss()` ✅
+   - `getDeviceId()` → `api.getDeviceId()` ✅
+   - `startPairing()` → `api.startPairing()` ✅
+   - `completePairingQR()` → `api.completePairingQr()` ✅
+   - `getPairedDevices()` → `api.getPairedDevices()` ✅
+   - `sendClipboard()` → `api.sendClipboard()` ✅
+   - `pollEvent()` → `api.pollEvent()` ✅
+   - And all other methods... ✅
 
-### Example
+### Example (Historical - Shows What Changed)
 
-**Before**:
+**Before** (old code that was replaced):
 ```dart
+// HISTORICAL EXAMPLE - This code no longer exists
 Future<void> initialize() async {
-  // TODO: Call init_toss() FFI
+  // Old placeholder that was replaced
   await Future.delayed(Duration(milliseconds: 100));
 }
 ```
@@ -177,19 +195,21 @@ cd flutter_app && flutter test integration_test/app_test.dart
 - **Task**: Implement foreground service
 - **Guide**: See `docs/IOS_ANDROID_IMPLEMENTATION.md`
 
-## Step 5: Platform Testing
+## Step 5: Platform Testing (Requires Physical Devices)
 
-### Desktop Testing
-- [ ] Test on macOS
-- [ ] Test on Windows
-- [ ] Test on Linux (X11)
-- [ ] Test on Linux (Wayland)
+> **Note**: These tests require running the app on actual physical devices or emulators. They cannot be completed through code changes alone.
 
-### Mobile Testing
-- [ ] Test on iOS device
-- [ ] Test on Android device (Android 10+)
+### Desktop Testing (requires device access)
+- [ ] Test on macOS (requires Mac)
+- [ ] Test on Windows (requires Windows PC)
+- [ ] Test on Linux (X11) (requires Linux desktop)
+- [ ] Test on Linux (Wayland) (requires Wayland session)
 
-### Cross-Platform Testing
+### Mobile Testing (requires device access)
+- [ ] Test on iOS device (requires iPhone/iPad + Xcode)
+- [ ] Test on Android device (Android 10+) (requires Android device)
+
+### Cross-Platform Testing (requires multiple devices)
 - [ ] Test sync between macOS and Windows
 - [ ] Test sync between desktop and mobile
 - [ ] Test relay fallback when devices not on same network
@@ -231,28 +251,28 @@ cd flutter_app && flutter test integration_test/app_test.dart
 
 ## Verification Checklist
 
-### After FFI Generation
-- [ ] `flutter_app/lib/src/rust/api.dart` exists
-- [ ] `rust_core/src/api/toss_api.h` exists
-- [ ] No generation errors
+### After FFI Generation ✅ COMPLETE
+- [x] `flutter_app/lib/src/rust/api.dart` exists
+- [x] `rust_core/src/api/toss_api.h` exists
+- [x] No generation errors
 
-### After Uncommenting FFI Calls
-- [ ] All imports uncommented
-- [ ] All methods call actual FFI functions
-- [ ] No placeholder/mock code remaining
-- [ ] Code compiles without errors
+### After Uncommenting FFI Calls ✅ COMPLETE
+- [x] All imports uncommented
+- [x] All methods call actual FFI functions
+- [x] No placeholder/mock code remaining
+- [x] Code compiles without errors
 
-### After Building
-- [ ] Rust core builds successfully
-- [ ] Flutter app builds successfully
-- [ ] No compilation warnings (or acceptable warnings)
-- [ ] All tests pass
+### After Building ✅ COMPLETE
+- [x] Rust core builds successfully
+- [x] Flutter app builds successfully
+- [x] No compilation warnings (or acceptable warnings)
+- [x] All tests pass (150 total)
 
-### After Native Code Implementation
-- [ ] Platform-specific features work
-- [ ] Permissions are requested correctly
-- [ ] Clipboard access works
-- [ ] Platform tests pass
+### After Native Code Implementation (Requires Xcode/Android Studio)
+- [ ] Platform-specific features work (requires device testing)
+- [ ] Permissions are requested correctly (requires device testing)
+- [ ] Clipboard access works (requires device testing)
+- [ ] Platform tests pass (requires device testing)
 
 ## Resources
 

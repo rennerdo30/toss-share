@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
@@ -172,7 +173,7 @@ class TossService {
       _ffiAvailable = true;
     } catch (e) {
       _ffiAvailable = false;
-      print('Warning: flutter_rust_bridge initialization failed: $e');
+      debugPrint('Warning: flutter_rust_bridge initialization failed: $e');
     }
 
     // Call Rust FFI init_toss()
@@ -184,7 +185,7 @@ class TossService {
         // Fallback: Mock device ID if FFI fails
         _ffiAvailable = false;
         _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
-        print('Warning: FFI initialization failed: $e');
+        debugPrint('Warning: FFI initialization failed: $e');
       }
     } else {
       // Fallback: Mock device ID when FFI not available
@@ -216,7 +217,7 @@ class TossService {
     try {
       api.setDeviceName(name: name);
     } catch (e) {
-      print('Warning: Failed to set device name: $e');
+      debugPrint('Warning: Failed to set device name: $e');
     }
   }
 
@@ -276,7 +277,7 @@ class TossService {
     try {
       api.cancelPairing();
     } catch (e) {
-      print('Warning: Failed to cancel pairing: $e');
+      debugPrint('Warning: Failed to cancel pairing: $e');
     }
   }
 
@@ -297,7 +298,7 @@ class TossService {
         platform: d.platform,
       )).toList();
     } catch (e) {
-      print('Warning: Failed to get paired devices: $e');
+      debugPrint('Warning: Failed to get paired devices: $e');
       return [];
     }
   }
@@ -315,7 +316,7 @@ class TossService {
         platform: d.platform,
       )).toList();
     } catch (e) {
-      print('Warning: Failed to get connected devices: $e');
+      debugPrint('Warning: Failed to get connected devices: $e');
       return [];
     }
   }
@@ -325,7 +326,7 @@ class TossService {
     try {
       api.removeDevice(deviceId: deviceId);
     } catch (e) {
-      print('Warning: Failed to remove device: $e');
+      debugPrint('Warning: Failed to remove device: $e');
     }
   }
 
@@ -334,7 +335,7 @@ class TossService {
     try {
       api.renameDevice(deviceId: deviceId, newName: newName);
     } catch (e) {
-      print('Warning: Failed to rename device: $e');
+      debugPrint('Warning: Failed to rename device: $e');
       rethrow;
     }
   }
@@ -357,26 +358,52 @@ class TossService {
         sourceDevice: item.sourceDevice,
       );
     } catch (e) {
-      print('Warning: Failed to get current clipboard: $e');
+      debugPrint('Warning: Failed to get current clipboard: $e');
       return null;
     }
   }
 
-  /// Send current clipboard to all devices
-  static Future<void> sendClipboard() async {
-    try {
-      await api.sendClipboard();
-    } catch (e) {
-      print('Warning: Failed to send clipboard: $e');
-    }
+  /// Send current clipboard to all devices with retry logic
+  static Future<void> sendClipboard({int maxRetries = 3}) async {
+    await _retryOperation(
+      () => api.sendClipboard(),
+      'send clipboard',
+      maxRetries: maxRetries,
+    );
   }
 
-  /// Send text to all devices
-  static Future<void> sendText(String text) async {
-    try {
-      await api.sendText(text: text);
-    } catch (e) {
-      print('Warning: Failed to send text: $e');
+  /// Send text to all devices with retry logic
+  static Future<void> sendText(String text, {int maxRetries = 3}) async {
+    await _retryOperation(
+      () => api.sendText(text: text),
+      'send text',
+      maxRetries: maxRetries,
+    );
+  }
+
+  /// Retry an operation with exponential backoff
+  static Future<void> _retryOperation(
+    Future<void> Function() operation,
+    String operationName, {
+    int maxRetries = 3,
+  }) async {
+    int attempt = 0;
+    Duration delay = const Duration(milliseconds: 500);
+
+    while (attempt < maxRetries) {
+      try {
+        await operation();
+        return; // Success
+      } catch (e) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          debugPrint('Warning: Failed to $operationName after $maxRetries attempts: $e');
+          rethrow; // Propagate error after all retries exhausted
+        }
+        debugPrint('Warning: $operationName failed (attempt $attempt/$maxRetries), retrying in ${delay.inMilliseconds}ms: $e');
+        await Future.delayed(delay);
+        delay *= 2; // Exponential backoff
+      }
     }
   }
 
@@ -394,7 +421,7 @@ class TossService {
         sourceDevice: item.sourceDevice,
       )).toList();
     } catch (e) {
-      print('Warning: Failed to get clipboard history: $e');
+      debugPrint('Warning: Failed to get clipboard history: $e');
       return [];
     }
   }
@@ -404,7 +431,7 @@ class TossService {
     try {
       api.removeHistoryItem(itemId: itemId);
     } catch (e) {
-      print('Warning: Failed to remove history item: $e');
+      debugPrint('Warning: Failed to remove history item: $e');
     }
   }
 
@@ -413,7 +440,7 @@ class TossService {
     try {
       api.clearClipboardHistory();
     } catch (e) {
-      print('Warning: Failed to clear clipboard history: $e');
+      debugPrint('Warning: Failed to clear clipboard history: $e');
     }
   }
 
@@ -426,7 +453,7 @@ class TossService {
         data: content.data,
       );
     } catch (e) {
-      print('Warning: Failed to get history item content: $e');
+      debugPrint('Warning: Failed to get history item content: $e');
       return null;
     }
   }
@@ -461,7 +488,7 @@ class TossService {
       );
       api.updateSettings(settings: settings);
     } catch (e) {
-      print('Warning: Failed to update settings: $e');
+      debugPrint('Warning: Failed to update settings: $e');
     }
   }
 
@@ -475,7 +502,7 @@ class TossService {
     try {
       await api.startNetwork();
     } catch (e) {
-      print('Warning: Failed to start network: $e');
+      debugPrint('Warning: Failed to start network: $e');
     }
   }
 
@@ -487,7 +514,7 @@ class TossService {
       if (event == null) return null;
       return TossEvent.fromApi(event);
     } catch (e) {
-      print('Warning: Failed to poll event: $e');
+      debugPrint('Warning: Failed to poll event: $e');
       return null;
     }
   }
@@ -498,7 +525,7 @@ class TossService {
     try {
       return api.checkClipboardChanged();
     } catch (e) {
-      print('Warning: Failed to check clipboard: $e');
+      debugPrint('Warning: Failed to check clipboard: $e');
       return false;
     }
   }
@@ -508,7 +535,7 @@ class TossService {
     try {
       await api.stopNetwork();
     } catch (e) {
-      print('Warning: Failed to stop network: $e');
+      debugPrint('Warning: Failed to stop network: $e');
     }
   }
 
@@ -522,7 +549,7 @@ class TossService {
     try {
       await api.shutdownToss();
     } catch (e) {
-      print('Warning: Failed to shutdown Toss: $e');
+      debugPrint('Warning: Failed to shutdown Toss: $e');
     }
     _initialized = false;
     _deviceId = null;

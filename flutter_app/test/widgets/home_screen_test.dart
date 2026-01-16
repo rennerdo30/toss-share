@@ -1,77 +1,113 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:toss/src/features/home/home_screen.dart';
-import 'package:toss/src/core/providers/toss_provider.dart';
-import 'package:toss/src/core/providers/devices_provider.dart';
-import 'package:toss/src/core/providers/clipboard_provider.dart';
 
 void main() {
   group('HomeScreen Widget Tests', () {
-    testWidgets('displays app bar with title and action buttons', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
+    // Helper to create a mobile-sized screen for testing mobile layout
+    Widget buildMobileHome() {
+      return const ProviderScope(
+        child: MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(size: Size(400, 800)),
+            child: HomeScreen(),
           ),
         ),
       );
+    }
+
+    // Helper to create a desktop-sized screen for testing desktop layout
+    Widget buildDesktopHome() {
+      return const ProviderScope(
+        child: MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(size: Size(1200, 800)),
+            child: HomeScreen(),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('mobile: displays app bar with title', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildMobileHome());
 
       expect(find.text('Toss'), findsOneWidget);
-      expect(find.byIcon(Icons.history), findsOneWidget);
-      expect(find.byIcon(Icons.settings), findsOneWidget);
     });
 
-    testWidgets('shows empty devices card when no devices', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
-          ),
-        ),
-      );
+    testWidgets('mobile: shows empty devices message when no devices', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildMobileHome());
 
       expect(find.text('No devices paired'), findsOneWidget);
-      expect(find.text('Pair a device to start sharing your clipboard'), findsOneWidget);
     });
 
-    testWidgets('shows devices section header', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
-          ),
-        ),
-      );
+    testWidgets('mobile: shows devices section header', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildMobileHome());
 
       expect(find.text('Devices'), findsOneWidget);
-      expect(find.text('Add'), findsOneWidget);
     });
 
-    testWidgets('shows clipboard section header', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
-          ),
-        ),
-      );
+    testWidgets('mobile: shows clipboard section header', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildMobileHome());
 
       expect(find.text('Clipboard'), findsOneWidget);
     });
 
-    testWidgets('shows send button', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
-          ),
-        ),
-      );
+    testWidgets('mobile: shows send button', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildMobileHome());
 
       expect(find.text('Send'), findsOneWidget);
+    });
+
+    testWidgets('desktop: shows clipboard header', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildDesktopHome());
+
+      expect(find.text('Clipboard'), findsOneWidget);
+    });
+
+    testWidgets('desktop: shows send to all devices button', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildDesktopHome());
+
+      expect(find.text('Send to all devices'), findsOneWidget);
+    });
+
+    testWidgets('desktop: shows no devices paired message', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildDesktopHome());
+
+      expect(find.text('No devices paired'), findsOneWidget);
     });
   });
 }

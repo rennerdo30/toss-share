@@ -6,22 +6,10 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::Router;
 use tokio::net::TcpListener;
-use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod api;
-mod auth;
-mod config;
-mod db;
-mod error;
-mod relay;
-
-use config::Config;
-use db::Database;
-use relay::RelayState;
+use toss_relay::{create_app, AppState, Config, Database, RelayState};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -53,11 +41,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Build router
-    let app = Router::new()
-        .merge(api::routes::create_router())
-        .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
+    let app = create_app(state);
 
     // Start server
     let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
@@ -67,12 +51,4 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
-}
-
-/// Application state shared across handlers
-#[derive(Clone)]
-pub struct AppState {
-    pub config: Arc<Config>,
-    pub db: Arc<Database>,
-    pub relay: Arc<RelayState>,
 }

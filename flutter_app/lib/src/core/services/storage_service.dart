@@ -191,6 +191,10 @@ class SettingsKeys {
   static const String historyDays = 'history_days';
   static const String relayUrl = 'relay_url';
   static const String showNotifications = 'show_notifications';
+  static const String notifyOnPairing = 'notify_on_pairing';
+  static const String notifyOnClipboard = 'notify_on_clipboard';
+  static const String notifyOnConnection = 'notify_on_connection';
+  static const String conflictResolution = 'conflict_resolution';
   static const String themeMode = 'theme_mode';
   static const String deviceName = 'device_name';
 

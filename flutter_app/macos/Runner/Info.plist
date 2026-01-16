@@ -28,5 +28,14 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Toss needs camera access to scan QR codes for device pairing</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Toss needs local network access to discover and connect to nearby devices</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_toss._tcp</string>
+		<string>_toss._udp</string>
+	</array>
 </dict>
 </plist>

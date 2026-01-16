@@ -10,6 +10,7 @@ import '../../core/providers/settings_provider.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/providers/update_provider.dart';
 import '../../core/services/auto_start_service.dart';
+import '../../shared/widgets/responsive_layout.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -49,249 +50,433 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final updateState = ref.watch(updateProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
+      body: ResponsiveBuilder(
+        builder: (context, isMobile, isTablet, isDesktop) {
+          if (isMobile) {
+            // Mobile: single column list
+            return _buildMobileLayout(
+              context, settings, tossState, themeMode, updateState);
+          }
+          // Desktop/Tablet: two column grid
+          return _buildDesktopLayout(
+            context, settings, tossState, themeMode, updateState);
+        },
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildMobileLayout(
+    BuildContext context,
+    AppSettings settings,
+    TossState tossState,
+    ThemeMode themeMode,
+    UpdateState updateState,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: _buildAllSections(context, settings, tossState, themeMode, updateState),
+    );
+  }
+
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    AppSettings settings,
+    TossState tossState,
+    ThemeMode themeMode,
+    UpdateState updateState,
+  ) {
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Device section
-          _SectionHeader(title: 'Device'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.badge),
-                  title: const Text('Device Name'),
-                  subtitle: Text(tossState.deviceName),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showDeviceNameDialog(context, ref, tossState.deviceName),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.fingerprint),
-                  title: const Text('Device ID'),
-                  subtitle: Text(
-                    tossState.deviceId.isEmpty
-                        ? 'Not initialized'
-                        : tossState.deviceId.length > 16
-                            ? '${tossState.deviceId.substring(0, 16)}...'
-                            : tossState.deviceId,
+          // Header
+          Text(
+            'Settings',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Two-column grid
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columnWidth = (constraints.maxWidth - 24) / 2;
+
+              return Wrap(
+                spacing: 24,
+                runSpacing: 24,
+                children: [
+                  // Column 1
+                  SizedBox(
+                    width: columnWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDeviceSection(tossState),
+                        const SizedBox(height: 24),
+                        _buildSyncSection(settings),
+                        const SizedBox(height: 24),
+                        _buildHistorySection(settings),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  // Column 2
+                  SizedBox(
+                    width: columnWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildNetworkSection(settings),
+                        if (Platform.isWindows) ...[
+                          const SizedBox(height: 24),
+                          _buildSystemSection(),
+                        ],
+                        const SizedBox(height: 24),
+                        _buildAppearanceSection(settings, themeMode),
+                        const SizedBox(height: 24),
+                        _buildAboutSection(context, updateState),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
 
-          // Sync section
-          _SectionHeader(title: 'Sync'),
-          Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  secondary: const Icon(Icons.sync),
-                  title: const Text('Auto Sync'),
-                  subtitle: const Text('Automatically sync clipboard'),
-                  value: settings.autoSync,
-                  onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateAutoSync(value);
-                  },
+  List<Widget> _buildAllSections(
+    BuildContext context,
+    AppSettings settings,
+    TossState tossState,
+    ThemeMode themeMode,
+    UpdateState updateState,
+  ) {
+    return [
+      _buildDeviceSection(tossState),
+      const SizedBox(height: 24),
+      _buildSyncSection(settings),
+      const SizedBox(height: 24),
+      _buildHistorySection(settings),
+      const SizedBox(height: 24),
+      _buildNetworkSection(settings),
+      if (Platform.isWindows) ...[
+        const SizedBox(height: 24),
+        _buildSystemSection(),
+      ],
+      const SizedBox(height: 24),
+      _buildAppearanceSection(settings, themeMode),
+      const SizedBox(height: 24),
+      _buildAboutSection(context, updateState),
+      const SizedBox(height: 32),
+    ];
+  }
+
+  Widget _buildDeviceSection(TossState tossState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Device'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.badge),
+                title: const Text('Device Name'),
+                subtitle: Text(tossState.deviceName),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showDeviceNameDialog(context, ref, tossState.deviceName),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.fingerprint),
+                title: const Text('Device ID'),
+                subtitle: Text(
+                  tossState.deviceId.isEmpty
+                      ? 'Not initialized'
+                      : tossState.deviceId.length > 16
+                          ? '${tossState.deviceId.substring(0, 16)}...'
+                          : tossState.deviceId,
                 ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.text_fields),
-                  title: const Text('Sync Text'),
-                  value: settings.syncText,
-                  onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateSyncText(value);
-                  },
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.format_paint),
-                  title: const Text('Sync Rich Text'),
-                  subtitle: const Text('HTML and RTF formatting'),
-                  value: settings.syncRichText,
-                  onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateSyncRichText(value);
-                  },
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.image),
-                  title: const Text('Sync Images'),
-                  value: settings.syncImages,
-                  onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateSyncImages(value);
-                  },
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.attach_file),
-                  title: const Text('Sync Files'),
-                  value: settings.syncFiles,
-                  onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateSyncFiles(value);
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.storage),
-                  title: const Text('Max File Size'),
-                  subtitle: Text('${settings.maxFileSizeMb} MB'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showMaxFileSizeDialog(context, ref, settings.maxFileSizeMb),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
+        ),
+      ],
+    );
+  }
 
-          // History section
-          _SectionHeader(title: 'History'),
-          Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  secondary: const Icon(Icons.history),
-                  title: const Text('Save History'),
-                  subtitle: const Text('Keep clipboard history locally'),
-                  value: settings.historyEnabled,
-                  onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateHistoryEnabled(value);
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.calendar_today),
-                  title: const Text('Keep History For'),
-                  subtitle: Text('${settings.historyDays} days'),
-                  trailing: const Icon(Icons.chevron_right),
-                  enabled: settings.historyEnabled,
-                  onTap: settings.historyEnabled
-                      ? () => _showHistoryDaysDialog(context, ref, settings.historyDays)
-                      : null,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Network section
-          _SectionHeader(title: 'Network'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.cloud),
-                  title: const Text('Relay Server'),
-                  subtitle: Text(settings.relayUrl ?? 'Not configured'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showRelayUrlDialog(context, ref, settings.relayUrl),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // System section (Windows only)
-          if (Platform.isWindows) ...[
-            _SectionHeader(title: 'System'),
-            Card(
-              child: FutureBuilder<bool>(
-                future: _getAutoStartStatus(),
-                builder: (context, snapshot) {
-                  final autoStartEnabled = snapshot.data ?? false;
-                  return SwitchListTile(
-                    secondary: const Icon(Icons.settings_power),
-                    title: const Text('Start with Windows'),
-                    subtitle: const Text('Launch Toss when Windows starts'),
-                  value: autoStartEnabled,
-                  onChanged: (value) async {
-                    await _toggleAutoStart(context, value);
-                  },
-                  );
+  Widget _buildSyncSection(AppSettings settings) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Sync'),
+        Card(
+          child: Column(
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.sync),
+                title: const Text('Auto Sync'),
+                subtitle: const Text('Automatically sync clipboard'),
+                value: settings.autoSync,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateAutoSync(value);
                 },
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+              const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.text_fields),
+                title: const Text('Sync Text'),
+                value: settings.syncText,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateSyncText(value);
+                },
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.format_paint),
+                title: const Text('Sync Rich Text'),
+                subtitle: const Text('HTML and RTF formatting'),
+                value: settings.syncRichText,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateSyncRichText(value);
+                },
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.image),
+                title: const Text('Sync Images'),
+                value: settings.syncImages,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateSyncImages(value);
+                },
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.attach_file),
+                title: const Text('Sync Files'),
+                value: settings.syncFiles,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateSyncFiles(value);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.storage),
+                title: const Text('Max File Size'),
+                subtitle: Text('${settings.maxFileSizeMb} MB'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showMaxFileSizeDialog(context, ref, settings.maxFileSizeMb),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-          // Appearance section
-          _SectionHeader(title: 'Appearance'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.palette),
-                  title: const Text('Theme'),
-                  subtitle: Text(_getThemeName(themeMode)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showThemeDialog(context, ref, themeMode),
+  Widget _buildHistorySection(AppSettings settings) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'History'),
+        Card(
+          child: Column(
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.history),
+                title: const Text('Save History'),
+                subtitle: const Text('Keep clipboard history locally'),
+                value: settings.historyEnabled,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateHistoryEnabled(value);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Keep History For'),
+                subtitle: Text('${settings.historyDays} days'),
+                trailing: const Icon(Icons.chevron_right),
+                enabled: settings.historyEnabled,
+                onTap: settings.historyEnabled
+                    ? () => _showHistoryDaysDialog(context, ref, settings.historyDays)
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNetworkSection(AppSettings settings) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Network'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.cloud),
+                title: const Text('Relay Server'),
+                subtitle: Text(settings.relayUrl ?? 'Not configured'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showRelayUrlDialog(context, ref, settings.relayUrl),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSystemSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'System'),
+        Card(
+          child: FutureBuilder<bool>(
+            future: _getAutoStartStatus(),
+            builder: (context, snapshot) {
+              final autoStartEnabled = snapshot.data ?? false;
+              return SwitchListTile(
+                secondary: const Icon(Icons.settings_power),
+                title: const Text('Start with Windows'),
+                subtitle: const Text('Launch Toss when Windows starts'),
+                value: autoStartEnabled,
+                onChanged: (value) async {
+                  await _toggleAutoStart(context, value);
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppearanceSection(AppSettings settings, ThemeMode themeMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Appearance'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.palette),
+                title: const Text('Theme'),
+                subtitle: Text(_getThemeName(themeMode)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showThemeDialog(context, ref, themeMode),
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications),
+                title: const Text('Notifications'),
+                value: settings.showNotifications,
+                onChanged: (value) {
+                  ref.read(settingsProvider.notifier).updateShowNotifications(value);
+                },
+              ),
+              // Granular notification settings (only shown when notifications enabled)
+              if (settings.showNotifications) ...[
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const SizedBox(width: 24),
+                  title: const Text('Pairing requests'),
+                  subtitle: const Text('When a device wants to pair'),
+                  value: settings.notifyOnPairing,
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).updateNotifyOnPairing(value);
+                  },
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  secondary: const Icon(Icons.notifications),
-                  title: const Text('Notifications'),
-                  value: settings.showNotifications,
+                  secondary: const SizedBox(width: 24),
+                  title: const Text('Clipboard received'),
+                  subtitle: const Text('When clipboard is synced from another device'),
+                  value: settings.notifyOnClipboard,
                   onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateShowNotifications(value);
+                    ref.read(settingsProvider.notifier).updateNotifyOnClipboard(value);
+                  },
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const SizedBox(width: 24),
+                  title: const Text('Connection status'),
+                  subtitle: const Text('When devices connect or disconnect'),
+                  value: settings.notifyOnConnection,
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).updateNotifyOnConnection(value);
                   },
                 ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 24),
+        ),
+      ],
+    );
+  }
 
-          // About section
-          _SectionHeader(title: 'About'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.info),
-                  title: const Text('Version'),
-                  subtitle: Text(ref.read(updateProvider.notifier).currentVersion),
-                ),
+  Widget _buildAboutSection(BuildContext context, UpdateState updateState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'About'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: const Text('Version'),
+                subtitle: Text(ref.read(updateProvider.notifier).currentVersion),
+              ),
+              const Divider(height: 1),
+              // Update status (desktop only)
+              if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
+                _buildUpdateTile(context, ref, updateState),
                 const Divider(height: 1),
-                // Update status (desktop only)
-                if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
-                  _buildUpdateTile(context, ref, updateState),
-                  const Divider(height: 1),
-                ],
-                ListTile(
-                  leading: const Icon(Icons.code),
-                  title: const Text('Source Code'),
-                  subtitle: const Text('github.com/rennerdo30/toss-share'),
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () async {
-                    final uri = Uri.parse('https://github.com/rennerdo30/toss-share');
-                    try {
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Could not open URL')),
-                          );
-                        }
-                      }
-                    } catch (e) {
+              ],
+              ListTile(
+                leading: const Icon(Icons.code),
+                title: const Text('Source Code'),
+                subtitle: const Text('github.com/rennerdo30/toss-share'),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () async {
+                  final uri = Uri.parse('https://github.com/rennerdo30/toss-share');
+                  try {
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error opening URL: $e')),
+                          const SnackBar(content: Text('Could not open URL')),
                         );
                       }
                     }
-                  },
-                ),
-              ],
-            ),
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error opening URL: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 32),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

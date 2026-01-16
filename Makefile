@@ -8,7 +8,8 @@
         release release-all package-all package-relay \
         release-macos release-linux release-windows release-android release-ios \
         setup check-deps check-deps-macos pod-install \
-        generate-ffi verify-ffi
+        generate-ffi verify-ffi \
+        run run-macos run-windows run-linux
 
 # Default target
 all: build
@@ -184,6 +185,27 @@ watch-relay:
 ## Run Flutter app (development)
 run-flutter:
 	@cd flutter_app && flutter run
+
+## Run the Toss app (auto-detects platform)
+run:
+	@echo "Starting Toss..."
+	@cd flutter_app && flutter run -d macos || flutter run -d linux || flutter run -d windows || flutter run
+	@echo "✓ Toss stopped"
+
+## Run Toss on macOS
+run-macos:
+	@echo "Starting Toss on macOS..."
+	@cd flutter_app && flutter run -d macos
+
+## Run Toss on Windows
+run-windows:
+	@echo "Starting Toss on Windows..."
+	@cd flutter_app && flutter run -d windows
+
+## Run Toss on Linux
+run-linux:
+	@echo "Starting Toss on Linux..."
+	@cd flutter_app && flutter run -d linux
 
 ## Generate Rust FFI bindings for Flutter
 generate-ffi:
@@ -384,8 +406,12 @@ help:
 	@echo "  docker-logs    View relay logs"
 	@echo ""
 	@echo "Development:"
+	@echo "  run            Run Toss app (auto-detects platform)"
+	@echo "  run-macos      Run Toss on macOS"
+	@echo "  run-windows    Run Toss on Windows"
+	@echo "  run-linux      Run Toss on Linux"
 	@echo "  run-relay      Run relay server locally"
-	@echo "  run-flutter    Run Flutter app"
+	@echo "  run-flutter    Run Flutter app (generic)"
 	@echo "  generate-ffi   Generate Rust FFI bindings"
 	@echo "  verify-ffi    Verify FFI setup before generation"
 	@echo ""

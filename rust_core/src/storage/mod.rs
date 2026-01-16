@@ -8,7 +8,10 @@ mod secure_storage;
 
 pub use device_storage::{DeviceStorage, StoredDevice};
 pub use history_storage::{HistoryStorage, StoredHistoryItem};
-pub use secure_storage::{delete_identity_key, retrieve_identity_key, store_identity_key};
+pub use secure_storage::{
+    delete_identity_key, decrypt_from_storage, encrypt_for_storage,
+    get_or_create_storage_encryption_key, retrieve_identity_key, store_identity_key,
+};
 
 use rusqlite::{Connection, Result as SqliteResult};
 use std::path::{Path, PathBuf};

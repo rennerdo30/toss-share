@@ -13,14 +13,16 @@ pub fn create_router() -> Router<AppState> {
     Router::new()
         // Health check
         .route("/health", get(health_check))
+        .route("/api/health", get(health_check))
         // Device registration
+        .route("/api/register", post(handlers::register_device))
         .route("/api/v1/register", post(handlers::register_device))
         .route("/api/v1/register", delete(handlers::unregister_device))
-        // Message relay
-        .route("/api/v1/relay/:device_id", post(handlers::relay_message))
+        // Message relay (Axum 0.8 uses {param} instead of :param)
+        .route("/api/v1/relay/{device_id}", post(handlers::relay_message))
         // Device status
         .route(
-            "/api/v1/devices/:device_id/status",
+            "/api/v1/devices/{device_id}/status",
             get(handlers::device_status),
         )
         // WebSocket

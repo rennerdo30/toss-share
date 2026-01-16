@@ -1,5 +1,6 @@
 //! Device storage operations
 
+use super::secure_storage::{decrypt_from_storage, encrypt_for_storage};
 use rusqlite::Result as SqliteResult;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -28,11 +29,17 @@ impl<'conn> DeviceStorage<'conn> {
     }
 
     /// Store a paired device
+    /// Session keys are encrypted before storage for security
     pub fn store_device(&self, device: &StoredDevice) -> SqliteResult<()> {
+        // Encrypt session key if present
+        let encrypted_session_key = device.session_key.as_ref().and_then(|key| {
+            encrypt_for_storage(key).ok()
+        });
+
         let conn = self.conn.lock().unwrap();
         conn.execute(
             r#"
-            INSERT OR REPLACE INTO devices 
+            INSERT OR REPLACE INTO devices
             (id, name, public_key, session_key, last_seen, created_at, is_active, platform)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
             "#,
@@ -40,7 +47,7 @@ impl<'conn> DeviceStorage<'conn> {
                 device.id,
                 device.name,
                 device.public_key,
-                device.session_key,
+                encrypted_session_key,
                 device.last_seen,
                 device.created_at,
                 device.is_active as i32,
@@ -51,6 +58,7 @@ impl<'conn> DeviceStorage<'conn> {
     }
 
     /// Get a device by ID
+    /// Session keys are decrypted after retrieval
     pub fn get_device(&self, device_id: &str) -> SqliteResult<Option<StoredDevice>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -58,11 +66,17 @@ impl<'conn> DeviceStorage<'conn> {
         )?;
 
         let device = stmt.query_row([device_id], |row| {
+            let encrypted_session_key: Option<Vec<u8>> = row.get(3)?;
+            // Decrypt session key if present
+            let session_key = encrypted_session_key.and_then(|encrypted| {
+                decrypt_from_storage(&encrypted).ok()
+            });
+
             Ok(StoredDevice {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 public_key: row.get(2)?,
-                session_key: row.get(3)?,
+                session_key,
                 last_seen: row.get(4)?,
                 created_at: row.get(5)?,
                 is_active: row.get::<_, i32>(6)? != 0,
@@ -78,6 +92,7 @@ impl<'conn> DeviceStorage<'conn> {
     }
 
     /// Get all active devices
+    /// Session keys are decrypted after retrieval
     pub fn get_all_devices(&self) -> SqliteResult<Vec<StoredDevice>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -86,11 +101,17 @@ impl<'conn> DeviceStorage<'conn> {
 
         let devices = stmt
             .query_map([], |row| {
+                let encrypted_session_key: Option<Vec<u8>> = row.get(3)?;
+                // Decrypt session key if present
+                let session_key = encrypted_session_key.and_then(|encrypted| {
+                    decrypt_from_storage(&encrypted).ok()
+                });
+
                 Ok(StoredDevice {
                     id: row.get(0)?,
                     name: row.get(1)?,
                     public_key: row.get(2)?,
-                    session_key: row.get(3)?,
+                    session_key,
                     last_seen: row.get(4)?,
                     created_at: row.get(5)?,
                     is_active: row.get::<_, i32>(6)? != 0,

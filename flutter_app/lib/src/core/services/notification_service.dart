@@ -1,6 +1,7 @@
 //! Notification service for showing app notifications
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -27,7 +28,7 @@ class NotificationService {
           return false;
         }
       } catch (e) {
-        print('Warning: Could not request notification permission: $e');
+        debugPrint('Warning: Could not request notification permission: $e');
       }
     }
 
@@ -196,6 +197,37 @@ class NotificationService {
       4,
       'Error',
       message,
+      details,
+    );
+  }
+
+  /// Show notification for clipboard conflict
+  Future<void> showConflictDetected(String sourceDevice) async {
+    if (!_initialized) return;
+
+    const androidDetails = AndroidNotificationDetails(
+      'conflicts',
+      'Clipboard Conflicts',
+      channelDescription: 'Notifications when clipboard conflicts are detected',
+      importance: Importance.low,
+      priority: Priority.low,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: false,
+      presentBadge: true,
+      presentSound: false,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.show(
+      5,
+      'Clipboard Conflict',
+      'Ignored clipboard from $sourceDevice (local preference)',
       details,
     );
   }

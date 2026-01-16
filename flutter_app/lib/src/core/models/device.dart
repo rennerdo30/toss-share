@@ -5,6 +5,7 @@ class Device {
   final bool isOnline;
   final DateTime? lastSeen;
   final DevicePlatform platform;
+  final bool syncEnabled; // Per-device sync setting
 
   const Device({
     required this.id,
@@ -12,6 +13,7 @@ class Device {
     this.isOnline = false,
     this.lastSeen,
     this.platform = DevicePlatform.unknown,
+    this.syncEnabled = true, // Enabled by default
   });
 
   Device copyWith({
@@ -20,6 +22,7 @@ class Device {
     bool? isOnline,
     DateTime? lastSeen,
     DevicePlatform? platform,
+    bool? syncEnabled,
   }) {
     return Device(
       id: id ?? this.id,
@@ -27,6 +30,7 @@ class Device {
       isOnline: isOnline ?? this.isOnline,
       lastSeen: lastSeen ?? this.lastSeen,
       platform: platform ?? this.platform,
+      syncEnabled: syncEnabled ?? this.syncEnabled,
     );
   }
 

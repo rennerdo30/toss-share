@@ -31,6 +31,9 @@ const SERVICE_NAME: &str = "com.toss.device.identity";
 /// Key name for device identity private key
 const IDENTITY_KEY_NAME: &str = "device_identity_key";
 
+/// Key name for storage encryption key (used to encrypt session keys)
+const STORAGE_ENCRYPTION_KEY_NAME: &str = "storage_encryption_key";
+
 /// Platform-agnostic secure storage trait
 pub trait SecureStorage {
     /// Store a value securely
@@ -69,6 +72,86 @@ pub fn retrieve_identity_key() -> Result<Option<[u8; 32]>, CryptoError> {
 pub fn delete_identity_key() -> Result<(), CryptoError> {
     let storage = get_platform_storage()?;
     storage.delete(IDENTITY_KEY_NAME)
+}
+
+/// Get or generate the storage encryption key
+/// This key is used to encrypt session keys before storing in SQLite
+pub fn get_or_create_storage_encryption_key() -> Result<[u8; 32], CryptoError> {
+    let storage = get_platform_storage()?;
+
+    // Try to retrieve existing key
+    if let Some(bytes) = storage.retrieve(STORAGE_ENCRYPTION_KEY_NAME)? {
+        if bytes.len() == 32 {
+            let mut key = [0u8; 32];
+            key.copy_from_slice(&bytes);
+            return Ok(key);
+        }
+    }
+
+    // Generate new key if not found
+    use rand::RngCore;
+    let mut key = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut key);
+
+    // Store the new key
+    storage.store(STORAGE_ENCRYPTION_KEY_NAME, &key)?;
+
+    Ok(key)
+}
+
+/// Encrypt data using the storage encryption key
+/// Returns: nonce (12 bytes) || ciphertext
+pub fn encrypt_for_storage(plaintext: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    use aes_gcm::{
+        aead::{Aead, KeyInit},
+        Aes256Gcm, Nonce,
+    };
+    use rand::RngCore;
+
+    let key = get_or_create_storage_encryption_key()?;
+    let cipher = Aes256Gcm::new_from_slice(&key)
+        .map_err(|_| CryptoError::InvalidKey)?;
+
+    // Generate random nonce
+    let mut nonce_bytes = [0u8; 12];
+    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    // Encrypt
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext)
+        .map_err(|e| CryptoError::Encryption(e.to_string()))?;
+
+    // Prepend nonce to ciphertext
+    let mut result = Vec::with_capacity(12 + ciphertext.len());
+    result.extend_from_slice(&nonce_bytes);
+    result.extend_from_slice(&ciphertext);
+
+    Ok(result)
+}
+
+/// Decrypt data using the storage encryption key
+/// Input format: nonce (12 bytes) || ciphertext
+pub fn decrypt_from_storage(encrypted: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    use aes_gcm::{
+        aead::{Aead, KeyInit},
+        Aes256Gcm, Nonce,
+    };
+
+    if encrypted.len() < 12 {
+        return Err(CryptoError::Decryption("encrypted data too short".to_string()));
+    }
+
+    let key = get_or_create_storage_encryption_key()?;
+    let cipher = Aes256Gcm::new_from_slice(&key)
+        .map_err(|_| CryptoError::InvalidKey)?;
+
+    let nonce = Nonce::from_slice(&encrypted[..12]);
+    let ciphertext = &encrypted[12..];
+
+    cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|e| CryptoError::Decryption(e.to_string()))
 }
 
 /// Get platform-specific secure storage implementation

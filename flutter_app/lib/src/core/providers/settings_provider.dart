@@ -1,10 +1,19 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/storage_service.dart';
 import '../services/toss_service.dart';
 
 part 'settings_provider.g.dart';
+
+/// Conflict resolution modes for clipboard sync
+enum ConflictResolutionMode {
+  /// Use the clipboard with the newest timestamp (default)
+  newest,
+  /// Always prefer local clipboard (ignore incoming)
+  local,
+  /// Always accept incoming clipboard
+  remote,
+}
 
 /// App settings
 class AppSettings {
@@ -18,6 +27,10 @@ class AppSettings {
   final int historyDays;
   final String? relayUrl;
   final bool showNotifications;
+  final bool notifyOnPairing;
+  final bool notifyOnClipboard;
+  final bool notifyOnConnection;
+  final ConflictResolutionMode conflictResolution;
 
   const AppSettings({
     this.autoSync = true,
@@ -30,6 +43,10 @@ class AppSettings {
     this.historyDays = 7,
     this.relayUrl,
     this.showNotifications = true,
+    this.notifyOnPairing = true,
+    this.notifyOnClipboard = true,
+    this.notifyOnConnection = false,
+    this.conflictResolution = ConflictResolutionMode.newest,
   });
 
   AppSettings copyWith({
@@ -43,6 +60,10 @@ class AppSettings {
     int? historyDays,
     String? relayUrl,
     bool? showNotifications,
+    bool? notifyOnPairing,
+    bool? notifyOnClipboard,
+    bool? notifyOnConnection,
+    ConflictResolutionMode? conflictResolution,
   }) {
     return AppSettings(
       autoSync: autoSync ?? this.autoSync,
@@ -55,6 +76,10 @@ class AppSettings {
       historyDays: historyDays ?? this.historyDays,
       relayUrl: relayUrl ?? this.relayUrl,
       showNotifications: showNotifications ?? this.showNotifications,
+      notifyOnPairing: notifyOnPairing ?? this.notifyOnPairing,
+      notifyOnClipboard: notifyOnClipboard ?? this.notifyOnClipboard,
+      notifyOnConnection: notifyOnConnection ?? this.notifyOnConnection,
+      conflictResolution: conflictResolution ?? this.conflictResolution,
     );
   }
 }
@@ -76,7 +101,24 @@ class Settings extends _$Settings {
       historyDays: StorageService.getSetting<int>(SettingsKeys.historyDays, defaultValue: 7) ?? 7,
       relayUrl: StorageService.getSetting<String?>(SettingsKeys.relayUrl),
       showNotifications: StorageService.getSetting<bool>(SettingsKeys.showNotifications, defaultValue: true) ?? true,
+      notifyOnPairing: StorageService.getSetting<bool>(SettingsKeys.notifyOnPairing, defaultValue: true) ?? true,
+      notifyOnClipboard: StorageService.getSetting<bool>(SettingsKeys.notifyOnClipboard, defaultValue: true) ?? true,
+      notifyOnConnection: StorageService.getSetting<bool>(SettingsKeys.notifyOnConnection, defaultValue: false) ?? false,
+      conflictResolution: _parseConflictResolution(
+        StorageService.getSetting<String>(SettingsKeys.conflictResolution, defaultValue: 'newest'),
+      ),
     );
+  }
+
+  static ConflictResolutionMode _parseConflictResolution(String? value) {
+    switch (value) {
+      case 'local':
+        return ConflictResolutionMode.local;
+      case 'remote':
+        return ConflictResolutionMode.remote;
+      default:
+        return ConflictResolutionMode.newest;
+    }
   }
 
   void updateAutoSync(bool value) {
@@ -129,6 +171,26 @@ class Settings extends _$Settings {
     _save();
   }
 
+  void updateNotifyOnPairing(bool value) {
+    state = state.copyWith(notifyOnPairing: value);
+    _save();
+  }
+
+  void updateNotifyOnClipboard(bool value) {
+    state = state.copyWith(notifyOnClipboard: value);
+    _save();
+  }
+
+  void updateNotifyOnConnection(bool value) {
+    state = state.copyWith(notifyOnConnection: value);
+    _save();
+  }
+
+  void updateConflictResolution(ConflictResolutionMode mode) {
+    state = state.copyWith(conflictResolution: mode);
+    _save();
+  }
+
   void _save() {
     // Persist all settings to storage
     StorageService.setSetting(SettingsKeys.autoSync, state.autoSync);
@@ -141,6 +203,10 @@ class Settings extends _$Settings {
     StorageService.setSetting(SettingsKeys.historyDays, state.historyDays);
     StorageService.setSetting(SettingsKeys.relayUrl, state.relayUrl);
     StorageService.setSetting(SettingsKeys.showNotifications, state.showNotifications);
+    StorageService.setSetting(SettingsKeys.notifyOnPairing, state.notifyOnPairing);
+    StorageService.setSetting(SettingsKeys.notifyOnClipboard, state.notifyOnClipboard);
+    StorageService.setSetting(SettingsKeys.notifyOnConnection, state.notifyOnConnection);
+    StorageService.setSetting(SettingsKeys.conflictResolution, state.conflictResolution.name);
 
     // Update Rust FFI settings
     TossService.updateSettings(

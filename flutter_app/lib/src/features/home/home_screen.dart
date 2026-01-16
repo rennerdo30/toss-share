@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
@@ -8,8 +9,11 @@ import 'package:window_manager/window_manager.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/providers/clipboard_provider.dart';
+import '../../core/providers/settings_provider.dart';
 import '../../core/services/toss_service.dart';
 import '../../core/models/device.dart';
+import '../../core/models/clipboard_item.dart';
+import '../../shared/widgets/responsive_layout.dart';
 import 'widgets/connection_status.dart';
 import 'widgets/device_list.dart';
 import 'widgets/clipboard_preview.dart';
@@ -22,6 +26,47 @@ class HomeScreen extends ConsumerWidget {
     final tossState = ref.watch(tossProvider);
     final devices = ref.watch(devicesProvider);
     final currentClipboard = ref.watch(currentClipboardProvider);
+
+    return ResponsiveBuilder(
+      builder: (context, isMobile, isTablet, isDesktop) {
+        // On tablet/desktop, the DesktopShell handles title bar and devices are in sidebar
+        // On mobile, we show the full mobile layout
+        if (isMobile) {
+          return _MobileLayout(
+            tossState: tossState,
+            devices: devices,
+            currentClipboard: currentClipboard,
+            ref: ref,
+          );
+        }
+
+        return _DesktopLayout(
+          tossState: tossState,
+          devices: devices,
+          currentClipboard: currentClipboard,
+          ref: ref,
+        );
+      },
+    );
+  }
+}
+
+/// Mobile layout - full screen with app bar, devices, and clipboard
+class _MobileLayout extends StatelessWidget {
+  final TossState tossState;
+  final List<Device> devices;
+  final ClipboardItem? currentClipboard;
+  final WidgetRef ref;
+
+  const _MobileLayout({
+    required this.tossState,
+    required this.devices,
+    required this.currentClipboard,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     return Scaffold(
@@ -50,32 +95,6 @@ class HomeScreen extends ConsumerWidget {
             tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
-          // Window controls for Windows/Linux
-          if (Platform.isWindows || Platform.isLinux) ...[
-            const SizedBox(width: 8),
-            _WindowControlButton(
-              icon: Icons.remove,
-              onPressed: () => windowManager.minimize(),
-              tooltip: 'Minimize',
-            ),
-            _WindowControlButton(
-              icon: Icons.crop_square,
-              onPressed: () async {
-                if (await windowManager.isMaximized()) {
-                  windowManager.unmaximize();
-                } else {
-                  windowManager.maximize();
-                }
-              },
-              tooltip: 'Maximize',
-            ),
-            _WindowControlButton(
-              icon: Icons.close,
-              onPressed: () => windowManager.close(),
-              tooltip: 'Close',
-              isClose: true,
-            ),
-          ],
         ],
       ),
       body: SafeArea(
@@ -85,6 +104,7 @@ class HomeScreen extends ConsumerWidget {
             ConnectionStatusBanner(
               connectedCount: devices.where((d) => d.isOnline).length,
               isSyncing: tossState.isSyncing,
+              relayConfigured: ref.watch(settingsProvider).relayUrl != null,
             ),
 
             // Main content
@@ -138,7 +158,6 @@ class HomeScreen extends ConsumerWidget {
                       child: ClipboardPreviewCard(
                         item: currentClipboard,
                         onRefresh: () async {
-                          // Refresh clipboard from Rust core via provider
                           await ref.read(currentClipboardProvider.notifier).refresh();
                         },
                       ),
@@ -150,36 +169,10 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: devices.isEmpty || tossState.isSyncing
-            ? null
-            : () async {
-                try {
-                  await ref.read(tossProvider.notifier).sendClipboard();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Clipboard sent successfully!')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to send clipboard: $e')),
-                    );
-                  }
-                }
-              },
-        icon: tossState.isSyncing
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.send),
-        label: Text(tossState.isSyncing ? 'Sending...' : 'Send'),
+      floatingActionButton: _SendButton(
+        devices: devices,
+        tossState: tossState,
+        ref: ref,
       ),
     );
   }
@@ -218,7 +211,6 @@ class HomeScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              // Remove device
               await TossService.removeDevice(device.id);
               ref.read(devicesProvider.notifier).refresh();
               if (context.mounted) {
@@ -243,6 +235,275 @@ class HomeScreen extends ConsumerWidget {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${lastSeen.month}/${lastSeen.day}/${lastSeen.year}';
+  }
+}
+
+/// Desktop layout - clipboard focused with quick actions
+class _DesktopLayout extends StatelessWidget {
+  final TossState tossState;
+  final List<Device> devices;
+  final ClipboardItem? currentClipboard;
+  final WidgetRef ref;
+
+  const _DesktopLayout({
+    required this.tossState,
+    required this.devices,
+    required this.currentClipboard,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Clipboard',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        currentClipboard != null
+                            ? 'Last updated ${_formatTimestamp(currentClipboard!.timestamp)}'
+                            : 'No clipboard content',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Quick actions
+                _QuickActionButton(
+                  icon: Icons.refresh,
+                  tooltip: 'Refresh',
+                  onPressed: () async {
+                    await ref.read(currentClipboardProvider.notifier).refresh();
+                  },
+                ),
+                const SizedBox(width: 8),
+                _QuickActionButton(
+                  icon: Icons.content_copy,
+                  tooltip: 'Copy to clipboard',
+                  onPressed: currentClipboard == null
+                      ? null
+                      : () async {
+                          final clipboard = currentClipboard;
+                          if (clipboard == null) return;
+                          try {
+                            // Copy the preview text to system clipboard
+                            await Clipboard.setData(
+                              ClipboardData(text: clipboard.preview),
+                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Copied to clipboard')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to copy: $e')),
+                              );
+                            }
+                          }
+                        },
+                ),
+                const SizedBox(width: 8),
+                _QuickActionButton(
+                  icon: Icons.clear,
+                  tooltip: 'Clear',
+                  onPressed: currentClipboard == null
+                      ? null
+                      : () async {
+                          try {
+                            // Clear the system clipboard
+                            await Clipboard.setData(const ClipboardData(text: ''));
+                            // Refresh to update the UI
+                            await ref.read(currentClipboardProvider.notifier).refresh();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Clipboard cleared')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to clear: $e')),
+                              );
+                            }
+                          }
+                        },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Clipboard preview (expanded)
+            Expanded(
+              child: ClipboardPreviewCard(
+                item: currentClipboard,
+                onRefresh: () async {
+                  await ref.read(currentClipboardProvider.notifier).refresh();
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Send button row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (devices.isEmpty)
+                  Text(
+                    'No devices paired',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  )
+                else
+                  Text(
+                    '${devices.where((d) => d.isOnline).length} of ${devices.length} devices online',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                const SizedBox(width: 16),
+                FilledButton.icon(
+                  onPressed: devices.isEmpty || tossState.isSyncing
+                      ? null
+                      : () async {
+                          try {
+                            await ref.read(tossProvider.notifier).sendClipboard();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Clipboard sent successfully!')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to send: $e')),
+                              );
+                            }
+                          }
+                        },
+                  icon: tossState.isSyncing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send),
+                  label: Text(tossState.isSyncing ? 'Sending...' : 'Send to all devices'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${timestamp.month}/${timestamp.day} at ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+/// Quick action button for desktop header
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  const _QuickActionButton({
+    required this.icon,
+    required this.tooltip,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton.outlined(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+      ),
+    );
+  }
+}
+
+/// Send button for mobile layout
+class _SendButton extends StatelessWidget {
+  final List<Device> devices;
+  final TossState tossState;
+  final WidgetRef ref;
+
+  const _SendButton({
+    required this.devices,
+    required this.tossState,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.extended(
+      onPressed: devices.isEmpty || tossState.isSyncing
+          ? null
+          : () async {
+              try {
+                await ref.read(tossProvider.notifier).sendClipboard();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Clipboard sent successfully!')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to send clipboard: $e')),
+                  );
+                }
+              }
+            },
+      icon: tossState.isSyncing
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.send),
+      label: Text(tossState.isSyncing ? 'Sending...' : 'Send'),
+    );
   }
 }
 
@@ -316,59 +577,6 @@ class _EmptyDevicesCard extends StatelessWidget {
               label: const Text('Add Device'),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WindowControlButton extends StatefulWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  final String tooltip;
-  final bool isClose;
-
-  const _WindowControlButton({
-    required this.icon,
-    required this.onPressed,
-    required this.tooltip,
-    this.isClose = false,
-  });
-
-  @override
-  State<_WindowControlButton> createState() => _WindowControlButtonState();
-}
-
-class _WindowControlButtonState extends State<_WindowControlButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Tooltip(
-        message: widget.tooltip,
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          child: Container(
-            width: 46,
-            height: 38,
-            color: _isHovered
-                ? (widget.isClose
-                    ? Colors.red
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.1))
-                : Colors.transparent,
-            child: Icon(
-              widget.icon,
-              size: 16,
-              color: _isHovered && widget.isClose
-                  ? Colors.white
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
         ),
       ),
     );

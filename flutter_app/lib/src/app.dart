@@ -41,7 +41,7 @@ class _TossAppState extends ConsumerState<TossApp> {
       
       // Start network after initialization
       TossService.startNetwork().catchError((e) {
-        print('Warning: Failed to start network: $e');
+        debugPrint('Warning: Failed to start network: $e');
       });
     });
   }
@@ -86,7 +86,7 @@ class _TossAppState extends ConsumerState<TossApp> {
     ClipboardMonitorService().stopMonitoring();
     // Stop network on app disposal
     TossService.stopNetwork().catchError((e) {
-      print('Warning: Failed to stop network: $e');
+      debugPrint('Warning: Failed to stop network: $e');
     });
     super.dispose();
   }

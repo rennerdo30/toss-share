@@ -3,8 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/clipboard_provider.dart';
+import '../../core/providers/devices_provider.dart';
 import '../../core/models/clipboard_item.dart';
 import '../../core/services/toss_service.dart';
+import '../../shared/widgets/responsive_layout.dart';
+import '../../shared/widgets/context_menu.dart';
+import 'widgets/history_data_table.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -45,6 +49,109 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _copyItem(BuildContext context, ClipboardItem item) async {
+    try {
+      // Get decrypted content from history
+      final content = await TossService.getHistoryItemContent(item.id);
+      if (content == null) {
+        // Fallback to preview if decryption fails
+        await Clipboard.setData(ClipboardData(text: item.preview));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Copied preview to clipboard')),
+          );
+        }
+        return;
+      }
+
+      // Copy based on content type
+      switch (item.contentType) {
+        case ClipboardContentType.text:
+        case ClipboardContentType.richText:
+        case ClipboardContentType.url:
+          // Decode text from bytes
+          final text = String.fromCharCodes(content.data);
+          await Clipboard.setData(ClipboardData(text: text));
+          // Also send via Toss if available
+          await TossService.sendText(text);
+          break;
+        case ClipboardContentType.image:
+          // For images, set image data directly
+          // Note: This requires platform-specific clipboard handling
+          // For now, fallback to text preview
+          await Clipboard.setData(ClipboardData(text: item.preview));
+          break;
+        case ClipboardContentType.file:
+          // Files would need special handling
+          await Clipboard.setData(ClipboardData(text: item.preview));
+          break;
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Copied to clipboard')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to copy: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteItem(ClipboardItem item) async {
+    // Remove from Rust and Flutter
+    await TossService.removeHistoryItem(item.id);
+    ref.read(clipboardHistoryProvider.notifier).removeItem(item.id);
+  }
+
+  Future<void> _sendToDevice(BuildContext context, ClipboardItem item) async {
+    try {
+      // Get decrypted content from history
+      final content = await TossService.getHistoryItemContent(item.id);
+      if (content == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to decrypt content')),
+          );
+        }
+        return;
+      }
+
+      // Send based on content type
+      switch (item.contentType) {
+        case ClipboardContentType.text:
+        case ClipboardContentType.richText:
+        case ClipboardContentType.url:
+          final text = String.fromCharCodes(content.data);
+          await TossService.sendText(text);
+          break;
+        case ClipboardContentType.image:
+        case ClipboardContentType.file:
+          // Binary content not yet supported for direct sending
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Binary content sending not yet supported')),
+            );
+          }
+          return;
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sent to devices')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send: $e')),
+        );
       }
     }
   }
@@ -155,7 +262,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           // Filters
           if (_showFilters) _buildFilters(context),
-          // History list
+          // History list - responsive view
           Expanded(
             child: filteredHistory.isEmpty
                 ? _EmptyState(
@@ -165,67 +272,43 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         _startDate != null ||
                         _endDate != null,
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredHistory.length,
-                    itemBuilder: (context, index) {
-                      final item = filteredHistory[index];
-                      return _HistoryItem(
-                        item: item,
-                        onCopy: () async {
-                          try {
-                            // Get decrypted content from history
-                            final content = await TossService.getHistoryItemContent(item.id);
-                            if (content == null) {
-                              // Fallback to preview if decryption fails
-                              await Clipboard.setData(ClipboardData(text: item.preview));
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Copied preview to clipboard')),
-                                );
-                              }
-                              return;
-                            }
+                : ResponsiveBuilder(
+                    builder: (context, isMobile, isTablet, isDesktop) {
+                      final devices = ref.watch(devicesProvider);
+                      final hasDevices = devices.isNotEmpty;
 
-                            // Copy based on content type
-                            switch (item.contentType) {
-                              case ClipboardContentType.text:
-                              case ClipboardContentType.richText:
-                              case ClipboardContentType.url:
-                                // Decode text from bytes
-                                final text = String.fromCharCodes(content.data);
-                                await Clipboard.setData(ClipboardData(text: text));
-                                // Also send via Toss if available
-                                await TossService.sendText(text);
-                                break;
-                              case ClipboardContentType.image:
-                                // For images, set image data directly
-                                // Note: This requires platform-specific clipboard handling
-                                // For now, fallback to text preview
-                                await Clipboard.setData(ClipboardData(text: item.preview));
-                                break;
-                              case ClipboardContentType.file:
-                                // Files would need special handling
-                                await Clipboard.setData(ClipboardData(text: item.preview));
-                                break;
-                            }
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Copied to clipboard')),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to copy: $e')),
-                              );
-                            }
-                          }
-                        },
-                        onDelete: () async {
-                          // Remove from Rust and Flutter
-                          await TossService.removeHistoryItem(item.id);
-                          ref.read(clipboardHistoryProvider.notifier).removeItem(item.id);
+                      // Desktop/Tablet: DataTable view
+                      if (!isMobile) {
+                        return HistoryDataTable(
+                          items: filteredHistory,
+                          hasDevices: hasDevices,
+                          onCopy: (item) => _copyItem(context, item),
+                          onDelete: (item) => _deleteItem(item),
+                          onSendToDevice: hasDevices
+                              ? (item) => _sendToDevice(context, item)
+                              : null,
+                        );
+                      }
+
+                      // Mobile: Card list view
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredHistory.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredHistory[index];
+                          return ContextMenuRegion(
+                            items: ClipboardHistoryContextMenu.build(
+                              onCopy: () => _copyItem(context, item),
+                              onSendToDevice: () => _sendToDevice(context, item),
+                              onDelete: () => _deleteItem(item),
+                              hasDevices: hasDevices,
+                            ),
+                            child: _HistoryItem(
+                              item: item,
+                              onCopy: () => _copyItem(context, item),
+                              onDelete: () => _deleteItem(item),
+                            ),
+                          );
                         },
                       );
                     },
