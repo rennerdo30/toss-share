@@ -17,11 +17,11 @@ use security_framework::passwords::{
 
 #[cfg(target_os = "windows")]
 use windows::{
-    core::PCWSTR,
+    core::{PCWSTR, PWSTR},
     Win32::Foundation::ERROR_NOT_FOUND,
     Win32::Security::Credentials::{
-        CredDeleteW, CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE,
-        CRED_TYPE_GENERIC,
+        CredDeleteW, CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_FLAGS,
+        CRED_PERSIST_LOCAL_MACHINE, CRED_TYPE_GENERIC,
     },
 };
 
@@ -35,10 +35,10 @@ const IDENTITY_KEY_NAME: &str = "device_identity_key";
 pub trait SecureStorage {
     /// Store a value securely
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError>;
-    
+
     /// Retrieve a value from secure storage
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError>;
-    
+
     /// Delete a value from secure storage
     fn delete(&self, key: &str) -> Result<(), CryptoError>;
 }
@@ -77,27 +77,27 @@ fn get_platform_storage() -> Result<Box<dyn SecureStorage>, CryptoError> {
     {
         Ok(Box::new(MacOSKeychainStorage::new(SERVICE_NAME)?))
     }
-    
+
     #[cfg(target_os = "ios")]
     {
         Ok(Box::new(MacOSKeychainStorage::new(SERVICE_NAME)?))
     }
-    
+
     #[cfg(target_os = "windows")]
     {
         Ok(Box::new(WindowsCredentialStorage::new(SERVICE_NAME)?))
     }
-    
+
     #[cfg(target_os = "linux")]
     {
         Ok(Box::new(LinuxSecretStorage::new(SERVICE_NAME)?))
     }
-    
+
     #[cfg(target_os = "android")]
     {
         Ok(Box::new(AndroidKeystoreStorage::new(SERVICE_NAME)?))
     }
-    
+
     #[cfg(not(any(
         target_os = "macos",
         target_os = "ios",
@@ -145,7 +145,10 @@ impl SecureStorage for MacOSKeychainStorage {
                 if err_string.contains("not found") || err_string.contains("-25300") {
                     Ok(None)
                 } else {
-                    Err(CryptoError::Storage(format!("Keychain retrieve failed: {}", e)))
+                    Err(CryptoError::Storage(format!(
+                        "Keychain retrieve failed: {}",
+                        e
+                    )))
                 }
             }
         }
@@ -161,7 +164,10 @@ impl SecureStorage for MacOSKeychainStorage {
                 if err_string.contains("not found") || err_string.contains("-25300") {
                     Ok(())
                 } else {
-                    Err(CryptoError::Storage(format!("Keychain delete failed: {}", e)))
+                    Err(CryptoError::Storage(format!(
+                        "Keychain delete failed: {}",
+                        e
+                    )))
                 }
             }
         }
@@ -193,21 +199,24 @@ impl SecureStorage for WindowsCredentialStorage {
         use std::ptr;
 
         let target_name = self.make_target_name(key);
-        let user_name: Vec<u16> = "toss_user".encode_utf16().chain(std::iter::once(0)).collect();
+        let user_name: Vec<u16> = "toss_user"
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
 
         let cred = CREDENTIALW {
-            Flags: 0,
+            Flags: CRED_FLAGS(0),
             Type: CRED_TYPE_GENERIC,
-            TargetName: PCWSTR(target_name.as_ptr()),
-            Comment: PCWSTR::null(),
+            TargetName: PWSTR(target_name.as_ptr() as *mut u16),
+            Comment: PWSTR::null(),
             LastWritten: Default::default(),
             CredentialBlobSize: value.len() as u32,
             CredentialBlob: value.as_ptr() as *mut u8,
             Persist: CRED_PERSIST_LOCAL_MACHINE,
             AttributeCount: 0,
             Attributes: ptr::null_mut(),
-            TargetAlias: PCWSTR::null(),
-            UserName: PCWSTR(user_name.as_ptr()),
+            TargetAlias: PWSTR::null(),
+            UserName: PWSTR(user_name.as_ptr() as *mut u16),
         };
 
         unsafe {
@@ -246,7 +255,10 @@ impl SecureStorage for WindowsCredentialStorage {
                     if e.code() == ERROR_NOT_FOUND.into() {
                         Ok(None)
                     } else {
-                        Err(CryptoError::Storage(format!("Credential read failed: {}", e)))
+                        Err(CryptoError::Storage(format!(
+                            "Credential read failed: {}",
+                            e
+                        )))
                     }
                 }
             }
@@ -264,7 +276,10 @@ impl SecureStorage for WindowsCredentialStorage {
                     if e.code() == ERROR_NOT_FOUND.into() {
                         Ok(())
                     } else {
-                        Err(CryptoError::Storage(format!("Credential delete failed: {}", e)))
+                        Err(CryptoError::Storage(format!(
+                            "Credential delete failed: {}",
+                            e
+                        )))
                     }
                 }
             }
@@ -309,10 +324,10 @@ impl SecureStorage for LinuxSecretStorage {
                         .build()
                         .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
 
-                    rt.block_on(async {
-                        self.store_async(key, value).await
-                    })
-                }).join().unwrap()
+                    rt.block_on(async { self.store_async(key, value).await })
+                })
+                .join()
+                .unwrap()
             })
         } else {
             // Create a new runtime for this operation
@@ -321,9 +336,7 @@ impl SecureStorage for LinuxSecretStorage {
                 .build()
                 .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
 
-            rt.block_on(async {
-                self.store_async(key, value).await
-            })
+            rt.block_on(async { self.store_async(key, value).await })
         };
 
         result
@@ -336,9 +349,7 @@ impl SecureStorage for LinuxSecretStorage {
             .build()
             .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
 
-        rt.block_on(async {
-            self.retrieve_async(key).await
-        })
+        rt.block_on(async { self.retrieve_async(key).await })
     }
 
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
@@ -348,9 +359,7 @@ impl SecureStorage for LinuxSecretStorage {
             .build()
             .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
 
-        rt.block_on(async {
-            self.delete_async(key).await
-        })
+        rt.block_on(async { self.delete_async(key).await })
     }
 }
 
@@ -363,13 +372,15 @@ impl LinuxSecretStorage {
             .await
             .map_err(|e| CryptoError::Storage(format!("Secret Service connect failed: {}", e)))?;
 
-        let collection = ss.get_default_collection()
+        let collection = ss
+            .get_default_collection()
             .await
             .map_err(|e| CryptoError::Storage(format!("Get default collection failed: {}", e)))?;
 
         // Unlock collection if needed
         if collection.is_locked().await.unwrap_or(true) {
-            collection.unlock()
+            collection
+                .unlock()
                 .await
                 .map_err(|e| CryptoError::Storage(format!("Unlock collection failed: {}", e)))?;
         }
@@ -380,15 +391,16 @@ impl LinuxSecretStorage {
         attributes.insert("key", key);
 
         let label = format!("Toss: {}", key);
-        collection.create_item(
-            &label,
-            attributes,
-            value,
-            true, // replace
-            "text/plain", // content_type
-        )
-        .await
-        .map_err(|e| CryptoError::Storage(format!("Create item failed: {}", e)))?;
+        collection
+            .create_item(
+                &label,
+                attributes,
+                value,
+                true,         // replace
+                "text/plain", // content_type
+            )
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Create item failed: {}", e)))?;
 
         Ok(())
     }
@@ -400,13 +412,15 @@ impl LinuxSecretStorage {
             .await
             .map_err(|e| CryptoError::Storage(format!("Secret Service connect failed: {}", e)))?;
 
-        let collection = ss.get_default_collection()
+        let collection = ss
+            .get_default_collection()
             .await
             .map_err(|e| CryptoError::Storage(format!("Get default collection failed: {}", e)))?;
 
         // Unlock collection if needed
         if collection.is_locked().await.unwrap_or(true) {
-            collection.unlock()
+            collection
+                .unlock()
                 .await
                 .map_err(|e| CryptoError::Storage(format!("Unlock collection failed: {}", e)))?;
         }
@@ -416,7 +430,8 @@ impl LinuxSecretStorage {
         attributes.insert("service", &self.service as &str);
         attributes.insert("key", key);
 
-        let items = collection.search_items(attributes)
+        let items = collection
+            .search_items(attributes)
             .await
             .map_err(|e| CryptoError::Storage(format!("Search items failed: {}", e)))?;
 
@@ -428,7 +443,8 @@ impl LinuxSecretStorage {
                     .map_err(|e| CryptoError::Storage(format!("Unlock item failed: {}", e)))?;
             }
 
-            let secret = item.get_secret()
+            let secret = item
+                .get_secret()
                 .await
                 .map_err(|e| CryptoError::Storage(format!("Get secret failed: {}", e)))?;
 
@@ -445,13 +461,15 @@ impl LinuxSecretStorage {
             .await
             .map_err(|e| CryptoError::Storage(format!("Secret Service connect failed: {}", e)))?;
 
-        let collection = ss.get_default_collection()
+        let collection = ss
+            .get_default_collection()
             .await
             .map_err(|e| CryptoError::Storage(format!("Get default collection failed: {}", e)))?;
 
         // Unlock collection if needed
         if collection.is_locked().await.unwrap_or(true) {
-            collection.unlock()
+            collection
+                .unlock()
                 .await
                 .map_err(|e| CryptoError::Storage(format!("Unlock collection failed: {}", e)))?;
         }
@@ -461,7 +479,8 @@ impl LinuxSecretStorage {
         attributes.insert("service", &self.service as &str);
         attributes.insert("key", key);
 
-        let items = collection.search_items(attributes)
+        let items = collection
+            .search_items(attributes)
             .await
             .map_err(|e| CryptoError::Storage(format!("Search items failed: {}", e)))?;
 
@@ -477,8 +496,8 @@ impl LinuxSecretStorage {
 
 #[cfg(target_os = "android")]
 struct AndroidKeystoreStorage {
-        #[allow(dead_code)]
-        service: String,
+    #[allow(dead_code)]
+    service: String,
 }
 
 #[cfg(target_os = "android")]
@@ -495,21 +514,21 @@ impl SecureStorage for AndroidKeystoreStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
         // TODO: Implement using JNI to call Android Keystore
         Err(CryptoError::Storage(
-            "Android Keystore requires native JNI implementation".to_string()
+            "Android Keystore requires native JNI implementation".to_string(),
         ))
     }
-    
+
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
         // TODO: Implement using JNI
         Err(CryptoError::Storage(
-            "Android Keystore requires native JNI implementation".to_string()
+            "Android Keystore requires native JNI implementation".to_string(),
         ))
     }
-    
+
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
         // TODO: Implement using JNI
         Err(CryptoError::Storage(
-            "Android Keystore requires native JNI implementation".to_string()
+            "Android Keystore requires native JNI implementation".to_string(),
         ))
     }
 }
@@ -535,12 +554,12 @@ impl SecureStorage for MemoryStorage {
         data.insert(key.to_string(), value.to_vec());
         Ok(())
     }
-    
+
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
         let data = self.data.lock().unwrap();
         Ok(data.get(key).cloned())
     }
-    
+
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
         let mut data = self.data.lock().unwrap();
         data.remove(key);
@@ -551,16 +570,16 @@ impl SecureStorage for MemoryStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_memory_storage() {
         let storage = MemoryStorage::new();
-        
+
         // Test store and retrieve
         storage.store("test_key", b"test_value").unwrap();
         let value = storage.retrieve("test_key").unwrap();
         assert_eq!(value, Some(b"test_value".to_vec()));
-        
+
         // Test delete
         storage.delete("test_key").unwrap();
         let value = storage.retrieve("test_key").unwrap();

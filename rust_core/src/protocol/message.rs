@@ -326,10 +326,10 @@ mod tests {
         // Serialize using Message's serialize method
         let serialized = message.serialize().unwrap();
         let header = message.header();
-        
+
         // Deserialize using Message's deserialize method
         let deserialized = Message::deserialize(&header, &serialized).unwrap();
-        
+
         match deserialized {
             Message::ClipboardUpdate(deserialized_update) => {
                 assert_eq!(update.content_hash, deserialized_update.content_hash);
@@ -402,7 +402,10 @@ mod tests {
             Message::Error(deserialized_error) => {
                 assert_eq!(error.code, deserialized_error.code);
                 assert_eq!(error.message, deserialized_error.message);
-                assert_eq!(error.related_message_id, deserialized_error.related_message_id);
+                assert_eq!(
+                    error.related_message_id,
+                    deserialized_error.related_message_id
+                );
             }
             _ => panic!("Expected Error"),
         }

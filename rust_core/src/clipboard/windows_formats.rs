@@ -10,6 +10,7 @@
 //! This module provides utilities for handling these formats.
 
 #[cfg(target_os = "windows")]
+#[allow(unused_imports)]
 use arboard::Clipboard;
 
 /// Windows clipboard format identifiers

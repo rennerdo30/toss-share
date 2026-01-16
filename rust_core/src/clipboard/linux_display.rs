@@ -45,9 +45,7 @@ pub fn get_clipboard_handler() -> Result<(), String> {
             // Implementation would use wl-clipboard or arboard with Wayland backend
             Ok(())
         }
-        DisplayServer::Unknown => {
-            Err("Unable to detect display server".to_string())
-        }
+        DisplayServer::Unknown => Err("Unable to detect display server".to_string()),
     }
 }
 

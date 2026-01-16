@@ -198,7 +198,9 @@ mod tests {
     #[test]
     fn test_protocol_error_variants() {
         let invalid_format = ProtocolError::InvalidFormat("bad format".to_string());
-        assert!(invalid_format.to_string().contains("Invalid message format"));
+        assert!(invalid_format
+            .to_string()
+            .contains("Invalid message format"));
 
         let unsupported = ProtocolError::UnsupportedVersion(99);
         assert!(unsupported.to_string().contains("Unsupported version"));
@@ -212,7 +214,9 @@ mod tests {
     #[test]
     fn test_clipboard_error_variants() {
         let access_denied = ClipboardError::AccessDenied;
-        assert!(access_denied.to_string().contains("Clipboard access denied"));
+        assert!(access_denied
+            .to_string()
+            .contains("Clipboard access denied"));
 
         let empty = ClipboardError::Empty;
         assert!(empty.to_string().contains("Clipboard is empty"));

@@ -5,12 +5,15 @@
 
 use flutter_rust_bridge::frb;
 use parking_lot::RwLock;
-use std::sync::{Arc, Mutex};
 use sha2::{Digest, Sha256};
+use std::sync::{Arc, Mutex};
 
 use crate::clipboard::ClipboardManager;
-use crate::crypto::{DeviceIdentity, PairingSession, derive_key, DerivedKeyPurpose, encrypt, decrypt, EncryptedMessage};
-use crate::network::{NetworkConfig, NetworkManager, NetworkEvent, GetSessionKeyFn};
+use crate::crypto::{
+    decrypt, derive_key, encrypt, DerivedKeyPurpose, DeviceIdentity, EncryptedMessage,
+    PairingSession,
+};
+use crate::network::{GetSessionKeyFn, NetworkConfig, NetworkEvent, NetworkManager};
 use crate::protocol::{ClipboardContent, ClipboardUpdate, ContentType, Message};
 use crate::storage::{Storage, StoredDevice};
 
@@ -112,8 +115,8 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
 
     // Initialize storage
     let db_path = std::path::Path::new(&data_dir).join("toss.db");
-    let storage = Storage::new(&db_path)
-        .map_err(|e| format!("Failed to initialize storage: {}", e))?;
+    let storage =
+        Storage::new(&db_path).map_err(|e| format!("Failed to initialize storage: {}", e))?;
 
     // Load or create identity
     let identity =
@@ -270,8 +273,9 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
             core.identity.device_id() as &[u8],
             DerivedKeyPurpose::StorageEncryption,
             Some(b"toss-session-key-v1"),
-        ).map_err(|e| format!("Failed to derive storage key: {}", e))?;
-        
+        )
+        .map_err(|e| format!("Failed to derive storage key: {}", e))?;
+
         let aad = format!("session:{}", device_id).into_bytes();
         let encrypted = encrypt(&storage_key, &session_key, &aad)
             .map_err(|e| format!("Failed to encrypt session key: {}", e))?;
@@ -338,8 +342,9 @@ pub fn complete_pairing_code(
             core.identity.device_id() as &[u8],
             DerivedKeyPurpose::StorageEncryption,
             Some(b"toss-session-key-v1"),
-        ).map_err(|e| format!("Failed to derive storage key: {}", e))?;
-        
+        )
+        .map_err(|e| format!("Failed to derive storage key: {}", e))?;
+
         let aad = format!("session:{}", device_id).into_bytes();
         let encrypted = encrypt(&storage_key, &session_key, &aad)
             .map_err(|e| format!("Failed to encrypt session key: {}", e))?;
@@ -402,14 +407,16 @@ pub fn get_paired_devices() -> Vec<DeviceInfoDto> {
     };
 
     // Get list of connected device IDs from network
-    let connected_device_ids: std::collections::HashSet<String> = if let Some(ref network) = core.network {
-        network.connected_peers()
-            .into_iter()
-            .map(|peer| hex::encode(peer.device_id))
-            .collect()
-    } else {
-        std::collections::HashSet::new()
-    };
+    let connected_device_ids: std::collections::HashSet<String> =
+        if let Some(ref network) = core.network {
+            network
+                .connected_peers()
+                .into_iter()
+                .map(|peer| hex::encode(peer.device_id))
+                .collect()
+        } else {
+            std::collections::HashSet::new()
+        };
 
     stored_devices
         .into_iter()
@@ -501,13 +508,22 @@ pub async fn send_clipboard() -> Result<(), String> {
             let last_sync = core.last_sync_time.lock().unwrap();
             let elapsed = last_sync.elapsed();
             if elapsed.as_millis() < 100 {
-                return Err(format!("Rate limit: please wait {}ms", 100 - elapsed.as_millis()));
+                return Err(format!(
+                    "Rate limit: please wait {}ms",
+                    100 - elapsed.as_millis()
+                ));
             }
         }
     }
 
     // Read all needed data while holding the lock, then drop it before await
-    let (message_clone, has_network, history_item, content_data_for_encryption, identity_for_encryption) = {
+    let (
+        message_clone,
+        has_network,
+        history_item,
+        content_data_for_encryption,
+        identity_for_encryption,
+    ) = {
         let guard = TOSS_INSTANCE.read();
         let core = guard.as_ref().ok_or("Toss not initialized")?;
 
@@ -546,36 +562,41 @@ pub async fn send_clipboard() -> Result<(), String> {
 
         // Prepare history item if enabled (we'll save it after dropping the guard)
         // Note: Encryption will happen when saving, not here, to avoid holding lock during crypto ops
-        let (history_item, content_data_for_encryption, identity_for_encryption) = if core.settings.history_enabled {
-            let item_id = uuid::Uuid::new_v4().to_string();
-            match bincode::serialize(&content) {
-                Ok(content_data) => {
-                    let identity = core.identity.clone();
-                    let history_item = crate::storage::StoredHistoryItem {
-                        id: item_id.clone(),
-                content_type: content.content_type as u8,
-                content_hash: hex::encode(content.hash()),
-                        encrypted_content: vec![], // Will be populated after encryption
-                preview: content.metadata.text_preview.clone().unwrap_or_else(|| {
-                    format!("{} bytes", content.metadata.size_bytes)
-                }),
-                source_device: None, // Local clipboard
-                created_at: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-                    };
-                    (Some(history_item), Some((item_id, content_data)), Some(identity))
+        let (history_item, content_data_for_encryption, identity_for_encryption) =
+            if core.settings.history_enabled {
+                let item_id = uuid::Uuid::new_v4().to_string();
+                match bincode::serialize(&content) {
+                    Ok(content_data) => {
+                        let identity = core.identity.clone();
+                        let history_item = crate::storage::StoredHistoryItem {
+                            id: item_id.clone(),
+                            content_type: content.content_type as u8,
+                            content_hash: hex::encode(content.hash()),
+                            encrypted_content: vec![], // Will be populated after encryption
+                            preview: content.metadata.text_preview.clone().unwrap_or_else(|| {
+                                format!("{} bytes", content.metadata.size_bytes)
+                            }),
+                            source_device: None, // Local clipboard
+                            created_at: std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs(),
+                        };
+                        (
+                            Some(history_item),
+                            Some((item_id, content_data)),
+                            Some(identity),
+                        )
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to serialize content for history: {}", e);
+                        // Skip history if serialization fails, but continue with sending
+                        (None, None, None)
+                    }
                 }
-                Err(e) => {
-                    tracing::warn!("Failed to serialize content for history: {}", e);
-                    // Skip history if serialization fails, but continue with sending
-                    (None, None, None)
-                }
-            }
-        } else {
-            (None, None, None)
-        };
+            } else {
+                (None, None, None)
+            };
 
         // Broadcast to connected devices
         let update = ClipboardUpdate::new(content);
@@ -584,12 +605,22 @@ pub async fn send_clipboard() -> Result<(), String> {
         // Clone message and check if network exists before dropping guard
         let message_clone = message.clone();
         let has_network = core.network.is_some();
-        
-        (message_clone, has_network, history_item, content_data_for_encryption, identity_for_encryption)
+
+        (
+            message_clone,
+            has_network,
+            history_item,
+            content_data_for_encryption,
+            identity_for_encryption,
+        )
     }; // Guard is dropped here
 
     // Encrypt and save to history if enabled (after dropping the guard)
-    if let (Some(mut history_item), Some((item_id, content_data)), Some(identity)) = (history_item, content_data_for_encryption, identity_for_encryption) {
+    if let (Some(mut history_item), Some((item_id, content_data)), Some(identity)) = (
+        history_item,
+        content_data_for_encryption,
+        identity_for_encryption,
+    ) {
         // Derive storage encryption key
         if let Ok(storage_key) = derive_key(
             identity.device_id() as &[u8],
@@ -600,14 +631,14 @@ pub async fn send_clipboard() -> Result<(), String> {
             let aad = format!("history:{}", item_id).into_bytes();
             if let Ok(encrypted) = encrypt(&storage_key, &content_data, &aad) {
                 history_item.encrypted_content = encrypted.to_bytes();
-                
+
                 // Save to storage
-        let guard = TOSS_INSTANCE.read();
-        if let Some(core) = guard.as_ref() {
-            if let Err(e) = core.storage.history().store_item(&history_item) {
-                tracing::warn!("Failed to save clipboard history: {}", e);
-            }
-        }
+                let guard = TOSS_INSTANCE.read();
+                if let Some(core) = guard.as_ref() {
+                    if let Err(e) = core.storage.history().store_item(&history_item) {
+                        tracing::warn!("Failed to save clipboard history: {}", e);
+                    }
+                }
             } else {
                 tracing::warn!("Failed to encrypt clipboard history content");
             }
@@ -620,13 +651,14 @@ pub async fn send_clipboard() -> Result<(), String> {
     if has_network {
         let network_ptr: Option<*const NetworkManager> = {
             let guard = TOSS_INSTANCE.read();
-            guard.as_ref()
+            guard
+                .as_ref()
                 .and_then(|c| c.network.as_ref())
                 .map(|n| n as *const NetworkManager)
         };
-        
+
         if let Some(ptr) = network_ptr {
-            // SAFETY: 
+            // SAFETY:
             // 1. NetworkManager::broadcast takes &self, not &mut self, so no mutation
             // 2. The network is owned by TossCore in TOSS_INSTANCE which is behind a RwLock
             // 3. We've dropped the guard, so we're not holding a lock
@@ -658,7 +690,7 @@ pub async fn send_text(text: String) -> Result<(), String> {
         // Clone message and check if network exists before dropping guard
         let message_clone = message.clone();
         let has_network = core.network.is_some();
-        
+
         (message_clone, has_network)
     }; // Guard is dropped here
 
@@ -666,13 +698,14 @@ pub async fn send_text(text: String) -> Result<(), String> {
     if has_network {
         let network_ptr: Option<*const NetworkManager> = {
             let guard = TOSS_INSTANCE.read();
-            guard.as_ref()
+            guard
+                .as_ref()
                 .and_then(|c| c.network.as_ref())
                 .map(|n| n as *const NetworkManager)
         };
-        
+
         if let Some(ptr) = network_ptr {
-            // SAFETY: 
+            // SAFETY:
             // 1. NetworkManager::broadcast takes &self, not &mut self, so no mutation
             // 2. The network is owned by TossCore in TOSS_INSTANCE which is behind a RwLock
             // 3. We've dropped the guard, so we're not holding a lock
@@ -735,30 +768,32 @@ pub async fn start_network() -> Result<(), String> {
         // Create a callback to retrieve session keys from storage
         // We need to capture the storage database path for later use
         let db_path = core.storage.db_path().to_path_buf();
-        let get_session_key: Arc<GetSessionKeyFn> = Arc::new(Box::new(move |device_id: &[u8; 32]| {
-            // Open a temporary connection to look up the session key
-            if let Ok(storage) = Storage::new(&db_path) {
-                let device_id_hex = hex::encode(device_id);
-                if let Ok(Some(device)) = storage.devices().get_device(&device_id_hex) {
-                    if let Some(session_key_bytes) = device.session_key {
-                        if session_key_bytes.len() == 32 {
-                            let mut key = [0u8; 32];
-                            key.copy_from_slice(&session_key_bytes);
-                            return Some(key);
+        let get_session_key: Arc<GetSessionKeyFn> =
+            Arc::new(Box::new(move |device_id: &[u8; 32]| {
+                // Open a temporary connection to look up the session key
+                if let Ok(storage) = Storage::new(&db_path) {
+                    let device_id_hex = hex::encode(device_id);
+                    if let Ok(Some(device)) = storage.devices().get_device(&device_id_hex) {
+                        if let Some(session_key_bytes) = device.session_key {
+                            if session_key_bytes.len() == 32 {
+                                let mut key = [0u8; 32];
+                                key.copy_from_slice(&session_key_bytes);
+                                return Some(key);
+                            }
                         }
                     }
                 }
-            }
-            None
-        }));
+                None
+            }));
 
         (core.identity.clone(), config, get_session_key)
     };
 
     // Perform async operations without holding lock
-    let mut network = NetworkManager::new_with_callbacks(identity, config, None, Some(get_session_key))
-        .await
-        .map_err(|e| format!("Network init failed: {}", e))?;
+    let mut network =
+        NetworkManager::new_with_callbacks(identity, config, None, Some(get_session_key))
+            .await
+            .map_err(|e| format!("Network init failed: {}", e))?;
 
     network
         .start()
@@ -819,12 +854,15 @@ pub async fn start_event_listener() -> Result<(), String> {
 pub fn poll_event() -> Option<TossEvent> {
     let guard = TOSS_INSTANCE.read();
     let core = guard.as_ref()?;
-    
+
     if let Some(ref receiver_arc) = core.event_receiver {
         // Try to receive an event (non-blocking)
         let mut receiver = receiver_arc.lock().unwrap();
         match receiver.try_recv() {
-            Ok(NetworkEvent::PeerConnected { device_id, device_name }) => {
+            Ok(NetworkEvent::PeerConnected {
+                device_id,
+                device_name,
+            }) => {
                 Some(TossEvent::DeviceConnected {
                     device: DeviceInfoDto {
                         id: hex::encode(device_id),
@@ -840,13 +878,19 @@ pub fn poll_event() -> Option<TossEvent> {
                     device_id: hex::encode(device_id),
                 })
             }
-            Ok(NetworkEvent::MessageReceived { from_device_id, message }) => {
+            Ok(NetworkEvent::MessageReceived {
+                from_device_id,
+                message,
+            }) => {
                 // Verify that the message is from a paired device and not from ourselves
                 let (is_paired, is_self) = {
                     let guard = TOSS_INSTANCE.read();
                     if let Some(ref core) = guard.as_ref() {
                         let device_id_str = hex::encode(from_device_id);
-                        let is_paired = matches!(core.storage.devices().get_device(&device_id_str), Ok(Some(_)));
+                        let is_paired = matches!(
+                            core.storage.devices().get_device(&device_id_str),
+                            Ok(Some(_))
+                        );
                         let is_self = from_device_id == *core.identity.device_id();
                         (is_paired, is_self)
                     } else {
@@ -856,7 +900,10 @@ pub fn poll_event() -> Option<TossEvent> {
 
                 // Only process messages from paired devices (not ourselves)
                 if !is_paired {
-                    tracing::warn!("Received message from unpaired device: {}", hex::encode(from_device_id));
+                    tracing::warn!(
+                        "Received message from unpaired device: {}",
+                        hex::encode(from_device_id)
+                    );
                     return None;
                 }
 
@@ -871,7 +918,10 @@ pub fn poll_event() -> Option<TossEvent> {
                     // Validate content hash to ensure integrity
                     let computed_hash = update.content.hash();
                     if computed_hash != update.content_hash {
-                        tracing::warn!("Content hash mismatch for received clipboard update from device {}", hex::encode(from_device_id));
+                        tracing::warn!(
+                            "Content hash mismatch for received clipboard update from device {}",
+                            hex::encode(from_device_id)
+                        );
                         // Continue anyway - hash mismatch might be due to serialization differences
                         // In production, this should probably reject the message
                     }
@@ -930,27 +980,41 @@ pub fn poll_event() -> Option<TossEvent> {
                                 let content_data = match bincode::serialize(&update.content) {
                                     Ok(data) => data,
                                     Err(e) => {
-                                        tracing::warn!("Failed to serialize received content for history: {}", e);
+                                        tracing::warn!(
+                                            "Failed to serialize received content for history: {}",
+                                            e
+                                        );
                                         // Skip history if serialization fails
                                         return Some(TossEvent::ClipboardReceived {
                                             item: ClipboardItemDto {
-                                    id: uuid::Uuid::new_v4().to_string(),
-                                                content_type: format!("{:?}", update.content.content_type),
-                                                preview: update.content.metadata.text_preview.clone()
+                                                id: uuid::Uuid::new_v4().to_string(),
+                                                content_type: format!(
+                                                    "{:?}",
+                                                    update.content.content_type
+                                                ),
+                                                preview: update
+                                                    .content
+                                                    .metadata
+                                                    .text_preview
+                                                    .clone()
                                                     .unwrap_or_else(|| {
-                                                        format!("{} bytes", update.content.metadata.size_bytes)
+                                                        format!(
+                                                            "{} bytes",
+                                                            update.content.metadata.size_bytes
+                                                        )
                                                     }),
                                                 size_bytes: update.content.metadata.size_bytes,
                                                 timestamp: std::time::SystemTime::now()
                                                     .duration_since(std::time::UNIX_EPOCH)
                                                     .unwrap()
-                                                    .as_millis() as u64,
+                                                    .as_millis()
+                                                    as u64,
                                                 source_device: Some(hex::encode(from_device_id)),
                                             },
                                         });
                                     }
                                 };
-                                
+
                                 // Derive storage encryption key
                                 if let Ok(storage_key) = derive_key(
                                     core.identity.device_id(),
@@ -959,27 +1023,43 @@ pub fn poll_event() -> Option<TossEvent> {
                                 ) {
                                     // Encrypt content
                                     let aad = format!("history:{}", item_id).into_bytes();
-                                    if let Ok(encrypted) = encrypt(&storage_key, &content_data, &aad) {
+                                    if let Ok(encrypted) =
+                                        encrypt(&storage_key, &content_data, &aad)
+                                    {
                                         let history_item = crate::storage::StoredHistoryItem {
                                             id: item_id,
-                                    content_type: update.content.content_type as u8,
-                                    content_hash: hex::encode(update.content_hash),
+                                            content_type: update.content.content_type as u8,
+                                            content_hash: hex::encode(update.content_hash),
                                             encrypted_content: encrypted.to_bytes(),
-                                    preview: update.content.metadata.text_preview.clone()
-                                        .unwrap_or_else(|| {
-                                            format!("{} bytes", update.content.metadata.size_bytes)
-                                        }),
-                                    source_device: Some(hex::encode(from_device_id)),
-                                    created_at: std::time::SystemTime::now()
-                                        .duration_since(std::time::UNIX_EPOCH)
-                                        .unwrap()
-                                        .as_secs(),
-                                };
-                                if let Err(e) = core.storage.history().store_item(&history_item) {
-                                    tracing::warn!("Failed to save received clipboard history: {}", e);
-                                }
+                                            preview: update
+                                                .content
+                                                .metadata
+                                                .text_preview
+                                                .clone()
+                                                .unwrap_or_else(|| {
+                                                    format!(
+                                                        "{} bytes",
+                                                        update.content.metadata.size_bytes
+                                                    )
+                                                }),
+                                            source_device: Some(hex::encode(from_device_id)),
+                                            created_at: std::time::SystemTime::now()
+                                                .duration_since(std::time::UNIX_EPOCH)
+                                                .unwrap()
+                                                .as_secs(),
+                                        };
+                                        if let Err(e) =
+                                            core.storage.history().store_item(&history_item)
+                                        {
+                                            tracing::warn!(
+                                                "Failed to save received clipboard history: {}",
+                                                e
+                                            );
+                                        }
                                     } else {
-                                        tracing::warn!("Failed to encrypt received clipboard history content");
+                                        tracing::warn!(
+                                            "Failed to encrypt received clipboard history content"
+                                        );
                                     }
                                 } else {
                                     tracing::warn!("Failed to derive storage key for received clipboard history");
@@ -993,10 +1073,9 @@ pub fn poll_event() -> Option<TossEvent> {
                         item: ClipboardItemDto {
                             id: uuid::Uuid::new_v4().to_string(),
                             content_type: format!("{:?}", update.content.content_type),
-                            preview: update.content.metadata.text_preview.clone()
-                                .unwrap_or_else(|| {
-                                    format!("{} bytes", update.content.metadata.size_bytes)
-                                }),
+                            preview: update.content.metadata.text_preview.clone().unwrap_or_else(
+                                || format!("{} bytes", update.content.metadata.size_bytes),
+                            ),
                             size_bytes: update.content.metadata.size_bytes,
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
@@ -1009,9 +1088,7 @@ pub fn poll_event() -> Option<TossEvent> {
                     None
                 }
             }
-            Ok(NetworkEvent::Error(msg)) => {
-                Some(TossEvent::Error { message: msg })
-            }
+            Ok(NetworkEvent::Error(msg)) => Some(TossEvent::Error { message: msg }),
             Ok(NetworkEvent::PeerDiscovered(_)) | Ok(NetworkEvent::PeerLost(_)) => {
                 // These events are less critical for Flutter UI
                 None
@@ -1041,7 +1118,10 @@ pub fn get_clipboard_history(limit: Option<u32>) -> Vec<ClipboardItemDto> {
         .into_iter()
         .map(|item| ClipboardItemDto {
             id: item.id,
-            content_type: format!("{:?}", ContentType::try_from(item.content_type).unwrap_or(ContentType::PlainText)),
+            content_type: format!(
+                "{:?}",
+                ContentType::try_from(item.content_type).unwrap_or(ContentType::PlainText)
+            ),
             preview: item.preview,
             size_bytes: item.encrypted_content.len() as u64,
             timestamp: item.created_at * 1000, // Convert seconds to milliseconds
@@ -1108,12 +1188,16 @@ pub fn get_device_session_key(device_id: String) -> Result<Vec<u8>, String> {
     let core = guard.as_ref().ok_or("Toss not initialized")?;
 
     // Get stored device
-    let device = core.storage.devices().get_device(&device_id)
+    let device = core
+        .storage
+        .devices()
+        .get_device(&device_id)
         .map_err(|e| format!("Failed to get device: {}", e))?
         .ok_or("Device not found")?;
 
     // Check if session key exists
-    let encrypted_session_key = device.session_key
+    let encrypted_session_key = device
+        .session_key
         .ok_or("No session key stored for this device")?;
 
     // Derive storage decryption key
@@ -1121,13 +1205,14 @@ pub fn get_device_session_key(device_id: String) -> Result<Vec<u8>, String> {
         core.identity.device_id(),
         DerivedKeyPurpose::StorageEncryption,
         Some(b"toss-session-key-v1"),
-    ).map_err(|e| format!("Failed to derive storage key: {}", e))?;
+    )
+    .map_err(|e| format!("Failed to derive storage key: {}", e))?;
 
     // Decrypt session key
     let aad = format!("session:{}", device_id).into_bytes();
     let encrypted_message = EncryptedMessage::from_bytes(&encrypted_session_key)
         .map_err(|e| format!("Failed to parse encrypted session key: {}", e))?;
-    
+
     let decrypted_key = decrypt(&storage_key, &encrypted_message, &aad)
         .map_err(|e| format!("Failed to decrypt session key: {}", e))?;
 
@@ -1159,7 +1244,10 @@ pub fn get_clipboard_history_content(item_id: String) -> Result<ClipboardContent
     let core = guard.as_ref().ok_or("Toss not initialized")?;
 
     // Get stored history item
-    let stored_item = core.storage.history().get_item(&item_id)
+    let stored_item = core
+        .storage
+        .history()
+        .get_item(&item_id)
         .map_err(|e| format!("Failed to get history item: {}", e))?
         .ok_or("History item not found")?;
 
@@ -1168,13 +1256,14 @@ pub fn get_clipboard_history_content(item_id: String) -> Result<ClipboardContent
         core.identity.device_id().as_slice(),
         DerivedKeyPurpose::StorageEncryption,
         Some(b"toss-clipboard-history-v1"),
-    ).map_err(|e| format!("Failed to derive storage key: {}", e))?;
+    )
+    .map_err(|e| format!("Failed to derive storage key: {}", e))?;
 
     // Decrypt content
     let aad = format!("history:{}", item_id).into_bytes();
     let encrypted_message = EncryptedMessage::from_bytes(&stored_item.encrypted_content)
         .map_err(|e| format!("Failed to parse encrypted content: {}", e))?;
-    
+
     let decrypted_data = decrypt(&storage_key, &encrypted_message, &aad)
         .map_err(|e| format!("Failed to decrypt history content: {}", e))?;
 

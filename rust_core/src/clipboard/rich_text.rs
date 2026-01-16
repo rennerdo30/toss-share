@@ -32,7 +32,7 @@ impl RichTextFormat {
 
         // Try to detect from content
         let text = String::from_utf8(content.data.clone()).ok()?;
-        
+
         // HTML detection: look for HTML tags
         if text.trim_start().starts_with("<") && text.contains("</") {
             return Some(Self::Html);
@@ -60,10 +60,17 @@ impl RichTextFormat {
 pub trait RichTextClipboardProvider: Send + Sync {
     /// Read rich text from clipboard
     #[allow(dead_code)]
-    fn read_rich_text(&self, format: RichTextFormat) -> Result<Option<ClipboardContent>, ClipboardError>;
+    fn read_rich_text(
+        &self,
+        format: RichTextFormat,
+    ) -> Result<Option<ClipboardContent>, ClipboardError>;
 
     /// Write rich text to clipboard
-    fn write_rich_text(&self, content: &ClipboardContent, format: RichTextFormat) -> Result<(), ClipboardError>;
+    fn write_rich_text(
+        &self,
+        content: &ClipboardContent,
+        format: RichTextFormat,
+    ) -> Result<(), ClipboardError>;
 }
 
 /// Default rich text clipboard provider (falls back to plain text)
@@ -71,13 +78,20 @@ pub struct DefaultRichTextClipboardProvider;
 
 impl RichTextClipboardProvider for DefaultRichTextClipboardProvider {
     #[allow(dead_code)]
-    fn read_rich_text(&self, _format: RichTextFormat) -> Result<Option<ClipboardContent>, ClipboardError> {
+    fn read_rich_text(
+        &self,
+        _format: RichTextFormat,
+    ) -> Result<Option<ClipboardContent>, ClipboardError> {
         // Default: not supported, return None
         // Platform-specific implementations needed
         Ok(None)
     }
 
-    fn write_rich_text(&self, content: &ClipboardContent, _format: RichTextFormat) -> Result<(), ClipboardError> {
+    fn write_rich_text(
+        &self,
+        content: &ClipboardContent,
+        _format: RichTextFormat,
+    ) -> Result<(), ClipboardError> {
         // Default: write as plain text
         // Extract plain text from HTML if needed
         if let Some(format) = RichTextFormat::detect(content) {
@@ -85,41 +99,50 @@ impl RichTextClipboardProvider for DefaultRichTextClipboardProvider {
                 RichTextFormat::Html => {
                     // Simple HTML to text extraction (strip tags)
                     // In production, use a proper HTML parser
-                    let html = String::from_utf8(content.data.clone())
-                        .map_err(|e| ClipboardError::OperationFailed(format!("Invalid HTML: {}", e)))?;
-                    
+                    let html = String::from_utf8(content.data.clone()).map_err(|e| {
+                        ClipboardError::OperationFailed(format!("Invalid HTML: {}", e))
+                    })?;
+
                     // Simple tag stripping (basic implementation)
                     // Remove HTML tags using simple string manipulation
                     let mut plain_text = html;
                     // Remove script and style tags with content
                     while let Some(start) = plain_text.find("<script") {
                         if let Some(end) = plain_text[start..].find("</script>") {
-                            plain_text.replace_range(start..start+end+9, "");
+                            plain_text.replace_range(start..start + end + 9, "");
                         } else {
                             break;
                         }
                     }
                     while let Some(start) = plain_text.find("<style") {
                         if let Some(end) = plain_text[start..].find("</style>") {
-                            plain_text.replace_range(start..start+end+8, "");
+                            plain_text.replace_range(start..start + end + 8, "");
                         } else {
                             break;
                         }
                     }
                     // Remove remaining tags (simplified - doesn't handle all cases)
-                    plain_text.replace("<", " <").split('<').map(|s| {
-                        if let Some(end) = s.find('>') {
-                            &s[end+1..]
-                        } else {
-                            s
-                        }
-                    }).collect::<Vec<_>>().join("").trim().to_string()
+                    plain_text
+                        .replace("<", " <")
+                        .split('<')
+                        .map(|s| {
+                            if let Some(end) = s.find('>') {
+                                &s[end + 1..]
+                            } else {
+                                s
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("")
+                        .trim()
+                        .to_string()
                 }
                 RichTextFormat::Rtf => {
                     // RTF to text extraction (simplified)
                     // In production, use a proper RTF parser
-                    String::from_utf8(content.data.clone())
-                        .map_err(|e| ClipboardError::OperationFailed(format!("Invalid RTF: {}", e)))?
+                    String::from_utf8(content.data.clone()).map_err(|e| {
+                        ClipboardError::OperationFailed(format!("Invalid RTF: {}", e))
+                    })?
                 }
             }
         } else {
@@ -156,13 +179,20 @@ pub mod windows_impl {
     pub struct WindowsRichTextClipboardProvider;
 
     impl RichTextClipboardProvider for WindowsRichTextClipboardProvider {
-        fn read_rich_text(&self, _format: RichTextFormat) -> Result<Option<ClipboardContent>, ClipboardError> {
+        fn read_rich_text(
+            &self,
+            _format: RichTextFormat,
+        ) -> Result<Option<ClipboardContent>, ClipboardError> {
             // Full implementation would use Windows clipboard APIs
             // to read CF_HTML or CF_RTF format
             Ok(None)
         }
 
-        fn write_rich_text(&self, _content: &ClipboardContent, _format: RichTextFormat) -> Result<(), ClipboardError> {
+        fn write_rich_text(
+            &self,
+            _content: &ClipboardContent,
+            _format: RichTextFormat,
+        ) -> Result<(), ClipboardError> {
             // Full implementation would:
             // 1. For HTML: Create CF_HTML header and set clipboard
             // 2. For RTF: Set CF_RTF format
@@ -244,12 +274,19 @@ pub mod macos_impl {
     pub struct MacOSRichTextClipboardProvider;
 
     impl RichTextClipboardProvider for MacOSRichTextClipboardProvider {
-        fn read_rich_text(&self, _format: RichTextFormat) -> Result<Option<ClipboardContent>, ClipboardError> {
+        fn read_rich_text(
+            &self,
+            _format: RichTextFormat,
+        ) -> Result<Option<ClipboardContent>, ClipboardError> {
             // Full implementation would use NSPasteboard APIs
             Ok(None)
         }
 
-        fn write_rich_text(&self, _content: &ClipboardContent, _format: RichTextFormat) -> Result<(), ClipboardError> {
+        fn write_rich_text(
+            &self,
+            _content: &ClipboardContent,
+            _format: RichTextFormat,
+        ) -> Result<(), ClipboardError> {
             // Full implementation would set appropriate pasteboard types
             Err(ClipboardError::UnsupportedFormat(
                 "macOS rich text writing requires native implementation".to_string(),
@@ -334,12 +371,19 @@ pub mod linux_impl {
     pub struct LinuxRichTextClipboardProvider;
 
     impl RichTextClipboardProvider for LinuxRichTextClipboardProvider {
-        fn read_rich_text(&self, _format: RichTextFormat) -> Result<Option<ClipboardContent>, ClipboardError> {
+        fn read_rich_text(
+            &self,
+            _format: RichTextFormat,
+        ) -> Result<Option<ClipboardContent>, ClipboardError> {
             // Full implementation would query clipboard for specific MIME types
             Ok(None)
         }
 
-        fn write_rich_text(&self, _content: &ClipboardContent, _format: RichTextFormat) -> Result<(), ClipboardError> {
+        fn write_rich_text(
+            &self,
+            _content: &ClipboardContent,
+            _format: RichTextFormat,
+        ) -> Result<(), ClipboardError> {
             // Full implementation would set clipboard with appropriate MIME type
             Err(ClipboardError::UnsupportedFormat(
                 "Linux rich text writing requires native implementation".to_string(),
@@ -405,7 +449,7 @@ mod tests {
             crate::protocol::ContentType::RichText,
             "<html><body>Test</body></html>".as_bytes().to_vec(),
         );
-        
+
         let format = RichTextFormat::detect(&html_content);
         assert_eq!(format, Some(RichTextFormat::Html));
     }
@@ -416,7 +460,7 @@ mod tests {
             crate::protocol::ContentType::RichText,
             "{\\rtf1\\ansi Test}".as_bytes().to_vec(),
         );
-        
+
         let format = RichTextFormat::detect(&rtf_content);
         assert_eq!(format, Some(RichTextFormat::Rtf));
     }

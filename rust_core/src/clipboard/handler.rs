@@ -3,9 +3,11 @@
 use arboard::Clipboard;
 use parking_lot::Mutex;
 
-use super::file_handler::{FileClipboardProvider, FileList, DefaultFileClipboardProvider};
+use super::file_handler::{DefaultFileClipboardProvider, FileClipboardProvider, FileList};
 use super::formats::{decode_image, encode_image_to_png};
-use super::rich_text::{RichTextClipboardProvider, RichTextFormat, DefaultRichTextClipboardProvider};
+use super::rich_text::{
+    DefaultRichTextClipboardProvider, RichTextClipboardProvider, RichTextFormat,
+};
 use crate::error::ClipboardError;
 use crate::protocol::{ClipboardContent, ContentType};
 
@@ -116,7 +118,7 @@ impl ClipboardProvider for ClipboardHandler {
             ContentType::File => {
                 // Parse file list from content
                 let file_list = FileList::from_content(content)?;
-                
+
                 // Write files using platform-specific provider
                 self.file_provider.write_files(&file_list)?;
             }

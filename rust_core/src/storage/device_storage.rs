@@ -84,19 +84,20 @@ impl<'conn> DeviceStorage<'conn> {
             "SELECT id, name, public_key, session_key, last_seen, created_at, is_active, platform FROM devices WHERE is_active = 1 ORDER BY created_at DESC"
         )?;
 
-        let devices = stmt.query_map([], |row| {
-            Ok(StoredDevice {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                public_key: row.get(2)?,
-                session_key: row.get(3)?,
-                last_seen: row.get(4)?,
-                created_at: row.get(5)?,
-                is_active: row.get::<_, i32>(6)? != 0,
-                platform: row.get(7).ok(), // Platform is optional, may not exist in old databases
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let devices = stmt
+            .query_map([], |row| {
+                Ok(StoredDevice {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    public_key: row.get(2)?,
+                    session_key: row.get(3)?,
+                    last_seen: row.get(4)?,
+                    created_at: row.get(5)?,
+                    is_active: row.get::<_, i32>(6)? != 0,
+                    platform: row.get(7).ok(), // Platform is optional, may not exist in old databases
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(devices)
     }
@@ -147,8 +148,8 @@ impl<'conn> DeviceStorage<'conn> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use crate::storage::Storage;
+    use tempfile::TempDir;
 
     #[test]
     fn test_store_and_retrieve_device() {

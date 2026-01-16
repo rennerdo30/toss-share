@@ -3,14 +3,14 @@
 //! Provides WebSocket over TLS transport for restrictive networks
 //! where QUIC/UDP is blocked.
 
-use std::net::SocketAddr;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
-use futures_util::{SinkExt, StreamExt};
-use tokio::net::TcpStream;
+use crate::crypto::KEY_SIZE;
 use crate::error::NetworkError;
 use crate::protocol::{Frame, Message};
-use crate::crypto::KEY_SIZE;
+use futures_util::{SinkExt, StreamExt};
+use std::net::SocketAddr;
+use tokio::net::TcpStream;
 use tokio::sync::Mutex;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 /// WebSocket connection to a peer
 pub struct WebSocketPeerConnection {
@@ -22,9 +22,9 @@ pub struct WebSocketPeerConnection {
 impl WebSocketPeerConnection {
     /// Create a new WebSocket connection
     pub async fn connect(url: &str) -> Result<Self, NetworkError> {
-        let (ws_stream, _) = connect_async(url)
-            .await
-            .map_err(|e| NetworkError::ConnectionFailed(format!("WebSocket connect failed: {}", e)))?;
+        let (ws_stream, _) = connect_async(url).await.map_err(|e| {
+            NetworkError::ConnectionFailed(format!("WebSocket connect failed: {}", e))
+        })?;
 
         // Extract address from URL (simplified - in production would parse properly)
         let _peer_addr: SocketAddr = url
@@ -65,7 +65,9 @@ impl WebSocketPeerConnection {
 
         let mut stream = self.stream.lock().await;
         stream
-            .send(tokio_tungstenite::tungstenite::Message::Binary(frame_bytes.into()))
+            .send(tokio_tungstenite::tungstenite::Message::Binary(
+                frame_bytes.into(),
+            ))
             .await
             .map_err(|e| NetworkError::Transport(format!("WebSocket send failed: {}", e)))?;
 
@@ -90,21 +92,21 @@ impl WebSocketPeerConnection {
                 return Err(NetworkError::ConnectionClosed);
             }
             _ => {
-                return Err(NetworkError::Transport("Unexpected WebSocket message type".to_string()));
+                return Err(NetworkError::Transport(
+                    "Unexpected WebSocket message type".to_string(),
+                ));
             }
         };
 
-        let frame = Frame::from_bytes(&frame_bytes)
-            .map_err(|e| NetworkError::Transport(e.to_string()))?;
+        let frame =
+            Frame::from_bytes(&frame_bytes).map_err(|e| NetworkError::Transport(e.to_string()))?;
 
         let (header, payload) = frame
             .decrypt(key)
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
 
-        Message::deserialize(&header, &payload)
-            .map_err(|e| NetworkError::Transport(e.to_string()))
+        Message::deserialize(&header, &payload).map_err(|e| NetworkError::Transport(e.to_string()))
     }
-
 
     /// Check if connection is still active
     pub async fn is_connected(&self) -> bool {

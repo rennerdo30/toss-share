@@ -109,6 +109,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Analyze code
         run: flutter analyze --no-fatal-infos
         continue-on-error: false
@@ -116,6 +119,7 @@ jobs:
   pr-review-requirements:
     name: PR Review Requirements
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 

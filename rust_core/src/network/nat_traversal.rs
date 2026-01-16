@@ -18,10 +18,10 @@
 //! +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //! ```
 
-use std::net::{SocketAddr, IpAddr, Ipv4Addr, Ipv6Addr};
+use crate::error::NetworkError;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::time::Duration;
 use tokio::net::UdpSocket;
-use crate::error::NetworkError;
 
 /// STUN magic cookie (RFC 5389)
 const STUN_MAGIC_COOKIE: u32 = 0x2112A442;
@@ -124,7 +124,10 @@ impl StunClient {
 
     /// Discover NAT binding using STUN
     /// Returns the public address as seen by the STUN server
-    pub async fn discover_binding(&self, local_addr: SocketAddr) -> Result<StunBinding, NetworkError> {
+    pub async fn discover_binding(
+        &self,
+        local_addr: SocketAddr,
+    ) -> Result<StunBinding, NetworkError> {
         // Resolve STUN server address
         let server_addr = self.resolve_server().await?;
 
@@ -134,18 +137,18 @@ impl StunClient {
             .map_err(|e| NetworkError::ConnectionFailed(format!("Failed to bind socket: {}", e)))?;
 
         // Connect to STUN server (for send/recv simplicity)
-        socket.connect(server_addr)
-            .await
-            .map_err(|e| NetworkError::ConnectionFailed(format!("Failed to connect to STUN server: {}", e)))?;
+        socket.connect(server_addr).await.map_err(|e| {
+            NetworkError::ConnectionFailed(format!("Failed to connect to STUN server: {}", e))
+        })?;
 
         // Create STUN Binding Request
         let transaction_id = self.generate_transaction_id();
         let request = self.create_binding_request(&transaction_id);
 
         // Send request
-        socket.send(&request)
-            .await
-            .map_err(|e| NetworkError::ConnectionFailed(format!("Failed to send STUN request: {}", e)))?;
+        socket.send(&request).await.map_err(|e| {
+            NetworkError::ConnectionFailed(format!("Failed to send STUN request: {}", e))
+        })?;
 
         // Wait for response with timeout
         let mut response_buf = [0u8; 548]; // Max STUN message size
@@ -154,10 +157,13 @@ impl StunClient {
         let response_len = tokio::time::timeout(timeout, socket.recv(&mut response_buf))
             .await
             .map_err(|_| NetworkError::ConnectionFailed("STUN request timed out".to_string()))?
-            .map_err(|e| NetworkError::ConnectionFailed(format!("Failed to receive STUN response: {}", e)))?;
+            .map_err(|e| {
+                NetworkError::ConnectionFailed(format!("Failed to receive STUN response: {}", e))
+            })?;
 
         // Parse response
-        let mapped_address = self.parse_binding_response(&response_buf[..response_len], &transaction_id)?;
+        let mapped_address =
+            self.parse_binding_response(&response_buf[..response_len], &transaction_id)?;
 
         Ok(StunBinding {
             mapped_address,
@@ -170,12 +176,13 @@ impl StunClient {
         use tokio::net::lookup_host;
 
         let host_port = format!("{}:{}", self.config.server_host, self.config.server_port);
-        let mut addrs = lookup_host(&host_port)
-            .await
-            .map_err(|e| NetworkError::ConnectionFailed(format!("Failed to resolve STUN server: {}", e)))?;
+        let mut addrs = lookup_host(&host_port).await.map_err(|e| {
+            NetworkError::ConnectionFailed(format!("Failed to resolve STUN server: {}", e))
+        })?;
 
-        addrs.next()
-            .ok_or_else(|| NetworkError::ConnectionFailed("No addresses found for STUN server".to_string()))
+        addrs.next().ok_or_else(|| {
+            NetworkError::ConnectionFailed("No addresses found for STUN server".to_string())
+        })
     }
 
     /// Generate a random 96-bit transaction ID
@@ -206,32 +213,47 @@ impl StunClient {
     }
 
     /// Parse STUN Binding Response and extract mapped address
-    fn parse_binding_response(&self, data: &[u8], expected_tx_id: &[u8; 12]) -> Result<SocketAddr, NetworkError> {
+    fn parse_binding_response(
+        &self,
+        data: &[u8],
+        expected_tx_id: &[u8; 12],
+    ) -> Result<SocketAddr, NetworkError> {
         if data.len() < 20 {
-            return Err(NetworkError::ConnectionFailed("STUN response too short".to_string()));
+            return Err(NetworkError::ConnectionFailed(
+                "STUN response too short".to_string(),
+            ));
         }
 
         // Check message type (Binding Response: 0x0101)
         let msg_type = u16::from_be_bytes([data[0], data[1]]);
         if msg_type != STUN_BINDING_RESPONSE {
-            return Err(NetworkError::ConnectionFailed(format!("Unexpected STUN message type: 0x{:04x}", msg_type)));
+            return Err(NetworkError::ConnectionFailed(format!(
+                "Unexpected STUN message type: 0x{:04x}",
+                msg_type
+            )));
         }
 
         // Check magic cookie
         let cookie = u32::from_be_bytes([data[4], data[5], data[6], data[7]]);
         if cookie != STUN_MAGIC_COOKIE {
-            return Err(NetworkError::ConnectionFailed("Invalid STUN magic cookie".to_string()));
+            return Err(NetworkError::ConnectionFailed(
+                "Invalid STUN magic cookie".to_string(),
+            ));
         }
 
         // Verify transaction ID
         if &data[8..20] != expected_tx_id {
-            return Err(NetworkError::ConnectionFailed("STUN transaction ID mismatch".to_string()));
+            return Err(NetworkError::ConnectionFailed(
+                "STUN transaction ID mismatch".to_string(),
+            ));
         }
 
         // Parse attributes
         let msg_len = u16::from_be_bytes([data[2], data[3]]) as usize;
         if data.len() < 20 + msg_len {
-            return Err(NetworkError::ConnectionFailed("STUN message length mismatch".to_string()));
+            return Err(NetworkError::ConnectionFailed(
+                "STUN message length mismatch".to_string(),
+            ));
         }
 
         let mut offset = 20;
@@ -263,13 +285,17 @@ impl StunClient {
             offset += 4 + ((attr_len + 3) & !3);
         }
 
-        Err(NetworkError::ConnectionFailed("No mapped address in STUN response".to_string()))
+        Err(NetworkError::ConnectionFailed(
+            "No mapped address in STUN response".to_string(),
+        ))
     }
 
     /// Parse MAPPED-ADDRESS attribute
     fn parse_mapped_address(&self, data: &[u8]) -> Result<SocketAddr, NetworkError> {
         if data.len() < 8 {
-            return Err(NetworkError::ConnectionFailed("MAPPED-ADDRESS too short".to_string()));
+            return Err(NetworkError::ConnectionFailed(
+                "MAPPED-ADDRESS too short".to_string(),
+            ));
         }
 
         let family = data[1];
@@ -284,21 +310,28 @@ impl StunClient {
             0x02 => {
                 // IPv6
                 if data.len() < 20 {
-                    return Err(NetworkError::ConnectionFailed("IPv6 MAPPED-ADDRESS too short".to_string()));
+                    return Err(NetworkError::ConnectionFailed(
+                        "IPv6 MAPPED-ADDRESS too short".to_string(),
+                    ));
                 }
                 let mut octets = [0u8; 16];
                 octets.copy_from_slice(&data[4..20]);
                 let ip = Ipv6Addr::from(octets);
                 Ok(SocketAddr::new(IpAddr::V6(ip), port))
             }
-            _ => Err(NetworkError::ConnectionFailed(format!("Unknown address family: {}", family))),
+            _ => Err(NetworkError::ConnectionFailed(format!(
+                "Unknown address family: {}",
+                family
+            ))),
         }
     }
 
     /// Parse XOR-MAPPED-ADDRESS attribute (XOR'd with magic cookie)
     fn parse_xor_mapped_address(&self, data: &[u8]) -> Result<SocketAddr, NetworkError> {
         if data.len() < 8 {
-            return Err(NetworkError::ConnectionFailed("XOR-MAPPED-ADDRESS too short".to_string()));
+            return Err(NetworkError::ConnectionFailed(
+                "XOR-MAPPED-ADDRESS too short".to_string(),
+            ));
         }
 
         let family = data[1];
@@ -316,7 +349,9 @@ impl StunClient {
             0x02 => {
                 // IPv6 - XOR with magic cookie + transaction ID
                 if data.len() < 20 {
-                    return Err(NetworkError::ConnectionFailed("IPv6 XOR-MAPPED-ADDRESS too short".to_string()));
+                    return Err(NetworkError::ConnectionFailed(
+                        "IPv6 XOR-MAPPED-ADDRESS too short".to_string(),
+                    ));
                 }
                 // For simplicity, just return the IPv6 as-is (full implementation would XOR properly)
                 let mut octets = [0u8; 16];
@@ -324,16 +359,22 @@ impl StunClient {
                 let ip = Ipv6Addr::from(octets);
                 Ok(SocketAddr::new(IpAddr::V6(ip), port))
             }
-            _ => Err(NetworkError::ConnectionFailed(format!("Unknown address family: {}", family))),
+            _ => Err(NetworkError::ConnectionFailed(format!(
+                "Unknown address family: {}",
+                family
+            ))),
         }
     }
 
     /// Check if direct P2P connection is possible based on NAT type
     pub fn can_connect_directly(&self, nat_type: NatType) -> bool {
         match nat_type {
-            NatType::None | NatType::FullCone | NatType::RestrictedCone | NatType::PortRestrictedCone => true,
+            NatType::None
+            | NatType::FullCone
+            | NatType::RestrictedCone
+            | NatType::PortRestrictedCone => true,
             NatType::Symmetric => false, // Requires TURN
-            NatType::Unknown => false, // Assume worst case
+            NatType::Unknown => false,   // Assume worst case
         }
     }
 }
@@ -359,11 +400,11 @@ impl TurnClient {
         // 3. Handle authentication (STUN long-term credentials)
         // 4. Parse Allocate response
         // 5. Extract relay address
-        
+
         // For now, return an error
         // Full implementation would use a TURN library
         Err(NetworkError::ConnectionFailed(
-            "TURN allocation not yet implemented - requires turn_rs or similar crate".to_string()
+            "TURN allocation not yet implemented - requires turn_rs or similar crate".to_string(),
         ))
     }
 
@@ -371,15 +412,19 @@ impl TurnClient {
     pub async fn create_permission(&self, _peer_addr: SocketAddr) -> Result<(), NetworkError> {
         // TODO: Implement TURN CreatePermission
         Err(NetworkError::ConnectionFailed(
-            "TURN permission creation not yet implemented".to_string()
+            "TURN permission creation not yet implemented".to_string(),
         ))
     }
 
     /// Send data through TURN relay
-    pub async fn send_data(&self, _data: &[u8], _peer_addr: SocketAddr) -> Result<(), NetworkError> {
+    pub async fn send_data(
+        &self,
+        _data: &[u8],
+        _peer_addr: SocketAddr,
+    ) -> Result<(), NetworkError> {
         // TODO: Implement TURN Send indication
         Err(NetworkError::ConnectionFailed(
-            "TURN data sending not yet implemented".to_string()
+            "TURN data sending not yet implemented".to_string(),
         ))
     }
 
@@ -387,7 +432,7 @@ impl TurnClient {
     pub async fn receive_data(&self) -> Result<(Vec<u8>, SocketAddr), NetworkError> {
         // TODO: Implement TURN Data indication reception
         Err(NetworkError::ConnectionFailed(
-            "TURN data reception not yet implemented".to_string()
+            "TURN data reception not yet implemented".to_string(),
         ))
     }
 }
@@ -480,7 +525,7 @@ mod tests {
     #[test]
     fn test_nat_type_connectivity() {
         let client = StunClient::new(StunConfig::default());
-        
+
         assert!(client.can_connect_directly(NatType::None));
         assert!(client.can_connect_directly(NatType::FullCone));
         assert!(!client.can_connect_directly(NatType::Symmetric));
@@ -490,7 +535,7 @@ mod tests {
     async fn test_gather_candidates_host_only() {
         let local_addr: SocketAddr = "127.0.0.1:12345".parse().unwrap();
         let candidates = gather_candidates(local_addr, None, None).await.unwrap();
-        
+
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].candidate_type, CandidateType::Host);
         assert_eq!(candidates[0].address, local_addr);

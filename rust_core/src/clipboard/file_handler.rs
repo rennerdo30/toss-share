@@ -127,7 +127,7 @@ pub mod windows_impl {
             Ok(None)
         }
 
-        fn write_files(&self, files: &FileList) -> Result<(), ClipboardError> {
+        fn write_files(&self, _files: &FileList) -> Result<(), ClipboardError> {
             // A full implementation would create an HDROP structure and write to clipboard
             // This requires:
             // 1. Allocate global memory
@@ -543,7 +543,7 @@ mod tests {
         let files = vec![PathBuf::from("/test/file.txt")];
         let file_list = FileList::new(files);
         let content = file_list.to_content();
-        
+
         assert_eq!(content.content_type, crate::protocol::ContentType::File);
         let text = String::from_utf8(content.data).unwrap();
         assert_eq!(text, "/test/file.txt");
@@ -555,7 +555,7 @@ mod tests {
             crate::protocol::ContentType::File,
             "/file1.txt\n/file2.txt".as_bytes().to_vec(),
         );
-        
+
         let file_list = FileList::from_content(&content).unwrap();
         assert_eq!(file_list.len(), 2);
         assert_eq!(file_list.files[0], PathBuf::from("/file1.txt"));

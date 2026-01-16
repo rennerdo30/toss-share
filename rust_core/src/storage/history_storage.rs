@@ -87,18 +87,19 @@ impl<'conn> HistoryStorage<'conn> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(&query)?;
 
-        let items = stmt.query_map([], |row| {
-            Ok(StoredHistoryItem {
-                id: row.get(0)?,
-                content_type: row.get(1)?,
-                content_hash: row.get(2)?,
-                encrypted_content: row.get(3)?,
-                preview: row.get(4)?,
-                source_device: row.get(5)?,
-                created_at: row.get(6)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let items = stmt
+            .query_map([], |row| {
+                Ok(StoredHistoryItem {
+                    id: row.get(0)?,
+                    content_type: row.get(1)?,
+                    content_hash: row.get(2)?,
+                    encrypted_content: row.get(3)?,
+                    preview: row.get(4)?,
+                    source_device: row.get(5)?,
+                    created_at: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(items)
     }
@@ -131,11 +132,9 @@ impl<'conn> HistoryStorage<'conn> {
     pub fn prune_to_limit(&self, max_items: u32) -> SqliteResult<usize> {
         let conn = self.conn.lock().unwrap();
         // Get count of items
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM clipboard_history",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM clipboard_history", [], |row| {
+            row.get(0)
+        })?;
 
         if count <= max_items as i64 {
             return Ok(0);
@@ -143,7 +142,7 @@ impl<'conn> HistoryStorage<'conn> {
 
         // Get the timestamp of the Nth item
         let mut stmt = conn.prepare(
-            "SELECT created_at FROM clipboard_history ORDER BY created_at DESC LIMIT 1 OFFSET ?1"
+            "SELECT created_at FROM clipboard_history ORDER BY created_at DESC LIMIT 1 OFFSET ?1",
         )?;
         let cutoff_timestamp: Option<u64> = stmt.query_row([max_items], |row| row.get(0)).ok();
         drop(stmt);
@@ -165,8 +164,8 @@ impl<'conn> HistoryStorage<'conn> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use crate::storage::Storage;
+    use tempfile::TempDir;
 
     #[test]
     fn test_store_and_retrieve_history_item() {

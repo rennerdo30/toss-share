@@ -10,9 +10,9 @@ pub use device_storage::{DeviceStorage, StoredDevice};
 pub use history_storage::{HistoryStorage, StoredHistoryItem};
 pub use secure_storage::{delete_identity_key, retrieve_identity_key, store_identity_key};
 
+use rusqlite::{Connection, Result as SqliteResult};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use rusqlite::{Connection, Result as SqliteResult};
 
 /// Storage manager
 /// Note: rusqlite::Connection is not Sync, so we wrap operations in Mutex
@@ -64,12 +64,9 @@ impl Storage {
             "#,
             [],
         )?;
-        
+
         // Add platform column if it doesn't exist (migration for existing databases)
-        let _ = conn.execute(
-            "ALTER TABLE devices ADD COLUMN platform TEXT",
-            [],
-        );
+        let _ = conn.execute("ALTER TABLE devices ADD COLUMN platform TEXT", []);
 
         // Create clipboard history table
         conn.execute(
@@ -140,17 +137,18 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let storage = Storage::new(&db_path).unwrap();
-        
+
         // Verify tables exist
         let conn = storage.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('devices', 'settings')"
         ).unwrap();
-        let tables: Vec<String> = stmt.query_map([], |row| row.get(0))
+        let tables: Vec<String> = stmt
+            .query_map([], |row| row.get(0))
             .unwrap()
             .map(|r| r.unwrap())
             .collect();
-        
+
         assert_eq!(tables.len(), 2);
         assert!(tables.contains(&"devices".to_string()));
         assert!(tables.contains(&"settings".to_string()));

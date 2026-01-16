@@ -12,20 +12,25 @@ pub mod relay_client;
 pub mod transport;
 pub mod websocket_transport;
 
+use base64::Engine;
+use hex;
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
-use base64::Engine;
-use hex;
 
-use crate::crypto::{derive_key, encrypt, decrypt, DeviceIdentity, DerivedKeyPurpose, EphemeralKeyPair, EncryptedMessage};
+use crate::crypto::{
+    decrypt, derive_key, encrypt, DerivedKeyPurpose, DeviceIdentity, EncryptedMessage,
+    EphemeralKeyPair,
+};
 use crate::error::NetworkError;
 use crate::protocol::{KeyRotation, KeyRotationReason, Message};
 
 pub use discovery::{DiscoveredPeer, MdnsDiscovery};
-pub use nat_traversal::{gather_candidates, IceCandidate, StunClient, StunConfig, TurnClient, TurnConfig};
+pub use nat_traversal::{
+    gather_candidates, IceCandidate, StunClient, StunConfig, TurnClient, TurnConfig,
+};
 pub use relay_client::RelayClient;
 pub use transport::{PeerConnection, QuicTransport};
 pub use websocket_transport::{WebSocketPeerConnection, WebSocketTransport};
@@ -197,7 +202,8 @@ impl NetworkManager {
 
                 // Spawn task to receive messages from relay
                 tokio::spawn(async move {
-                    Self::relay_receive_loop(&*relay_clone, event_tx, identity, get_session_key).await;
+                    Self::relay_receive_loop(&*relay_clone, event_tx, identity, get_session_key)
+                        .await;
                 });
 
                 self.relay_client = Some(relay_arc);
@@ -260,18 +266,21 @@ impl NetworkManager {
             let keys = self.ephemeral_keys.read();
             keys.get(device_id)
                 .and_then(|k| k.peer_public_key)
-                .ok_or_else(|| NetworkError::ConnectionFailed("No peer ephemeral key".to_string()))?
+                .ok_or_else(|| {
+                    NetworkError::ConnectionFailed("No peer ephemeral key".to_string())
+                })?
         };
 
         // Derive new shared secret (consumes new_ephemeral)
         let shared_secret = new_ephemeral.derive_shared_secret(&peer_public_key);
-        
+
         // Derive new session key
         let new_session_key = derive_key(
             shared_secret.as_bytes(),
             DerivedKeyPurpose::SessionEncryption,
             None,
-        ).map_err(|e| NetworkError::ConnectionFailed(format!("Key derivation failed: {}", e)))?;
+        )
+        .map_err(|e| NetworkError::ConnectionFailed(format!("Key derivation failed: {}", e)))?;
 
         // Sign the new public key with identity key
         let signature = self.identity.sign(&new_public_key);
@@ -285,15 +294,18 @@ impl NetworkManager {
 
         // Send rotation message
         let rotation_message = Message::KeyRotation(rotation);
-        self.send_to_peer_internal(device_id, &rotation_message).await?;
+        self.send_to_peer_internal(device_id, &rotation_message)
+            .await?;
 
         // Update session key in connection
         // Get connection pointer first, then drop the lock before await
         let conn_ptr: Option<*const PeerConnection> = {
             let peers = self.peers.read();
-            peers.get(device_id).map(|conn| conn as *const PeerConnection)
+            peers
+                .get(device_id)
+                .map(|conn| conn as *const PeerConnection)
         };
-        
+
         if let Some(ptr) = conn_ptr {
             // SAFETY: We're modifying the connection, but set_session_key and reset_session_tracker
             // use internal mutexes, so this is safe
@@ -306,10 +318,13 @@ impl NetworkManager {
         // For now, we'll regenerate when needed
         {
             let mut keys = self.ephemeral_keys.write();
-            keys.insert(*device_id, PeerEphemeralKey {
-                public_key: new_public_key,
-                peer_public_key: Some(peer_public_key),
-            });
+            keys.insert(
+                *device_id,
+                PeerEphemeralKey {
+                    public_key: new_public_key,
+                    peer_public_key: Some(peer_public_key),
+                },
+            );
         }
 
         // Store the ephemeral secret for this rotation
@@ -339,7 +354,10 @@ impl NetworkManager {
                     ));
                 }
             } else {
-                tracing::warn!("Device public key not found for key rotation verification, device_id: {}", hex::encode(device_id));
+                tracing::warn!(
+                    "Device public key not found for key rotation verification, device_id: {}",
+                    hex::encode(device_id)
+                );
                 // For backward compatibility, allow if we can't find the key
                 // In production, this should probably be an error
             }
@@ -347,30 +365,33 @@ impl NetworkManager {
             tracing::warn!("No public key lookup function available for key rotation verification");
             // For backward compatibility, allow if no lookup function is provided
         }
-        
+
         // Generate new ephemeral key pair for this rotation
         // We generate a new one because we don't store the secret
         // In a full implementation, we'd store ephemeral secrets securely
         let new_ephemeral = EphemeralKeyPair::generate();
         let new_public_key = *new_ephemeral.public_key_bytes();
-        
+
         // Derive new shared secret with peer's new public key
         let shared_secret = new_ephemeral.derive_shared_secret(&rotation.new_public_key);
-        
+
         // Derive new session key
         let new_session_key = derive_key(
             shared_secret.as_bytes(),
             DerivedKeyPurpose::SessionEncryption,
             None,
-        ).map_err(|e| NetworkError::ConnectionFailed(format!("Key derivation failed: {}", e)))?;
+        )
+        .map_err(|e| NetworkError::ConnectionFailed(format!("Key derivation failed: {}", e)))?;
 
         // Update session key
         // Get connection pointer first, then drop the lock before await
         let conn_ptr: Option<*const PeerConnection> = {
             let peers = self.peers.read();
-            peers.get(device_id).map(|conn| conn as *const PeerConnection)
+            peers
+                .get(device_id)
+                .map(|conn| conn as *const PeerConnection)
         };
-        
+
         if let Some(ptr) = conn_ptr {
             // SAFETY: We're modifying the connection, but set_session_key and reset_session_tracker
             // use internal mutexes, so this is safe
@@ -382,10 +403,13 @@ impl NetworkManager {
         // Update ephemeral keys with new public key
         {
             let mut keys = self.ephemeral_keys.write();
-            keys.insert(*device_id, PeerEphemeralKey {
-                public_key: new_public_key,
-                peer_public_key: Some(rotation.new_public_key),
-            });
+            keys.insert(
+                *device_id,
+                PeerEphemeralKey {
+                    public_key: new_public_key,
+                    peer_public_key: Some(rotation.new_public_key),
+                },
+            );
         }
 
         Ok(())
@@ -400,9 +424,11 @@ impl NetworkManager {
         // Get a reference to the connection while holding the lock, then drop it
         let conn_ptr: Option<*const PeerConnection> = {
             let peers = self.peers.read();
-            peers.get(device_id).map(|conn| conn as *const PeerConnection)
+            peers
+                .get(device_id)
+                .map(|conn| conn as *const PeerConnection)
         };
-        
+
         if let Some(ptr) = conn_ptr {
             let conn = unsafe { &*ptr };
             match conn.send_message(message).await {
@@ -412,8 +438,11 @@ impl NetworkManager {
                     let mut peers = self.peers.write();
                     if peers.contains_key(device_id) {
                         peers.remove(device_id);
-                        tracing::warn!("Removed dead connection to device {}", hex::encode(device_id));
-                        
+                        tracing::warn!(
+                            "Removed dead connection to device {}",
+                            hex::encode(device_id)
+                        );
+
                         // Emit disconnection event
                         let _ = self.event_tx.send(NetworkEvent::PeerDisconnected {
                             device_id: *device_id,
@@ -437,9 +466,11 @@ impl NetworkManager {
         // Get connection pointer first, then drop the lock before await
         let conn_ptr: Option<*const PeerConnection> = {
             let peers = self.peers.read();
-            peers.get(device_id).map(|conn| conn as *const PeerConnection)
+            peers
+                .get(device_id)
+                .map(|conn| conn as *const PeerConnection)
         };
-        
+
         let needs_rotation = if let Some(ptr) = conn_ptr {
             // SAFETY: We're only reading from the connection, not modifying it
             // The connection is owned by the peers HashMap which is behind a RwLock
@@ -468,10 +499,19 @@ impl NetworkManager {
                         .replace("http://", "ws://");
 
                     let device_id_hex = hex::encode(device_id);
-                    tracing::debug!("QUIC failed: {}, attempting WebSocket fallback to {}", quic_error, ws_url);
+                    tracing::debug!(
+                        "QUIC failed: {}, attempting WebSocket fallback to {}",
+                        quic_error,
+                        ws_url
+                    );
 
                     // Try to establish WebSocket connection and send message
-                    match WebSocketPeerConnection::connect(&format!("{}/ws/{}", ws_url, device_id_hex)).await {
+                    match WebSocketPeerConnection::connect(&format!(
+                        "{}/ws/{}",
+                        ws_url, device_id_hex
+                    ))
+                    .await
+                    {
                         Ok(ws_conn) => {
                             // Get session key if available
                             if let Some(ref get_key) = self.get_session_key {
@@ -480,7 +520,10 @@ impl NetworkManager {
 
                                     match ws_conn.send_message(message).await {
                                         Ok(()) => {
-                                            tracing::info!("Sent message via WebSocket fallback to {}", device_id_hex);
+                                            tracing::info!(
+                                                "Sent message via WebSocket fallback to {}",
+                                                device_id_hex
+                                            );
                                             return Ok(());
                                         }
                                         Err(ws_error) => {
@@ -587,17 +630,28 @@ impl NetworkManager {
                             match relay.send_to_device(&device_id_hex, &payload).await {
                                 Ok(()) => {
                                     success_count += 1;
-                                    tracing::debug!("Sent to device {} via relay fallback (encrypted: {})",
-                                        device_id_hex, payload[0] == 0x01);
+                                    tracing::debug!(
+                                        "Sent to device {} via relay fallback (encrypted: {})",
+                                        device_id_hex,
+                                        payload[0] == 0x01
+                                    );
                                 }
                                 Err(relay_err) => {
-                                    tracing::warn!("Failed to send to device {} via QUIC and relay: {} / {}",
-                                        device_id_hex, e, relay_err);
+                                    tracing::warn!(
+                                        "Failed to send to device {} via QUIC and relay: {} / {}",
+                                        device_id_hex,
+                                        e,
+                                        relay_err
+                                    );
                                 }
                             }
                         }
                     } else {
-                        tracing::warn!("Failed to send to device {}: {}", hex::encode(device_id), e);
+                        tracing::warn!(
+                            "Failed to send to device {}: {}",
+                            hex::encode(device_id),
+                            e
+                        );
                     }
                 }
             }
@@ -607,8 +661,11 @@ impl NetworkManager {
         // Partial failures are acceptable - we log warnings but don't fail the entire broadcast
         if success_count > 0 {
             if success_count < device_ids.len() {
-                tracing::warn!("Partial broadcast success: {}/{} devices received message", 
-                    success_count, device_ids.len());
+                tracing::warn!(
+                    "Partial broadcast success: {}/{} devices received message",
+                    success_count,
+                    device_ids.len()
+                );
             }
             Ok(())
         } else {
@@ -640,10 +697,13 @@ impl NetworkManager {
         // Initialize ephemeral key for this peer
         let ephemeral = EphemeralKeyPair::generate();
         let ephemeral_public = *ephemeral.public_key_bytes();
-        self.ephemeral_keys.write().insert(device_id, PeerEphemeralKey {
-            public_key: ephemeral_public,
-            peer_public_key: None, // Will be set during pairing
-        });
+        self.ephemeral_keys.write().insert(
+            device_id,
+            PeerEphemeralKey {
+                public_key: ephemeral_public,
+                peer_public_key: None, // Will be set during pairing
+            },
+        );
 
         self.peers.write().insert(device_id, conn);
 
@@ -712,7 +772,11 @@ impl NetworkManager {
                                             match EncryptedMessage::from_bytes(data) {
                                                 Ok(encrypted) => {
                                                     // Decrypt with device_id as AAD
-                                                    match decrypt(&session_key, &encrypted, &device_id) {
+                                                    match decrypt(
+                                                        &session_key,
+                                                        &encrypted,
+                                                        &device_id,
+                                                    ) {
                                                         Ok(decrypted) => decrypted,
                                                         Err(e) => {
                                                             tracing::warn!("Failed to decrypt relay message from {}: {}",
@@ -737,7 +801,10 @@ impl NetworkManager {
                                     }
                                 } else {
                                     // Unencrypted message (legacy or fallback)
-                                    tracing::debug!("Received unencrypted relay message from {}", relay_msg.from_device);
+                                    tracing::debug!(
+                                        "Received unencrypted relay message from {}",
+                                        relay_msg.from_device
+                                    );
                                     data.to_vec()
                                 };
 
@@ -750,7 +817,10 @@ impl NetworkManager {
                                         });
                                     }
                                     Err(e) => {
-                                        tracing::warn!("Failed to deserialize relay message: {}", e);
+                                        tracing::warn!(
+                                            "Failed to deserialize relay message: {}",
+                                            e
+                                        );
                                     }
                                 }
                             } else {
@@ -818,7 +888,7 @@ mod tests {
         };
 
         let manager = NetworkManager::new(identity, config).await.unwrap();
-        
+
         // Create a test message
         let content = crate::protocol::ClipboardContent::text("Test message");
         let update = crate::protocol::ClipboardUpdate::new(content);
@@ -827,7 +897,9 @@ mod tests {
         // Broadcast should not fail even with no peers
         let result = manager.broadcast(&message).await;
         // Should succeed (no peers is not an error)
-        assert!(result.is_ok() || matches!(result, Err(crate::error::NetworkError::PeerNotFound(_))));
+        assert!(
+            result.is_ok() || matches!(result, Err(crate::error::NetworkError::PeerNotFound(_)))
+        );
     }
 
     #[test]
