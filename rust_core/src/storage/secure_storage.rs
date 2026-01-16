@@ -109,8 +109,7 @@ pub fn encrypt_for_storage(plaintext: &[u8]) -> Result<Vec<u8>, CryptoError> {
     use rand::RngCore;
 
     let key = get_or_create_storage_encryption_key()?;
-    let cipher = Aes256Gcm::new_from_slice(&key)
-        .map_err(|_| CryptoError::InvalidKey)?;
+    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| CryptoError::InvalidKey)?;
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; 12];
@@ -139,12 +138,13 @@ pub fn decrypt_from_storage(encrypted: &[u8]) -> Result<Vec<u8>, CryptoError> {
     };
 
     if encrypted.len() < 12 {
-        return Err(CryptoError::Decryption("encrypted data too short".to_string()));
+        return Err(CryptoError::Decryption(
+            "encrypted data too short".to_string(),
+        ));
     }
 
     let key = get_or_create_storage_encryption_key()?;
-    let cipher = Aes256Gcm::new_from_slice(&key)
-        .map_err(|_| CryptoError::InvalidKey)?;
+    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| CryptoError::InvalidKey)?;
 
     let nonce = Nonce::from_slice(&encrypted[..12]);
     let ciphertext = &encrypted[12..];

@@ -32,9 +32,10 @@ impl<'conn> DeviceStorage<'conn> {
     /// Session keys are encrypted before storage for security
     pub fn store_device(&self, device: &StoredDevice) -> SqliteResult<()> {
         // Encrypt session key if present
-        let encrypted_session_key = device.session_key.as_ref().and_then(|key| {
-            encrypt_for_storage(key).ok()
-        });
+        let encrypted_session_key = device
+            .session_key
+            .as_ref()
+            .and_then(|key| encrypt_for_storage(key).ok());
 
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -68,9 +69,8 @@ impl<'conn> DeviceStorage<'conn> {
         let device = stmt.query_row([device_id], |row| {
             let encrypted_session_key: Option<Vec<u8>> = row.get(3)?;
             // Decrypt session key if present
-            let session_key = encrypted_session_key.and_then(|encrypted| {
-                decrypt_from_storage(&encrypted).ok()
-            });
+            let session_key =
+                encrypted_session_key.and_then(|encrypted| decrypt_from_storage(&encrypted).ok());
 
             Ok(StoredDevice {
                 id: row.get(0)?,
@@ -103,9 +103,8 @@ impl<'conn> DeviceStorage<'conn> {
             .query_map([], |row| {
                 let encrypted_session_key: Option<Vec<u8>> = row.get(3)?;
                 // Decrypt session key if present
-                let session_key = encrypted_session_key.and_then(|encrypted| {
-                    decrypt_from_storage(&encrypted).ok()
-                });
+                let session_key = encrypted_session_key
+                    .and_then(|encrypted| decrypt_from_storage(&encrypted).ok());
 
                 Ok(StoredDevice {
                     id: row.get(0)?,

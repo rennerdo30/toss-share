@@ -110,7 +110,9 @@ mod api_integration_tests {
     #[tokio::test]
     async fn test_device_registration_flow() {
         // Start test server
-        let server = TestServer::start().await.expect("Failed to start test server");
+        let server = TestServer::start()
+            .await
+            .expect("Failed to start test server");
 
         // Generate keypair
         let (signing_key, device_id, public_key) = generate_keypair();
@@ -151,7 +153,9 @@ mod api_integration_tests {
     #[tokio::test]
     async fn test_health_endpoint() {
         // Start test server
-        let server = TestServer::start().await.expect("Failed to start test server");
+        let server = TestServer::start()
+            .await
+            .expect("Failed to start test server");
 
         // Check health endpoint
         let client = reqwest::Client::new();
@@ -161,7 +165,10 @@ mod api_integration_tests {
             .await
             .expect("Failed to send request");
 
-        assert!(response.status().is_success(), "Health check should succeed");
+        assert!(
+            response.status().is_success(),
+            "Health check should succeed"
+        );
 
         // Cleanup
         server.shutdown().await;
@@ -170,7 +177,9 @@ mod api_integration_tests {
     #[tokio::test]
     async fn test_invalid_registration_signature() {
         // Start test server
-        let server = TestServer::start().await.expect("Failed to start test server");
+        let server = TestServer::start()
+            .await
+            .expect("Failed to start test server");
 
         // Generate keypair
         let (_signing_key, device_id, public_key) = generate_keypair();
@@ -209,7 +218,9 @@ mod api_integration_tests {
     #[tokio::test]
     async fn test_duplicate_registration() {
         // Start test server
-        let server = TestServer::start().await.expect("Failed to start test server");
+        let server = TestServer::start()
+            .await
+            .expect("Failed to start test server");
 
         // Generate keypair
         let (signing_key, device_id, public_key) = generate_keypair();
@@ -226,10 +237,14 @@ mod api_integration_tests {
             .send()
             .await
             .expect("Failed to send first request");
-        assert!(response1.status().is_success(), "First registration should succeed");
+        assert!(
+            response1.status().is_success(),
+            "First registration should succeed"
+        );
 
         // Create new request with fresh timestamp for second registration
-        let request2 = create_register_request(&signing_key, &device_id, &public_key, "Test Device Updated");
+        let request2 =
+            create_register_request(&signing_key, &device_id, &public_key, "Test Device Updated");
 
         // Second registration should also succeed (update device name)
         let response2 = client
