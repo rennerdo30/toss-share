@@ -11,7 +11,8 @@ import 'package:flutter/services.dart';
 
 /// Service for handling iOS background limitations
 class IosBackgroundService {
-  static final IosBackgroundService _instance = IosBackgroundService._internal();
+  static final IosBackgroundService _instance =
+      IosBackgroundService._internal();
   factory IosBackgroundService() => _instance;
   IosBackgroundService._internal();
 

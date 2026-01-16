@@ -9,8 +9,10 @@ part 'settings_provider.g.dart';
 enum ConflictResolutionMode {
   /// Use the clipboard with the newest timestamp (default)
   newest,
+
   /// Always prefer local clipboard (ignore incoming)
   local,
+
   /// Always accept incoming clipboard
   remote,
 }
@@ -91,21 +93,51 @@ class Settings extends _$Settings {
   AppSettings build() {
     // Load settings from storage
     return AppSettings(
-      autoSync: StorageService.getSetting<bool>(SettingsKeys.autoSync, defaultValue: true) ?? true,
-      syncText: StorageService.getSetting<bool>(SettingsKeys.syncText, defaultValue: true) ?? true,
-      syncRichText: StorageService.getSetting<bool>(SettingsKeys.syncRichText, defaultValue: true) ?? true,
-      syncImages: StorageService.getSetting<bool>(SettingsKeys.syncImages, defaultValue: true) ?? true,
-      syncFiles: StorageService.getSetting<bool>(SettingsKeys.syncFiles, defaultValue: true) ?? true,
-      maxFileSizeMb: StorageService.getSetting<int>(SettingsKeys.maxFileSizeMb, defaultValue: 50) ?? 50,
-      historyEnabled: StorageService.getSetting<bool>(SettingsKeys.historyEnabled, defaultValue: true) ?? true,
-      historyDays: StorageService.getSetting<int>(SettingsKeys.historyDays, defaultValue: 7) ?? 7,
+      autoSync: StorageService.getSetting<bool>(SettingsKeys.autoSync,
+              defaultValue: true) ??
+          true,
+      syncText: StorageService.getSetting<bool>(SettingsKeys.syncText,
+              defaultValue: true) ??
+          true,
+      syncRichText: StorageService.getSetting<bool>(SettingsKeys.syncRichText,
+              defaultValue: true) ??
+          true,
+      syncImages: StorageService.getSetting<bool>(SettingsKeys.syncImages,
+              defaultValue: true) ??
+          true,
+      syncFiles: StorageService.getSetting<bool>(SettingsKeys.syncFiles,
+              defaultValue: true) ??
+          true,
+      maxFileSizeMb: StorageService.getSetting<int>(SettingsKeys.maxFileSizeMb,
+              defaultValue: 50) ??
+          50,
+      historyEnabled: StorageService.getSetting<bool>(
+              SettingsKeys.historyEnabled,
+              defaultValue: true) ??
+          true,
+      historyDays: StorageService.getSetting<int>(SettingsKeys.historyDays,
+              defaultValue: 7) ??
+          7,
       relayUrl: StorageService.getSetting<String?>(SettingsKeys.relayUrl),
-      showNotifications: StorageService.getSetting<bool>(SettingsKeys.showNotifications, defaultValue: true) ?? true,
-      notifyOnPairing: StorageService.getSetting<bool>(SettingsKeys.notifyOnPairing, defaultValue: true) ?? true,
-      notifyOnClipboard: StorageService.getSetting<bool>(SettingsKeys.notifyOnClipboard, defaultValue: true) ?? true,
-      notifyOnConnection: StorageService.getSetting<bool>(SettingsKeys.notifyOnConnection, defaultValue: false) ?? false,
+      showNotifications: StorageService.getSetting<bool>(
+              SettingsKeys.showNotifications,
+              defaultValue: true) ??
+          true,
+      notifyOnPairing: StorageService.getSetting<bool>(
+              SettingsKeys.notifyOnPairing,
+              defaultValue: true) ??
+          true,
+      notifyOnClipboard: StorageService.getSetting<bool>(
+              SettingsKeys.notifyOnClipboard,
+              defaultValue: true) ??
+          true,
+      notifyOnConnection: StorageService.getSetting<bool>(
+              SettingsKeys.notifyOnConnection,
+              defaultValue: false) ??
+          false,
       conflictResolution: _parseConflictResolution(
-        StorageService.getSetting<String>(SettingsKeys.conflictResolution, defaultValue: 'newest'),
+        StorageService.getSetting<String>(SettingsKeys.conflictResolution,
+            defaultValue: 'newest'),
       ),
     );
   }
@@ -199,14 +231,20 @@ class Settings extends _$Settings {
     StorageService.setSetting(SettingsKeys.syncImages, state.syncImages);
     StorageService.setSetting(SettingsKeys.syncFiles, state.syncFiles);
     StorageService.setSetting(SettingsKeys.maxFileSizeMb, state.maxFileSizeMb);
-    StorageService.setSetting(SettingsKeys.historyEnabled, state.historyEnabled);
+    StorageService.setSetting(
+        SettingsKeys.historyEnabled, state.historyEnabled);
     StorageService.setSetting(SettingsKeys.historyDays, state.historyDays);
     StorageService.setSetting(SettingsKeys.relayUrl, state.relayUrl);
-    StorageService.setSetting(SettingsKeys.showNotifications, state.showNotifications);
-    StorageService.setSetting(SettingsKeys.notifyOnPairing, state.notifyOnPairing);
-    StorageService.setSetting(SettingsKeys.notifyOnClipboard, state.notifyOnClipboard);
-    StorageService.setSetting(SettingsKeys.notifyOnConnection, state.notifyOnConnection);
-    StorageService.setSetting(SettingsKeys.conflictResolution, state.conflictResolution.name);
+    StorageService.setSetting(
+        SettingsKeys.showNotifications, state.showNotifications);
+    StorageService.setSetting(
+        SettingsKeys.notifyOnPairing, state.notifyOnPairing);
+    StorageService.setSetting(
+        SettingsKeys.notifyOnClipboard, state.notifyOnClipboard);
+    StorageService.setSetting(
+        SettingsKeys.notifyOnConnection, state.notifyOnConnection);
+    StorageService.setSetting(
+        SettingsKeys.conflictResolution, state.conflictResolution.name);
 
     // Update Rust FFI settings
     TossService.updateSettings(

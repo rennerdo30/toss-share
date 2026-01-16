@@ -26,7 +26,8 @@ class _DropZoneState extends State<DropZone> {
   @override
   Widget build(BuildContext context) {
     // Only enable on desktop platforms
-    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     if (!isDesktop || !widget.enabled) {
       return widget.child;
     }
@@ -128,7 +129,8 @@ class _DropZoneCardState extends State<DropZoneCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     if (!isDesktop) {
       return const SizedBox.shrink();
@@ -176,7 +178,8 @@ class _DropZoneCardState extends State<DropZoneCard> {
             ),
             const SizedBox(height: 12),
             Text(
-              widget.title ?? (_isDragging ? 'Drop to share' : 'Drag files here'),
+              widget.title ??
+                  (_isDragging ? 'Drop to share' : 'Drag files here'),
               style: theme.textTheme.titleSmall?.copyWith(
                 color: _isDragging
                     ? theme.colorScheme.primary

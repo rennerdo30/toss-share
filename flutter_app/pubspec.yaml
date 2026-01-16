@@ -15,7 +15,7 @@ dependencies:
   riverpod_annotation: ^2.3.5
 
   # Rust FFI
-  flutter_rust_bridge: ^2.0.0
+  flutter_rust_bridge: 2.11.1
 
   # Navigation
   go_router: ^17.0.1
@@ -56,6 +56,8 @@ dependencies:
   # UI
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.4.1
+  rust_lib_toss:
+    path: rust_builder
 
 dev_dependencies:
   flutter_test:

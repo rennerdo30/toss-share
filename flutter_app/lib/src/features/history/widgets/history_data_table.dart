@@ -43,7 +43,8 @@ class _HistoryDataTableState extends State<HistoryDataTable> {
       int result;
       switch (_sortColumn) {
         case HistorySortColumn.type:
-          result = a.contentType.displayName.compareTo(b.contentType.displayName);
+          result =
+              a.contentType.displayName.compareTo(b.contentType.displayName);
           break;
         case HistorySortColumn.preview:
           result = a.preview.compareTo(b.preview);
@@ -52,7 +53,8 @@ class _HistoryDataTableState extends State<HistoryDataTable> {
           result = a.timestamp.compareTo(b.timestamp);
           break;
         case HistorySortColumn.device:
-          result = (a.sourceDeviceName ?? '').compareTo(b.sourceDeviceName ?? '');
+          result =
+              (a.sourceDeviceName ?? '').compareTo(b.sourceDeviceName ?? '');
           break;
         case HistorySortColumn.size:
           result = a.sizeBytes.compareTo(b.sizeBytes);

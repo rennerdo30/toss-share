@@ -56,7 +56,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No clipboard history'), findsOneWidget);
-      expect(find.text('Synced clipboard items will appear here'), findsOneWidget);
+      expect(
+          find.text('Synced clipboard items will appear here'), findsOneWidget);
     });
 
     testWidgets('tapping filter button toggles filter panel', (tester) async {

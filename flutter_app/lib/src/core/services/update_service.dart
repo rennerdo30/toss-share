@@ -26,7 +26,8 @@ class UpdateService {
     _currentVersion = packageInfo.version;
 
     // Load stored SHA of current installation
-    _currentSha = StorageService.getSetting<String>(SettingsKeys.currentBuildSha);
+    _currentSha =
+        StorageService.getSetting<String>(SettingsKeys.currentBuildSha);
   }
 
   /// Get current app version
@@ -234,7 +235,8 @@ class UpdateService {
 
       if (success) {
         // Update stored SHA to mark this version as current
-        await StorageService.setSetting(SettingsKeys.currentBuildSha, pendingSha);
+        await StorageService.setSetting(
+            SettingsKeys.currentBuildSha, pendingSha);
         await _clearPendingUpdate();
 
         // Clean up temp files
@@ -340,7 +342,8 @@ Start-Process "${currentDir.path}\\toss.exe"
       await Process.run('cp', ['-r', currentDir.path, backupPath]);
 
       // Copy new files over current
-      await Process.run('cp', ['-rf', '${extractedDir.path}/.', currentDir.path]);
+      await Process.run(
+          'cp', ['-rf', '${extractedDir.path}/.', currentDir.path]);
 
       // Remove backup on success
       await Directory(backupPath).delete(recursive: true);
@@ -370,7 +373,8 @@ Start-Process "${currentDir.path}\\toss.exe"
 
   /// Get last update check time
   static DateTime? get lastCheckTime {
-    final timestamp = StorageService.getSetting<int>(SettingsKeys.lastUpdateCheck);
+    final timestamp =
+        StorageService.getSetting<int>(SettingsKeys.lastUpdateCheck);
     if (timestamp == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }

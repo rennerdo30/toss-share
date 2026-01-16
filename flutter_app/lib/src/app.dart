@@ -29,16 +29,18 @@ class _TossAppState extends ConsumerState<TossApp> {
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         TrayService().setSyncToggleCallback(() {
           final settings = ref.read(settingsProvider);
-          ref.read(settingsProvider.notifier).updateAutoSync(!settings.autoSync);
+          ref
+              .read(settingsProvider.notifier)
+              .updateAutoSync(!settings.autoSync);
         });
       }
-      
+
       // Load clipboard history on app start
       ref.read(clipboardHistoryProvider.notifier).loadHistory();
-      
+
       // Load devices on app start
       ref.read(devicesProvider.notifier).refresh();
-      
+
       // Start network after initialization
       TossService.startNetwork().catchError((e) {
         debugPrint('Warning: Failed to start network: $e');
@@ -121,22 +123,26 @@ class _KeyboardShortcutsWrapper extends StatelessWidget {
 
     return {
       // Cmd/Ctrl+S: Sync clipboard now
-      SingleActivator(LogicalKeyboardKey.keyS, meta: isMacOS, control: !isMacOS): () {
+      SingleActivator(LogicalKeyboardKey.keyS,
+          meta: isMacOS, control: !isMacOS): () {
         _syncClipboard(context);
       },
 
       // Cmd/Ctrl+H: Open clipboard history
-      SingleActivator(LogicalKeyboardKey.keyH, meta: isMacOS, control: !isMacOS): () {
+      SingleActivator(LogicalKeyboardKey.keyH,
+          meta: isMacOS, control: !isMacOS): () {
         _navigateTo('/history');
       },
 
       // Cmd/Ctrl+,: Open settings (standard macOS shortcut)
-      SingleActivator(LogicalKeyboardKey.comma, meta: isMacOS, control: !isMacOS): () {
+      SingleActivator(LogicalKeyboardKey.comma,
+          meta: isMacOS, control: !isMacOS): () {
         _navigateTo('/settings');
       },
 
       // Cmd/Ctrl+P: Pair new device
-      SingleActivator(LogicalKeyboardKey.keyP, meta: isMacOS, control: !isMacOS): () {
+      SingleActivator(LogicalKeyboardKey.keyP,
+          meta: isMacOS, control: !isMacOS): () {
         _navigateTo('/pairing');
       },
 

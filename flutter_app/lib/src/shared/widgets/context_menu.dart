@@ -33,7 +33,8 @@ class ContextMenuRegion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     if (isDesktop) {
       return GestureDetector(

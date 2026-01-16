@@ -36,15 +36,15 @@ class ClipboardPreviewCard extends StatelessWidget {
                 Text(
                   item!.contentType.displayName,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                 ),
                 const Spacer(),
                 Text(
                   item!.formattedSize,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                 ),
                 if (onRefresh != null) ...[
                   const SizedBox(width: 8),
@@ -77,8 +77,8 @@ class ClipboardPreviewCard extends StatelessWidget {
                   Text(
                     'From ${item!.sourceDeviceName}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                   ),
                 ],
               ),
@@ -170,8 +170,8 @@ class _EmptyClipboard extends StatelessWidget {
               Text(
                 'Clipboard is empty',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
               ),
               if (onRefresh != null) ...[
                 const SizedBox(height: 16),

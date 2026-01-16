@@ -136,7 +136,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // Binary content not yet supported for direct sending
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Binary content sending not yet supported')),
+              const SnackBar(
+                  content: Text('Binary content sending not yet supported')),
             );
           }
           return;
@@ -215,7 +216,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         title: const Text('Clipboard History'),
         actions: [
           IconButton(
-            icon: Icon(_showFilters ? Icons.filter_list : Icons.filter_list_outlined),
+            icon: Icon(
+                _showFilters ? Icons.filter_list : Icons.filter_list_outlined),
             tooltip: 'Filters',
             onPressed: () {
               setState(() {
@@ -299,7 +301,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           return ContextMenuRegion(
                             items: ClipboardHistoryContextMenu.build(
                               onCopy: () => _copyItem(context, item),
-                              onSendToDevice: () => _sendToDevice(context, item),
+                              onSendToDevice: () =>
+                                  _sendToDevice(context, item),
                               onDelete: () => _deleteItem(item),
                               hasDevices: hasDevices,
                             ),
@@ -324,7 +327,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear History'),
-        content: const Text('This will delete all clipboard history. Continue?'),
+        content:
+            const Text('This will delete all clipboard history. Continue?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -432,8 +436,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 ...devices.map((deviceId) {
                   final deviceName = history
-                      .firstWhere((item) => item.sourceDeviceId == deviceId)
-                      .sourceDeviceName ??
+                          .firstWhere((item) => item.sourceDeviceId == deviceId)
+                          .sourceDeviceName ??
                       'Unknown Device';
                   return DropdownMenuItem(
                     value: deviceId,
@@ -578,22 +582,31 @@ class _HistoryItem extends StatelessWidget {
                       children: [
                         Text(
                           _formatTimestamp(item.timestamp),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                         ),
                         if (item.sourceDeviceName != null) ...[
                           Text(
                             ' • ',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
                           ),
                           Text(
                             'from ${item.sourceDeviceName}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
                           ),
                         ],
                       ],
@@ -670,8 +683,8 @@ class _EmptyState extends StatelessWidget {
                 ? 'Try adjusting your search or filters'
                 : 'Synced clipboard items will appear here',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
-            ),
+                  color: Theme.of(context).colorScheme.outline,
+                ),
           ),
         ],
       ),

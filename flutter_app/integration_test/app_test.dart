@@ -6,7 +6,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('End-to-End Tests', () {
-    testWidgets('App launches and shows home screen', (WidgetTester tester) async {
+    testWidgets('App launches and shows home screen',
+        (WidgetTester tester) async {
       // Start the app
       app.main();
       await tester.pumpAndSettle();
@@ -15,7 +16,8 @@ void main() {
       expect(find.text('Toss'), findsOneWidget);
     });
 
-    testWidgets('Navigation between screens works', (WidgetTester tester) async {
+    testWidgets('Navigation between screens works',
+        (WidgetTester tester) async {
       app.main();
       await tester.pumpAndSettle();
 
@@ -34,7 +36,8 @@ void main() {
   });
 
   group('Device Pairing Flow', () {
-    testWidgets('Pairing screen displays QR code option', (WidgetTester tester) async {
+    testWidgets('Pairing screen displays QR code option',
+        (WidgetTester tester) async {
       app.main();
       await tester.pumpAndSettle();
 
@@ -43,7 +46,8 @@ void main() {
       // Note: Full implementation requires actual navigation
     });
 
-    testWidgets('Pairing screen displays manual code option', (WidgetTester tester) async {
+    testWidgets('Pairing screen displays manual code option',
+        (WidgetTester tester) async {
       app.main();
       await tester.pumpAndSettle();
 
@@ -89,7 +93,8 @@ void main() {
   });
 
   group('Relay Fallback', () {
-    testWidgets('Relay connection is attempted when P2P fails', (WidgetTester tester) async {
+    testWidgets('Relay connection is attempted when P2P fails',
+        (WidgetTester tester) async {
       app.main();
       await tester.pumpAndSettle();
 
@@ -99,7 +104,8 @@ void main() {
   });
 
   group('Large File Transfer', () {
-    testWidgets('Large clipboard content is handled', (WidgetTester tester) async {
+    testWidgets('Large clipboard content is handled',
+        (WidgetTester tester) async {
       app.main();
       await tester.pumpAndSettle();
 
@@ -109,7 +115,8 @@ void main() {
   });
 
   group('Error Recovery', () {
-    testWidgets('App recovers from network errors', (WidgetTester tester) async {
+    testWidgets('App recovers from network errors',
+        (WidgetTester tester) async {
       app.main();
       await tester.pumpAndSettle();
 

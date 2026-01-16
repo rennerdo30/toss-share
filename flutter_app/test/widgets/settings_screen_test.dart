@@ -88,7 +88,8 @@ void main() {
       expect(find.text('Source Code'), findsOneWidget);
     });
 
-    testWidgets('auto-sync toggle is present and enabled by default', (tester) async {
+    testWidgets('auto-sync toggle is present and enabled by default',
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(

@@ -76,17 +76,21 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
               if (newName.isEmpty) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Device name cannot be empty')),
+                    const SnackBar(
+                        content: Text('Device name cannot be empty')),
                   );
                 }
                 return;
               }
               try {
-                await ref.read(devicesProvider.notifier).renameDevice(device.id, newName);
+                await ref
+                    .read(devicesProvider.notifier)
+                    .renameDevice(device.id, newName);
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Device renamed successfully')),
+                    const SnackBar(
+                        content: Text('Device renamed successfully')),
                   );
                 }
               } catch (e) {
@@ -254,8 +258,8 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Go to the home screen to pair a device',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
-            ),
+                  color: Theme.of(context).colorScheme.outline,
+                ),
           ),
         ],
       ),

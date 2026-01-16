@@ -7,7 +7,8 @@ import 'package:toss/src/core/models/device.dart';
 
 void main() {
   group('TossApp Widget Tests', () {
-    testWidgets('App should render without errors', (WidgetTester tester) async {
+    testWidgets('App should render without errors',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: TossApp(),

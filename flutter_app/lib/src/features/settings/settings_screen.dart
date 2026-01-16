@@ -55,11 +55,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (isMobile) {
             // Mobile: single column list
             return _buildMobileLayout(
-              context, settings, tossState, themeMode, updateState);
+                context, settings, tossState, themeMode, updateState);
           }
           // Desktop/Tablet: two column grid
           return _buildDesktopLayout(
-            context, settings, tossState, themeMode, updateState);
+              context, settings, tossState, themeMode, updateState);
         },
       ),
     );
@@ -74,7 +74,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ) {
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: _buildAllSections(context, settings, tossState, themeMode, updateState),
+      children: _buildAllSections(
+          context, settings, tossState, themeMode, updateState),
     );
   }
 
@@ -191,7 +192,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('Device Name'),
                 subtitle: Text(tossState.deviceName),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showDeviceNameDialog(context, ref, tossState.deviceName),
+                onTap: () =>
+                    _showDeviceNameDialog(context, ref, tossState.deviceName),
               ),
               const Divider(height: 1),
               ListTile(
@@ -272,7 +274,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('Max File Size'),
                 subtitle: Text('${settings.maxFileSizeMb} MB'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showMaxFileSizeDialog(context, ref, settings.maxFileSizeMb),
+                onTap: () => _showMaxFileSizeDialog(
+                    context, ref, settings.maxFileSizeMb),
               ),
             ],
           ),
@@ -295,7 +298,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 subtitle: const Text('Keep clipboard history locally'),
                 value: settings.historyEnabled,
                 onChanged: (value) {
-                  ref.read(settingsProvider.notifier).updateHistoryEnabled(value);
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateHistoryEnabled(value);
                 },
               ),
               const Divider(height: 1),
@@ -306,7 +311,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 enabled: settings.historyEnabled,
                 onTap: settings.historyEnabled
-                    ? () => _showHistoryDaysDialog(context, ref, settings.historyDays)
+                    ? () => _showHistoryDaysDialog(
+                        context, ref, settings.historyDays)
                     : null,
               ),
             ],
@@ -329,7 +335,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('Relay Server'),
                 subtitle: Text(settings.relayUrl ?? 'Not configured'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showRelayUrlDialog(context, ref, settings.relayUrl),
+                onTap: () =>
+                    _showRelayUrlDialog(context, ref, settings.relayUrl),
               ),
             ],
           ),
@@ -385,7 +392,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('Notifications'),
                 value: settings.showNotifications,
                 onChanged: (value) {
-                  ref.read(settingsProvider.notifier).updateShowNotifications(value);
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateShowNotifications(value);
                 },
               ),
               // Granular notification settings (only shown when notifications enabled)
@@ -397,17 +406,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: const Text('When a device wants to pair'),
                   value: settings.notifyOnPairing,
                   onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateNotifyOnPairing(value);
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateNotifyOnPairing(value);
                   },
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
                   secondary: const SizedBox(width: 24),
                   title: const Text('Clipboard received'),
-                  subtitle: const Text('When clipboard is synced from another device'),
+                  subtitle: const Text(
+                      'When clipboard is synced from another device'),
                   value: settings.notifyOnClipboard,
                   onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateNotifyOnClipboard(value);
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateNotifyOnClipboard(value);
                   },
                 ),
                 const Divider(height: 1),
@@ -417,7 +431,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: const Text('When devices connect or disconnect'),
                   value: settings.notifyOnConnection,
                   onChanged: (value) {
-                    ref.read(settingsProvider.notifier).updateNotifyOnConnection(value);
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateNotifyOnConnection(value);
                   },
                 ),
               ],
@@ -439,11 +455,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.info),
                 title: const Text('Version'),
-                subtitle: Text(ref.read(updateProvider.notifier).currentVersion),
+                subtitle:
+                    Text(ref.read(updateProvider.notifier).currentVersion),
               ),
               const Divider(height: 1),
               // Update status (desktop only)
-              if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
+              if (Platform.isMacOS ||
+                  Platform.isWindows ||
+                  Platform.isLinux) ...[
                 _buildUpdateTile(context, ref, updateState),
                 const Divider(height: 1),
               ],
@@ -453,10 +472,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 subtitle: const Text('github.com/rennerdo30/toss-share'),
                 trailing: const Icon(Icons.open_in_new),
                 onTap: () async {
-                  final uri = Uri.parse('https://github.com/rennerdo30/toss-share');
+                  final uri =
+                      Uri.parse('https://github.com/rennerdo30/toss-share');
                   try {
                     if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(uri,
+                          mode: LaunchMode.externalApplication);
                     } else {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -491,7 +512,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Widget _buildUpdateTile(BuildContext context, WidgetRef ref, UpdateState updateState) {
+  Widget _buildUpdateTile(
+      BuildContext context, WidgetRef ref, UpdateState updateState) {
     IconData icon;
     Widget? trailing;
     VoidCallback? onTap;
@@ -549,7 +571,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showDeviceNameDialog(BuildContext context, WidgetRef ref, String currentName) {
+  void _showDeviceNameDialog(
+      BuildContext context, WidgetRef ref, String currentName) {
     final controller = TextEditingController(text: currentName);
     final formKey = GlobalKey<FormState>();
 
@@ -586,7 +609,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () {
               if (formKey.currentState?.validate() ?? false) {
-                ref.read(tossProvider.notifier).setDeviceName(controller.text.trim());
+                ref
+                    .read(tossProvider.notifier)
+                    .setDeviceName(controller.text.trim());
                 Navigator.pop(context);
               }
             },
@@ -597,7 +622,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showMaxFileSizeDialog(BuildContext context, WidgetRef ref, int currentSize) {
+  void _showMaxFileSizeDialog(
+      BuildContext context, WidgetRef ref, int currentSize) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -611,7 +637,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text(
               '$size MB',
               style: TextStyle(
-                fontWeight: size == currentSize ? FontWeight.bold : FontWeight.normal,
+                fontWeight:
+                    size == currentSize ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           );
@@ -620,7 +647,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showHistoryDaysDialog(BuildContext context, WidgetRef ref, int currentDays) {
+  void _showHistoryDaysDialog(
+      BuildContext context, WidgetRef ref, int currentDays) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -634,7 +662,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text(
               '$days day${days > 1 ? 's' : ''}',
               style: TextStyle(
-                fontWeight: days == currentDays ? FontWeight.bold : FontWeight.normal,
+                fontWeight:
+                    days == currentDays ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           );
@@ -643,7 +672,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showRelayUrlDialog(BuildContext context, WidgetRef ref, String? currentUrl) {
+  void _showRelayUrlDialog(
+      BuildContext context, WidgetRef ref, String? currentUrl) {
     final controller = TextEditingController(text: currentUrl);
     final formKey = GlobalKey<FormState>();
 
@@ -696,7 +726,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showThemeDialog(BuildContext context, WidgetRef ref, ThemeMode currentMode) {
+  void _showThemeDialog(
+      BuildContext context, WidgetRef ref, ThemeMode currentMode) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -710,7 +741,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text(
               _getThemeName(mode),
               style: TextStyle(
-                fontWeight: mode == currentMode ? FontWeight.bold : FontWeight.normal,
+                fontWeight:
+                    mode == currentMode ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           );
@@ -732,8 +764,8 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-        ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
       ),
     );
   }

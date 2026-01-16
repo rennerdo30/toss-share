@@ -263,9 +263,9 @@ class _ShowCodeTab extends StatelessWidget {
           Text(
             pairingCode ?? '',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 8,
-            ),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
+                ),
           ),
           const SizedBox(height: 32),
 
@@ -357,8 +357,8 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
                   Text(
                     'Camera permission required',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -434,8 +434,8 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
             textAlign: TextAlign.center,
             enabled: !widget.isPairing,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              letterSpacing: 8,
-            ),
+                  letterSpacing: 8,
+                ),
             decoration: const InputDecoration(
               hintText: '000000',
               counterText: '',
@@ -448,8 +448,8 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
           Text(
             'Manual code entry requires QR scan on the other device',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
-            ),
+                  color: Theme.of(context).colorScheme.outline,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),

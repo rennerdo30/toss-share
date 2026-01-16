@@ -18,7 +18,7 @@ class PermissionsService {
       // For now, return true - full implementation requires native code
       return true;
     }
-    
+
     // On other platforms, clipboard access is typically available
     return true;
   }
@@ -32,12 +32,12 @@ class PermissionsService {
       // 1. Checking current permission status
       // 2. If denied, opening System Preferences to the accessibility section
       // 3. Providing instructions to the user
-      
+
       // For now, return true - full implementation requires native code
       // that can check and request accessibility permissions
       return true;
     }
-    
+
     // On other platforms, clipboard access is typically granted automatically
     return true;
   }

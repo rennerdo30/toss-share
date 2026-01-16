@@ -28,14 +28,15 @@ class CurrentClipboard extends _$CurrentClipboard {
     }
   }
 
-  ClipboardItem _convertToClipboardItem(ClipboardItemInfo info, [String? prefix]) {
+  ClipboardItem _convertToClipboardItem(ClipboardItemInfo info,
+      [String? prefix]) {
     // Generate ID from timestamp and hash if available
     final id = prefix != null
         ? '$prefix-${info.timestamp}'
         : info.sourceDevice != null
             ? '${info.sourceDevice}-${info.timestamp}'
             : 'local-${info.timestamp}';
-    
+
     return ClipboardItem(
       id: id,
       contentType: _parseContentType(info.contentType),

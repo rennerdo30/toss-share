@@ -20,7 +20,8 @@ void main() {
       expect(find.text('Scan Code'), findsOneWidget);
     });
 
-    testWidgets('shows tab content when Show Code tab is selected', (tester) async {
+    testWidgets('shows tab content when Show Code tab is selected',
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(

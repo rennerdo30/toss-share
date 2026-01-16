@@ -111,15 +111,15 @@ class AppSidebar extends ConsumerWidget {
                     )
                   : _DevicesList(
                       devices: devices,
-                      onDeviceTap: (device) => _showDeviceActions(context, device, ref),
+                      onDeviceTap: (device) =>
+                          _showDeviceActions(context, device, ref),
                     ),
             ),
             const Divider(height: 1),
           ],
 
           // Navigation section
-          if (!isCollapsed)
-            _SectionHeader(title: 'Navigation'),
+          if (!isCollapsed) _SectionHeader(title: 'Navigation'),
 
           // Nav items
           Expanded(
@@ -220,10 +220,14 @@ class AppSidebar extends ConsumerWidget {
             SwitchListTile(
               secondary: const Icon(Icons.sync),
               title: const Text('Sync enabled'),
-              subtitle: Text(device.syncEnabled ? 'Receiving from this device' : 'Ignoring this device'),
+              subtitle: Text(device.syncEnabled
+                  ? 'Receiving from this device'
+                  : 'Ignoring this device'),
               value: device.syncEnabled,
               onChanged: (value) {
-                ref.read(devicesProvider.notifier).toggleDeviceSync(device.id, value);
+                ref
+                    .read(devicesProvider.notifier)
+                    .toggleDeviceSync(device.id, value);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -235,12 +239,15 @@ class AppSidebar extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+              leading: Icon(Icons.delete,
+                  color: Theme.of(context).colorScheme.error),
               title: Text('Remove device',
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
               onTap: () async {
                 Navigator.pop(context);
-                await ref.read(devicesProvider.notifier).removeDevice(device.id);
+                await ref
+                    .read(devicesProvider.notifier)
+                    .removeDevice(device.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Device removed')),
@@ -277,7 +284,9 @@ class AppSidebar extends ConsumerWidget {
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty && newName != device.name) {
-                await ref.read(devicesProvider.notifier).renameDevice(device.id, newName);
+                await ref
+                    .read(devicesProvider.notifier)
+                    .renameDevice(device.id, newName);
               }
               if (context.mounted) {
                 Navigator.pop(context);
@@ -624,14 +633,11 @@ class _CollapseToggle extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
-          mainAxisAlignment: isCollapsed
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.end,
+          mainAxisAlignment:
+              isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.end,
           children: [
             Icon(
-              isCollapsed
-                  ? Icons.chevron_right
-                  : Icons.chevron_left,
+              isCollapsed ? Icons.chevron_right : Icons.chevron_left,
               size: 20,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -640,8 +646,8 @@ class _CollapseToggle extends StatelessWidget {
               Text(
                 'Collapse',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
               ),
             ],
           ],

@@ -10,14 +10,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'toss_service.dart';
 import 'notification_service.dart';
 import 'tray_service.dart';
-import '../providers/settings_provider.dart' show settingsProvider, ConflictResolutionMode;
+import '../providers/settings_provider.dart'
+    show settingsProvider, ConflictResolutionMode;
 import '../providers/devices_provider.dart';
 import '../providers/clipboard_provider.dart';
 import '../models/clipboard_item.dart';
 
 /// Service for monitoring clipboard changes and auto-syncing
 class ClipboardMonitorService {
-  static final ClipboardMonitorService _instance = ClipboardMonitorService._internal();
+  static final ClipboardMonitorService _instance =
+      ClipboardMonitorService._internal();
   factory ClipboardMonitorService() => _instance;
   ClipboardMonitorService._internal();
 
@@ -113,7 +115,7 @@ class ClipboardMonitorService {
   /// Handle network events
   void _handleEvent(TossEvent event, WidgetRef ref) {
     final settings = ref.read(settingsProvider);
-    
+
     switch (event.type) {
       case 'clipboard_received':
         // Update clipboard history provider
@@ -124,9 +126,12 @@ class ClipboardMonitorService {
           // Check per-device sync setting
           if (newItem.sourceDeviceId != null) {
             final devices = ref.read(devicesProvider);
-            final sourceDevice = devices.where((d) => d.id == newItem.sourceDeviceId).firstOrNull;
+            final sourceDevice = devices
+                .where((d) => d.id == newItem.sourceDeviceId)
+                .firstOrNull;
             if (sourceDevice != null && !sourceDevice.syncEnabled) {
-              debugPrint('Per-device sync disabled for ${sourceDevice.name}, ignoring clipboard');
+              debugPrint(
+                  'Per-device sync disabled for ${sourceDevice.name}, ignoring clipboard');
               break;
             }
           }
@@ -145,7 +150,6 @@ class ClipboardMonitorService {
               shouldUpdate = true;
               break;
             case ConflictResolutionMode.newest:
-            default:
               // Use timestamp-based resolution (default)
               shouldUpdate = currentClipboard == null ||
                   newItem.timestamp.isAfter(currentClipboard.timestamp);
@@ -177,7 +181,8 @@ class ClipboardMonitorService {
       case 'device_connected':
         // Update devices provider
         ref.read(devicesProvider.notifier).refresh();
-        final connectedCount = ref.read(devicesProvider).where((d) => d.isOnline).length;
+        final connectedCount =
+            ref.read(devicesProvider).where((d) => d.isOnline).length;
         // Update tray icon status on desktop
         if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
           TrayService().updateConnectionStatus(true, connectedCount);
@@ -190,20 +195,25 @@ class ClipboardMonitorService {
       case 'device_disconnected':
         // Update devices provider
         ref.read(devicesProvider.notifier).refresh();
-        final remainingCount = ref.read(devicesProvider).where((d) => d.isOnline).length;
+        final remainingCount =
+            ref.read(devicesProvider).where((d) => d.isOnline).length;
         // Update tray icon status on desktop
         if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-          TrayService().updateConnectionStatus(remainingCount > 0, remainingCount);
+          TrayService()
+              .updateConnectionStatus(remainingCount > 0, remainingCount);
         }
         // Show disconnection notification if enabled
         if (settings.showNotifications && settings.notifyOnConnection) {
-          NotificationService().showConnectionStatus(remainingCount > 0, remainingCount);
+          NotificationService()
+              .showConnectionStatus(remainingCount > 0, remainingCount);
         }
         break;
       case 'pairing_request':
         // Show notification
         final deviceData = event.data?['device'] as DeviceInfo?;
-        if (deviceData != null && settings.showNotifications && settings.notifyOnPairing) {
+        if (deviceData != null &&
+            settings.showNotifications &&
+            settings.notifyOnPairing) {
           NotificationService().showPairingRequest(deviceData.name);
         }
         break;

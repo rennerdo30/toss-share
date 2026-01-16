@@ -153,7 +153,9 @@ void main() {
     });
 
     test('updateRelayUrl changes relayUrl state', () {
-      container.read(settingsProvider.notifier).updateRelayUrl('https://relay.example.com');
+      container
+          .read(settingsProvider.notifier)
+          .updateRelayUrl('https://relay.example.com');
       final settings = container.read(settingsProvider);
 
       expect(settings.relayUrl, 'https://relay.example.com');

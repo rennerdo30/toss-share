@@ -22,7 +22,8 @@ class DesktopShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final currentRoute = GoRouterState.of(context).uri.path;
     final isCollapsed = ref.watch(sidebarCollapsedProvider);
 
@@ -49,7 +50,8 @@ class DesktopShell extends ConsumerWidget {
                       currentRoute: currentRoute,
                       isCollapsed: shouldCollapse,
                       onToggleCollapse: isDesktopSize
-                          ? () => ref.read(sidebarCollapsedProvider.notifier)
+                          ? () => ref
+                              .read(sidebarCollapsedProvider.notifier)
                               .state = !isCollapsed
                           : null,
                     ),

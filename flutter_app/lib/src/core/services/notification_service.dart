@@ -33,7 +33,8 @@ class NotificationService {
     }
 
     // Initialize Android settings
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     // Initialize iOS/macOS settings
     const darwinSettings = DarwinInitializationSettings(
@@ -107,7 +108,8 @@ class NotificationService {
     const androidDetails = AndroidNotificationDetails(
       'clipboard',
       'Clipboard Updates',
-      channelDescription: 'Notifications when clipboard is received from other devices',
+      channelDescription:
+          'Notifications when clipboard is received from other devices',
       importance: Importance.low,
       priority: Priority.low,
     );
@@ -123,9 +125,8 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    final truncatedPreview = preview.length > 50
-        ? '${preview.substring(0, 50)}...'
-        : preview;
+    final truncatedPreview =
+        preview.length > 50 ? '${preview.substring(0, 50)}...' : preview;
 
     await _notifications.show(
       2,

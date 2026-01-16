@@ -2,20 +2,17 @@
 # This file configures code generation for Rust FFI bindings
 # For more details, see https://cjycode.com/flutter_rust_bridge/guides/generate_rust_code.html
 
-# Rust crate root directory
-rust_root: ../rust_core
+# Rust crate root directory (points to the rust_lib_toss wrapper crate)
+rust_root: rust
 
-# Rust input (module path)
+# Rust input - use the wrapper's api module which contains wrapper functions with #[frb] attributes
 rust_input: crate::api
 
 # Path to the Dart output file
-dart_output: lib/src/rust/api.dart
-
-# Path to the C header output file (optional)
-c_output: ../rust_core/src/api/toss_api.h
+dart_output: lib/src/rust
 
 # Dart entrypoint class name
-dart_entrypoint_class_name: TossApi
+dart_entrypoint_class_name: RustLib
 
 # Enable Dart format on generated code
 dart_format: true

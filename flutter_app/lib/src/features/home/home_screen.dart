@@ -67,7 +67,8 @@ class _MobileLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     return Scaffold(
       appBar: AppBar(
@@ -158,7 +159,9 @@ class _MobileLayout extends StatelessWidget {
                       child: ClipboardPreviewCard(
                         item: currentClipboard,
                         onRefresh: () async {
-                          await ref.read(currentClipboardProvider.notifier).refresh();
+                          await ref
+                              .read(currentClipboardProvider.notifier)
+                              .refresh();
                         },
                       ),
                     ),
@@ -311,7 +314,8 @@ class _DesktopLayout extends StatelessWidget {
                             );
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Copied to clipboard')),
+                                const SnackBar(
+                                    content: Text('Copied to clipboard')),
                               );
                             }
                           } catch (e) {
@@ -332,12 +336,16 @@ class _DesktopLayout extends StatelessWidget {
                       : () async {
                           try {
                             // Clear the system clipboard
-                            await Clipboard.setData(const ClipboardData(text: ''));
+                            await Clipboard.setData(
+                                const ClipboardData(text: ''));
                             // Refresh to update the UI
-                            await ref.read(currentClipboardProvider.notifier).refresh();
+                            await ref
+                                .read(currentClipboardProvider.notifier)
+                                .refresh();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Clipboard cleared')),
+                                const SnackBar(
+                                    content: Text('Clipboard cleared')),
                               );
                             }
                           } catch (e) {
@@ -390,10 +398,14 @@ class _DesktopLayout extends StatelessWidget {
                       ? null
                       : () async {
                           try {
-                            await ref.read(tossProvider.notifier).sendClipboard();
+                            await ref
+                                .read(tossProvider.notifier)
+                                .sendClipboard();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Clipboard sent successfully!')),
+                                const SnackBar(
+                                    content:
+                                        Text('Clipboard sent successfully!')),
                               );
                             }
                           } catch (e) {
@@ -414,7 +426,9 @@ class _DesktopLayout extends StatelessWidget {
                           ),
                         )
                       : const Icon(Icons.send),
-                  label: Text(tossState.isSyncing ? 'Sending...' : 'Send to all devices'),
+                  label: Text(tossState.isSyncing
+                      ? 'Sending...'
+                      : 'Send to all devices'),
                 ),
               ],
             ),
@@ -481,7 +495,8 @@ class _SendButton extends StatelessWidget {
                 await ref.read(tossProvider.notifier).sendClipboard();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Clipboard sent successfully!')),
+                    const SnackBar(
+                        content: Text('Clipboard sent successfully!')),
                   );
                 }
               } catch (e) {
@@ -525,8 +540,8 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
             ),
           ),
           Expanded(

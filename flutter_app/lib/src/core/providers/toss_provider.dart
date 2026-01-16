@@ -57,7 +57,7 @@ class Toss extends _$Toss {
   Future<void> initialize() async {
     // Initialize TossService (which calls Rust FFI)
     await TossService.initialize();
-    
+
     // Update state with actual device info
     state = state.copyWith(
       deviceId: TossService.deviceId ?? '',

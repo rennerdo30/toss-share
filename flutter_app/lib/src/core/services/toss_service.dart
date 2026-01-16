@@ -4,8 +4,8 @@ import 'dart:io';
 import 'dart:async';
 
 // Import generated FFI bindings
-import 'package:toss/src/rust/api.dart/api.dart' as api;
-import 'package:toss/src/rust/api.dart/frb_generated.dart';
+import 'package:toss/src/rust/api.dart' as api;
+import 'package:toss/src/rust/frb_generated.dart';
 
 /// Pairing information returned from start_pairing
 class PairingInfo {
@@ -169,7 +169,7 @@ class TossService {
 
     // Initialize flutter_rust_bridge first
     try {
-      await TossApi.init();
+      await RustLib.init();
       _ffiAvailable = true;
     } catch (e) {
       _ffiAvailable = false;
@@ -257,9 +257,11 @@ class TossService {
   }
 
   /// Complete pairing with manual code
-  static Future<DeviceInfo> completePairingCode(String code, List<int> publicKey) async {
+  static Future<DeviceInfo> completePairingCode(
+      String code, List<int> publicKey) async {
     try {
-      final device = api.completePairingCode(code: code, peerPublicKey: publicKey);
+      final device =
+          api.completePairingCode(code: code, peerPublicKey: publicKey);
       return DeviceInfo(
         id: device.id,
         name: device.name,
@@ -290,13 +292,15 @@ class TossService {
     if (!_ffiAvailable) return [];
     try {
       final devices = api.getPairedDevices();
-      return devices.map((d) => DeviceInfo(
-        id: d.id,
-        name: d.name,
-        isOnline: d.isOnline,
-        lastSeen: d.lastSeen.toInt(),
-        platform: d.platform,
-      )).toList();
+      return devices
+          .map((d) => DeviceInfo(
+                id: d.id,
+                name: d.name,
+                isOnline: d.isOnline,
+                lastSeen: d.lastSeen.toInt(),
+                platform: d.platform,
+              ))
+          .toList();
     } catch (e) {
       debugPrint('Warning: Failed to get paired devices: $e');
       return [];
@@ -308,13 +312,15 @@ class TossService {
     if (!_ffiAvailable) return [];
     try {
       final devices = api.getConnectedDevices();
-      return devices.map((d) => DeviceInfo(
-        id: d.id,
-        name: d.name,
-        isOnline: d.isOnline,
-        lastSeen: d.lastSeen.toInt(),
-        platform: d.platform,
-      )).toList();
+      return devices
+          .map((d) => DeviceInfo(
+                id: d.id,
+                name: d.name,
+                isOnline: d.isOnline,
+                lastSeen: d.lastSeen.toInt(),
+                platform: d.platform,
+              ))
+          .toList();
     } catch (e) {
       debugPrint('Warning: Failed to get connected devices: $e');
       return [];
@@ -397,10 +403,12 @@ class TossService {
       } catch (e) {
         attempt++;
         if (attempt >= maxRetries) {
-          debugPrint('Warning: Failed to $operationName after $maxRetries attempts: $e');
+          debugPrint(
+              'Warning: Failed to $operationName after $maxRetries attempts: $e');
           rethrow; // Propagate error after all retries exhausted
         }
-        debugPrint('Warning: $operationName failed (attempt $attempt/$maxRetries), retrying in ${delay.inMilliseconds}ms: $e');
+        debugPrint(
+            'Warning: $operationName failed (attempt $attempt/$maxRetries), retrying in ${delay.inMilliseconds}ms: $e');
         await Future.delayed(delay);
         delay *= 2; // Exponential backoff
       }
@@ -408,18 +416,21 @@ class TossService {
   }
 
   /// Get clipboard history
-  static Future<List<ClipboardItemInfo>> getClipboardHistory({int? limit}) async {
+  static Future<List<ClipboardItemInfo>> getClipboardHistory(
+      {int? limit}) async {
     if (!_ffiAvailable) return [];
     try {
       final items = api.getClipboardHistory(limit: limit);
-      return items.map((item) => ClipboardItemInfo(
-        id: item.id,
-        contentType: item.contentType,
-        preview: item.preview,
-        sizeBytes: item.sizeBytes.toInt(),
-        timestamp: item.timestamp.toInt(),
-        sourceDevice: item.sourceDevice,
-      )).toList();
+      return items
+          .map((item) => ClipboardItemInfo(
+                id: item.id,
+                contentType: item.contentType,
+                preview: item.preview,
+                sizeBytes: item.sizeBytes.toInt(),
+                timestamp: item.timestamp.toInt(),
+                sourceDevice: item.sourceDevice,
+              ))
+          .toList();
     } catch (e) {
       debugPrint('Warning: Failed to get clipboard history: $e');
       return [];

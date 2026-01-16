@@ -42,13 +42,14 @@ class ResponsiveLayout extends StatelessWidget {
       MediaQuery.of(context).size.width >= Breakpoints.mobile;
 
   /// Check if sidebar should be collapsed (tablet only)
-  static bool shouldCollapseSidebar(BuildContext context) =>
-      isTablet(context);
+  static bool shouldCollapseSidebar(BuildContext context) => isTablet(context);
 
   /// Get the current sidebar width based on screen size
   static double getSidebarWidth(BuildContext context) {
     if (!shouldShowSidebar(context)) return 0;
-    if (shouldCollapseSidebar(context)) return Breakpoints.collapsedSidebarWidth;
+    if (shouldCollapseSidebar(context)) {
+      return Breakpoints.collapsedSidebarWidth;
+    }
     return Breakpoints.sidebarWidth;
   }
 
@@ -64,7 +65,8 @@ class ResponsiveLayout extends StatelessWidget {
   }
 
   /// Get the number of columns for a grid based on screen size
-  static int getGridColumns(BuildContext context, {int mobileColumns = 1, int tabletColumns = 2, int desktopColumns = 3}) {
+  static int getGridColumns(BuildContext context,
+      {int mobileColumns = 1, int tabletColumns = 2, int desktopColumns = 3}) {
     if (isMobile(context)) return mobileColumns;
     if (isTablet(context)) return tabletColumns;
     return desktopColumns;
@@ -87,7 +89,9 @@ class ResponsiveLayout extends StatelessWidget {
 
 /// A widget that adapts its child based on screen size
 class ResponsiveBuilder extends StatelessWidget {
-  final Widget Function(BuildContext context, bool isMobile, bool isTablet, bool isDesktop) builder;
+  final Widget Function(
+          BuildContext context, bool isMobile, bool isTablet, bool isDesktop)
+      builder;
 
   const ResponsiveBuilder({
     super.key,
@@ -100,7 +104,7 @@ class ResponsiveBuilder extends StatelessWidget {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < Breakpoints.mobile;
         final isTablet = constraints.maxWidth >= Breakpoints.mobile &&
-                         constraints.maxWidth < Breakpoints.tablet;
+            constraints.maxWidth < Breakpoints.tablet;
         final isDesktop = constraints.maxWidth >= Breakpoints.tablet;
 
         return builder(context, isMobile, isTablet, isDesktop);

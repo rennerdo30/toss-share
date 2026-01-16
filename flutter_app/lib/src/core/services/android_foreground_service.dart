@@ -38,7 +38,8 @@ class AndroidForegroundService {
     if (!isAndroid) return false;
 
     try {
-      final result = await _channel.invokeMethod<bool>('startForegroundService', {
+      final result =
+          await _channel.invokeMethod<bool>('startForegroundService', {
         'title': 'Toss Clipboard Sync',
         'content': 'Monitoring clipboard for sync',
         'icon': '@mipmap/ic_launcher',
@@ -97,7 +98,8 @@ class AndroidForegroundService {
     if (!isAndroid) return false;
 
     try {
-      final result = await _channel.invokeMethod<bool>('requestNotificationPermission');
+      final result =
+          await _channel.invokeMethod<bool>('requestNotificationPermission');
       return result ?? false;
     } catch (e) {
       return false;

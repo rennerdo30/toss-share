@@ -70,7 +70,8 @@ class StorageService {
   }
 
   /// Save a device
-  static Future<void> saveDevice(String deviceId, Map<String, dynamic> device) async {
+  static Future<void> saveDevice(
+      String deviceId, Map<String, dynamic> device) async {
     await _devicesBox?.put(deviceId, device);
   }
 
@@ -97,7 +98,8 @@ class StorageService {
   // ============================================================================
 
   /// Add an item to clipboard history
-  static Future<void> addHistoryItem(String id, Map<String, dynamic> item) async {
+  static Future<void> addHistoryItem(
+      String id, Map<String, dynamic> item) async {
     await _historyBox?.put(id, item);
   }
 

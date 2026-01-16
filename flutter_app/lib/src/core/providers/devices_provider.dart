@@ -18,16 +18,18 @@ class Devices extends _$Devices {
   Future<void> refresh() async {
     // Call Rust FFI to get paired devices
     final devices = await TossService.getPairedDevices();
-    state = devices.map((d) => Device(
-      id: d.id,
-      name: d.name,
-      isOnline: d.isOnline,
-      lastSeen: d.lastSeen > 0
-          ? DateTime.fromMillisecondsSinceEpoch(d.lastSeen)
-          : null,
-      platform: _parsePlatform(d.platform),
-      syncEnabled: _getDeviceSyncEnabled(d.id),
-    )).toList();
+    state = devices
+        .map((d) => Device(
+              id: d.id,
+              name: d.name,
+              isOnline: d.isOnline,
+              lastSeen: d.lastSeen > 0
+                  ? DateTime.fromMillisecondsSinceEpoch(d.lastSeen)
+                  : null,
+              platform: _parsePlatform(d.platform),
+              syncEnabled: _getDeviceSyncEnabled(d.id),
+            ))
+        .toList();
   }
 
   /// Get per-device sync setting from storage

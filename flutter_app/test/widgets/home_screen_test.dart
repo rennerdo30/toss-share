@@ -40,7 +40,8 @@ void main() {
       expect(find.text('Toss'), findsOneWidget);
     });
 
-    testWidgets('mobile: shows empty devices message when no devices', (tester) async {
+    testWidgets('mobile: shows empty devices message when no devices',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

@@ -10,7 +10,8 @@ class AutoStartService {
   static const MethodChannel _channel = MethodChannel('toss.app/auto_start');
 
   /// Check if auto-start is supported on this platform
-  static bool get isSupported => Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  static bool get isSupported =>
+      Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
   /// Enable auto-start
   static Future<bool> enable() async {

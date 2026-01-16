@@ -30,6 +30,12 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
+
       - name: Build Flutter app
         working-directory: ./flutter_app
         run: |
@@ -66,6 +72,12 @@ jobs:
       - name: Build Rust core
         working-directory: ./rust_core
         run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
 
       - name: Install CocoaPods and build Flutter app
         working-directory: ./flutter_app
@@ -107,6 +119,13 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        shell: bash
+        run: make generate-ffi
+
       - name: Build Flutter app
         working-directory: ./flutter_app
         run: |
@@ -131,6 +150,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -142,6 +164,16 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
 
       - name: Build Android APK
         working-directory: ./flutter_app
@@ -155,6 +187,52 @@ jobs:
         with:
           name: toss-android
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
+
+      - name: Build iOS (no codesign)
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          cd ios && pod install --repo-update && cd ..
+          flutter build ios --release --no-codesign
+
+      - name: Package iOS app
+        run: |
+          cd flutter_app/build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r ../../../toss-ios.ipa Payload
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: toss-ios
+          path: flutter_app/toss-ios.ipa
 
   build-relay:
     name: Build Relay Server
@@ -181,7 +259,7 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: [build-linux, build-macos, build-windows, build-android, build-relay]
+    needs: [build-linux, build-macos, build-windows, build-android, build-ios, build-relay]
     runs-on: ubuntu-latest
     permissions:
       contents: write

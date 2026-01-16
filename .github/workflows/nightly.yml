@@ -195,9 +195,56 @@ jobs:
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
 
+  build-ios:
+    name: Nightly iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Rust core
+        working-directory: ./rust_core
+        run: cargo build --release
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Generate FFI bindings
+        run: make generate-ffi
+
+      - name: Build iOS (no codesign)
+        working-directory: ./flutter_app
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          cd ios && pod install --repo-update && cd ..
+          flutter build ios --release --no-codesign
+
+      - name: Package iOS app
+        run: |
+          cd flutter_app/build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r ../../../toss-ios-nightly.ipa Payload
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: toss-ios-nightly-${{ github.run_number }}
+          path: flutter_app/toss-ios-nightly.ipa
+          retention-days: 14
+
   create-nightly-release:
     name: Create Nightly Release
-    needs: [build-linux, build-macos, build-windows, build-android]
+    needs: [build-linux, build-macos, build-windows, build-android, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -216,6 +263,7 @@ jobs:
           find artifacts -name "*.tar.gz" -exec cp {} release-files/ \;
           find artifacts -name "*.zip" -exec cp {} release-files/ \;
           find artifacts -name "*.apk" -exec cp {} release-files/toss-android-nightly.apk \;
+          find artifacts -name "*.ipa" -exec cp {} release-files/toss-ios-nightly.ipa \;
           ls -la release-files/
 
       - name: Delete existing nightly release
@@ -245,6 +293,7 @@ jobs:
             - **macOS**: `toss-macos-nightly.zip`
             - **Windows**: `toss-windows-x64-nightly.zip`
             - **Android**: `toss-android-nightly.apk`
+            - **iOS**: `toss-ios-nightly.ipa` (unsigned, for development/testing)
           files: release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
