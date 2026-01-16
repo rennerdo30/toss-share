@@ -300,7 +300,8 @@ impl LinuxSecretStorage {
         })
     }
 
-    fn make_attributes(&self, key: &str) -> HashMap<&str, &str> {
+    #[allow(dead_code)]
+    fn make_attributes(&self, _key: &str) -> HashMap<&str, &str> {
         let mut attrs = HashMap::new();
         attrs.insert("application", "toss");
         // Note: We can't return references to local Strings, so we use static key names
@@ -315,7 +316,7 @@ impl SecureStorage for LinuxSecretStorage {
         use tokio::runtime::Handle;
 
         // Try to use existing runtime, or create a new one for blocking
-        let result = if let Ok(handle) = Handle::try_current() {
+        let result = if let Ok(_handle) = Handle::try_current() {
             // We're in an async context, need to use spawn_blocking
             std::thread::scope(|s| {
                 s.spawn(|| {

@@ -422,6 +422,7 @@ pub mod linux_impl {
 
     impl LinuxFileClipboardProvider {
         /// Create a new Linux file clipboard provider
+        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }
