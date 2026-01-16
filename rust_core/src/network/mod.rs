@@ -202,7 +202,7 @@ impl NetworkManager {
 
                 // Spawn task to receive messages from relay
                 tokio::spawn(async move {
-                    Self::relay_receive_loop(&*relay_clone, event_tx, identity, get_session_key)
+                    Self::relay_receive_loop(&relay_clone, event_tx, identity, get_session_key)
                         .await;
                 });
 

@@ -331,11 +331,7 @@ pub mod macos_impl {
             let path_part = &url[7..]; // Remove "file://"
 
             // Handle localhost prefix
-            let path_part = if path_part.starts_with("localhost") {
-                &path_part[9..] // Remove "localhost"
-            } else {
-                path_part
-            };
+            let path_part = path_part.strip_prefix("localhost").unwrap_or(path_part);
 
             // Decode URL encoding
             let decoded = Self::url_decode(path_part)?;
@@ -370,7 +366,7 @@ pub mod macos_impl {
         pub fn parse_file_urls(data: &str) -> Vec<PathBuf> {
             data.lines()
                 .filter(|line| line.starts_with("file://"))
-                .filter_map(|url| Self::file_url_to_path(url))
+                .filter_map(Self::file_url_to_path)
                 .collect()
         }
 

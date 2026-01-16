@@ -83,7 +83,7 @@ impl WebSocketPeerConnection {
         let msg = stream
             .next()
             .await
-            .ok_or_else(|| NetworkError::ConnectionClosed)?
+            .ok_or(NetworkError::ConnectionClosed)?
             .map_err(|e| NetworkError::Transport(format!("WebSocket receive failed: {}", e)))?;
 
         let frame_bytes = match msg {

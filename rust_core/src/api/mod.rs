@@ -504,7 +504,7 @@ pub async fn send_clipboard() -> Result<(), String> {
     // Rate limiting: prevent rapid-fire syncs (minimum 100ms between syncs)
     {
         let guard = TOSS_INSTANCE.read();
-        if let Some(ref core) = guard.as_ref() {
+        if let Some(core) = guard.as_ref() {
             let last_sync = core.last_sync_time.lock().unwrap();
             let elapsed = last_sync.elapsed();
             if elapsed.as_millis() < 100 {
@@ -885,7 +885,7 @@ pub fn poll_event() -> Option<TossEvent> {
                 // Verify that the message is from a paired device and not from ourselves
                 let (is_paired, is_self) = {
                     let guard = TOSS_INSTANCE.read();
-                    if let Some(ref core) = guard.as_ref() {
+                    if let Some(core) = guard.as_ref() {
                         let device_id_str = hex::encode(from_device_id);
                         let is_paired = matches!(
                             core.storage.devices().get_device(&device_id_str),
@@ -929,7 +929,7 @@ pub fn poll_event() -> Option<TossEvent> {
                     // Validate content size limit
                     let max_size = {
                         let guard = TOSS_INSTANCE.read();
-                        if let Some(ref core) = guard.as_ref() {
+                        if let Some(core) = guard.as_ref() {
                             (core.settings.max_file_size_mb as u64) * 1024 * 1024
                         } else {
                             return None;
@@ -945,7 +945,7 @@ pub fn poll_event() -> Option<TossEvent> {
                     // Check settings and write to clipboard if sync is enabled for this content type
                     let should_write = {
                         let guard = TOSS_INSTANCE.read();
-                        if let Some(ref core) = guard.as_ref() {
+                        if let Some(core) = guard.as_ref() {
                             let settings = &core.settings;
                             match update.content.content_type {
                                 ContentType::PlainText | ContentType::Url => settings.sync_text,
@@ -974,7 +974,7 @@ pub fn poll_event() -> Option<TossEvent> {
                     // Save to history if enabled (with encryption)
                     {
                         let guard = TOSS_INSTANCE.read();
-                        if let Some(ref core) = guard.as_ref() {
+                        if let Some(core) = guard.as_ref() {
                             if core.settings.history_enabled {
                                 let item_id = uuid::Uuid::new_v4().to_string();
                                 let content_data = match bincode::serialize(&update.content) {

@@ -92,7 +92,11 @@ impl ClipboardProvider for ClipboardHandler {
                 // Try to detect format and use platform-specific provider
                 if let Some(format) = RichTextFormat::detect(content) {
                     // Try platform-specific rich text write
-                    if let Err(_) = self.rich_text_provider.write_rich_text(content, format) {
+                    if self
+                        .rich_text_provider
+                        .write_rich_text(content, format)
+                        .is_err()
+                    {
                         // Fallback to plain text if rich text write fails
                         let text = String::from_utf8(content.data.clone())
                             .map_err(|e| ClipboardError::OperationFailed(e.to_string()))?;
