@@ -4,6 +4,7 @@ import 'dart:async';
 
 // Import generated FFI bindings
 import 'package:toss/src/rust/api.dart/api.dart' as api;
+import 'package:toss/src/rust/api.dart/frb_generated.dart';
 
 /// Pairing information returned from start_pairing
 class PairingInfo {
@@ -160,6 +161,13 @@ class TossService {
 
     _dataDir = dataDir.path;
     _deviceName = await _getDeviceName();
+
+    // Initialize flutter_rust_bridge first
+    try {
+      await TossApi.init();
+    } catch (e) {
+      print('Warning: flutter_rust_bridge initialization failed: $e');
+    }
 
     // Call Rust FFI init_toss()
     try {

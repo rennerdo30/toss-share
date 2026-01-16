@@ -1,5 +1,6 @@
 //! Notification service for showing app notifications
 
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -17,25 +18,39 @@ class NotificationService {
   Future<bool> initialize() async {
     if (_initialized) return true;
 
-    // Request notification permission
-    final status = await Permission.notification.request();
-    if (!status.isGranted) {
-      return false;
+    // Request notification permission (only on platforms that support it)
+    // permission_handler doesn't support notification permission on macOS/Linux
+    if (Platform.isAndroid || Platform.isIOS) {
+      try {
+        final status = await Permission.notification.request();
+        if (!status.isGranted) {
+          return false;
+        }
+      } catch (e) {
+        print('Warning: Could not request notification permission: $e');
+      }
     }
 
     // Initialize Android settings
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    
-    // Initialize iOS settings
-    const iosSettings = DarwinInitializationSettings(
+
+    // Initialize iOS/macOS settings
+    const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
 
+    // Initialize Linux settings
+    const linuxSettings = LinuxInitializationSettings(
+      defaultActionName: 'Open notification',
+    );
+
     const initSettings = InitializationSettings(
       android: androidSettings,
-      iOS: iosSettings,
+      iOS: darwinSettings,
+      macOS: darwinSettings,
+      linux: linuxSettings,
     );
 
     final initialized = await _notifications.initialize(
