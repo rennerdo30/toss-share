@@ -165,6 +165,7 @@ mod tests {
             last_seen: None,
             created_at: 1234567890,
             is_active: true,
+            platform: None,
         };
 
         device_storage.store_device(&device).unwrap();
@@ -192,6 +193,7 @@ mod tests {
             last_seen: None,
             created_at: 1000,
             is_active: true,
+            platform: None,
         };
 
         let device2 = StoredDevice {
@@ -202,6 +204,7 @@ mod tests {
             last_seen: None,
             created_at: 2000,
             is_active: true,
+            platform: None,
         };
 
         device_storage.store_device(&device1).unwrap();
@@ -226,6 +229,7 @@ mod tests {
             last_seen: None,
             created_at: 1000,
             is_active: true,
+            platform: None,
         };
 
         device_storage.store_device(&device).unwrap();

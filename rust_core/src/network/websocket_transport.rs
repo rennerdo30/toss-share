@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_websocket_url_construction() {
-        let transport = WebSocketTransport::new("https://example.com".to_string());
+        let _transport = WebSocketTransport::new("https://example.com".to_string());
         // Would test connect() but requires actual server
     }
 
