@@ -71,10 +71,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Uncomment and add assets when available:
-  # assets:
-  #   - assets/icons/
-  #   - assets/images/
+  assets:
+    - assets/
 
   # Uncomment to use custom Inter font (download from https://fonts.google.com/specimen/Inter):
   # fonts:

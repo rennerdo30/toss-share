@@ -80,4 +80,16 @@ class Toss extends _$Toss {
   void updateConnectedDevices(int count) {
     state = state.copyWith(connectedDevices: count);
   }
+
+  /// Send clipboard to all connected devices
+  Future<void> sendClipboard() async {
+    if (state.isSyncing) return; // Prevent multiple sends
+
+    state = state.copyWith(isSyncing: true);
+    try {
+      await TossService.sendClipboard();
+    } finally {
+      state = state.copyWith(isSyncing: false);
+    }
+  }
 }

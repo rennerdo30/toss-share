@@ -20,7 +20,7 @@ use tokio::sync::broadcast;
 use base64::Engine;
 use hex;
 
-use crate::crypto::{derive_key, DeviceIdentity, DerivedKeyPurpose, EphemeralKeyPair};
+use crate::crypto::{derive_key, encrypt, decrypt, DeviceIdentity, DerivedKeyPurpose, EphemeralKeyPair, EncryptedMessage};
 use crate::error::NetworkError;
 use crate::protocol::{KeyRotation, KeyRotationReason, Message};
 
@@ -98,6 +98,9 @@ struct PeerEphemeralKey {
 /// Callback function type for getting device public key by device ID
 pub type GetPublicKeyFn = Box<dyn Fn(&[u8; 32]) -> Option<[u8; 32]> + Send + Sync>;
 
+/// Callback function type for getting session key by device ID (for relay encryption)
+pub type GetSessionKeyFn = Box<dyn Fn(&[u8; 32]) -> Option<[u8; 32]> + Send + Sync>;
+
 /// Network manager coordinating discovery and connections
 pub struct NetworkManager {
     config: NetworkConfig,
@@ -109,6 +112,7 @@ pub struct NetworkManager {
     ephemeral_keys: Arc<RwLock<HashMap<[u8; 32], PeerEphemeralKey>>>,
     event_tx: broadcast::Sender<NetworkEvent>,
     get_public_key: Option<Arc<GetPublicKeyFn>>,
+    get_session_key: Option<Arc<GetSessionKeyFn>>,
 }
 
 impl NetworkManager {
@@ -117,7 +121,7 @@ impl NetworkManager {
         identity: Arc<DeviceIdentity>,
         config: NetworkConfig,
     ) -> Result<Self, NetworkError> {
-        Self::new_with_public_key_fn(identity, config, None).await
+        Self::new_with_callbacks(identity, config, None, None).await
     }
 
     /// Create a new network manager with a callback to get device public keys
@@ -125,6 +129,16 @@ impl NetworkManager {
         identity: Arc<DeviceIdentity>,
         config: NetworkConfig,
         get_public_key: Option<Arc<GetPublicKeyFn>>,
+    ) -> Result<Self, NetworkError> {
+        Self::new_with_callbacks(identity, config, get_public_key, None).await
+    }
+
+    /// Create a new network manager with callbacks for key lookups
+    pub async fn new_with_callbacks(
+        identity: Arc<DeviceIdentity>,
+        config: NetworkConfig,
+        get_public_key: Option<Arc<GetPublicKeyFn>>,
+        get_session_key: Option<Arc<GetSessionKeyFn>>,
     ) -> Result<Self, NetworkError> {
         let (event_tx, _) = broadcast::channel(100);
 
@@ -138,6 +152,7 @@ impl NetworkManager {
             ephemeral_keys: Arc::new(RwLock::new(HashMap::new())),
             event_tx,
             get_public_key,
+            get_session_key,
         })
     }
 
@@ -172,18 +187,19 @@ impl NetworkManager {
                 // Continue without relay - P2P will still work
             } else {
                 tracing::info!("Connected to relay server at {}", url);
-                
+
                 // Store relay client
                 let relay_arc = Arc::new(relay);
                 let relay_clone = relay_arc.clone();
                 let event_tx = self.event_tx.clone();
                 let identity = self.identity.clone();
-                
+                let get_session_key = self.get_session_key.clone();
+
                 // Spawn task to receive messages from relay
                 tokio::spawn(async move {
-                    Self::relay_receive_loop(&*relay_clone, event_tx, identity).await;
+                    Self::relay_receive_loop(&*relay_clone, event_tx, identity, get_session_key).await;
                 });
-                
+
                 self.relay_client = Some(relay_arc);
             }
         }
@@ -443,11 +459,49 @@ impl NetworkManager {
         // Try QUIC first
         match self.send_to_peer_internal(device_id, message).await {
             Ok(()) => Ok(()),
-            Err(e) => {
-                // If QUIC fails, try WebSocket fallback if configured
-                // TODO: Implement WebSocket fallback connection
-                tracing::warn!("QUIC send failed: {}, WebSocket fallback not yet implemented", e);
-                Err(e)
+            Err(quic_error) => {
+                // If QUIC fails, try WebSocket fallback if relay URL is configured
+                if let Some(relay_url) = &self.config.relay_url {
+                    // Use relay URL as base for WebSocket (convert to wss:// if needed)
+                    let ws_url = relay_url
+                        .replace("https://", "wss://")
+                        .replace("http://", "ws://");
+
+                    let device_id_hex = hex::encode(device_id);
+                    tracing::debug!("QUIC failed: {}, attempting WebSocket fallback to {}", quic_error, ws_url);
+
+                    // Try to establish WebSocket connection and send message
+                    match WebSocketPeerConnection::connect(&format!("{}/ws/{}", ws_url, device_id_hex)).await {
+                        Ok(ws_conn) => {
+                            // Get session key if available
+                            if let Some(ref get_key) = self.get_session_key {
+                                if let Some(session_key) = get_key(device_id) {
+                                    ws_conn.set_session_key(session_key).await;
+
+                                    match ws_conn.send_message(message).await {
+                                        Ok(()) => {
+                                            tracing::info!("Sent message via WebSocket fallback to {}", device_id_hex);
+                                            return Ok(());
+                                        }
+                                        Err(ws_error) => {
+                                            tracing::warn!("WebSocket send failed: {}", ws_error);
+                                        }
+                                    }
+                                } else {
+                                    tracing::warn!("No session key for WebSocket fallback");
+                                }
+                            } else {
+                                tracing::warn!("No session key callback for WebSocket fallback");
+                            }
+                        }
+                        Err(ws_error) => {
+                            tracing::debug!("WebSocket connection failed: {}", ws_error);
+                        }
+                    }
+                }
+
+                // If both QUIC and WebSocket fail, return the original error
+                Err(quic_error)
             }
         }
     }
@@ -492,17 +546,52 @@ impl NetworkManager {
                     last_error = Some(format!("{}", e));
                     // Try relay as fallback
                     if let Some(ref relay) = relay_client {
-                        // Serialize message for relay (relay expects encrypted bytes, but we'll send serialized message)
-                        // TODO: Encrypt message before sending to relay
+                        let device_id_hex = hex::encode(device_id);
+
+                        // Serialize message for relay
                         if let Ok(serialized) = bincode::serialize(message) {
-                            let device_id_hex = hex::encode(device_id);
-                            match relay.send_to_device(&device_id_hex, &serialized).await {
+                            // Encrypt message with device's session key if available
+                            let payload = if let Some(ref get_key) = self.get_session_key {
+                                if let Some(session_key) = get_key(device_id) {
+                                    // Encrypt with session key - use device_id as additional authenticated data
+                                    match encrypt(&session_key, &serialized, device_id) {
+                                        Ok(encrypted) => {
+                                            // Prepend a marker byte (0x01) to indicate encrypted message
+                                            let mut payload = vec![0x01];
+                                            payload.extend_from_slice(&encrypted.to_bytes());
+                                            payload
+                                        }
+                                        Err(e) => {
+                                            tracing::warn!("Failed to encrypt relay message for {}: {}, sending unencrypted",
+                                                device_id_hex, e);
+                                            // Fallback to unencrypted with marker byte (0x00)
+                                            let mut payload = vec![0x00];
+                                            payload.extend_from_slice(&serialized);
+                                            payload
+                                        }
+                                    }
+                                } else {
+                                    tracing::warn!("No session key found for device {}, sending unencrypted via relay", device_id_hex);
+                                    // Unencrypted with marker byte (0x00)
+                                    let mut payload = vec![0x00];
+                                    payload.extend_from_slice(&serialized);
+                                    payload
+                                }
+                            } else {
+                                // No session key callback, send unencrypted with marker byte (0x00)
+                                let mut payload = vec![0x00];
+                                payload.extend_from_slice(&serialized);
+                                payload
+                            };
+
+                            match relay.send_to_device(&device_id_hex, &payload).await {
                                 Ok(()) => {
                                     success_count += 1;
-                                    tracing::debug!("Sent to device {} via relay fallback", device_id_hex);
+                                    tracing::debug!("Sent to device {} via relay fallback (encrypted: {})",
+                                        device_id_hex, payload[0] == 0x01);
                                 }
                                 Err(relay_err) => {
-                                    tracing::warn!("Failed to send to device {} via QUIC and relay: {} / {}", 
+                                    tracing::warn!("Failed to send to device {} via QUIC and relay: {} / {}",
                                         device_id_hex, e, relay_err);
                                 }
                             }
@@ -591,6 +680,7 @@ impl NetworkManager {
         relay: &RelayClient,
         event_tx: broadcast::Sender<NetworkEvent>,
         _identity: Arc<DeviceIdentity>,
+        get_session_key: Option<Arc<GetSessionKeyFn>>,
     ) {
         loop {
             match relay.receive().await {
@@ -600,19 +690,68 @@ impl NetworkManager {
                         if device_id_bytes.len() == 32 {
                             let mut device_id = [0u8; 32];
                             device_id.copy_from_slice(&device_id_bytes);
-                            
-                            // Decode encrypted payload
+
+                            // Decode base64 payload
                             if let Ok(payload) = base64::engine::general_purpose::STANDARD
                                 .decode(&relay_msg.encrypted_payload)
                             {
-                                // Deserialize message
-                                if let Ok(message) = bincode::deserialize(&payload) {
-                                    let _ = event_tx.send(NetworkEvent::MessageReceived {
-                                        from_device_id: device_id,
-                                        message,
-                                    });
+                                if payload.is_empty() {
+                                    tracing::warn!("Received empty relay payload");
+                                    continue;
+                                }
+
+                                // Check marker byte: 0x01 = encrypted, 0x00 = unencrypted
+                                let is_encrypted = payload[0] == 0x01;
+                                let data = &payload[1..];
+
+                                let message_bytes = if is_encrypted {
+                                    // Decrypt with session key
+                                    if let Some(ref get_key) = get_session_key {
+                                        if let Some(session_key) = get_key(&device_id) {
+                                            // Parse encrypted message
+                                            match EncryptedMessage::from_bytes(data) {
+                                                Ok(encrypted) => {
+                                                    // Decrypt with device_id as AAD
+                                                    match decrypt(&session_key, &encrypted, &device_id) {
+                                                        Ok(decrypted) => decrypted,
+                                                        Err(e) => {
+                                                            tracing::warn!("Failed to decrypt relay message from {}: {}",
+                                                                relay_msg.from_device, e);
+                                                            continue;
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    tracing::warn!("Failed to parse encrypted relay message: {}", e);
+                                                    continue;
+                                                }
+                                            }
+                                        } else {
+                                            tracing::warn!("No session key for device {}, cannot decrypt relay message",
+                                                relay_msg.from_device);
+                                            continue;
+                                        }
+                                    } else {
+                                        tracing::warn!("No session key callback, cannot decrypt encrypted relay message");
+                                        continue;
+                                    }
                                 } else {
-                                    tracing::warn!("Failed to deserialize relay message");
+                                    // Unencrypted message (legacy or fallback)
+                                    tracing::debug!("Received unencrypted relay message from {}", relay_msg.from_device);
+                                    data.to_vec()
+                                };
+
+                                // Deserialize message
+                                match bincode::deserialize(&message_bytes) {
+                                    Ok(message) => {
+                                        let _ = event_tx.send(NetworkEvent::MessageReceived {
+                                            from_device_id: device_id,
+                                            message,
+                                        });
+                                    }
+                                    Err(e) => {
+                                        tracing::warn!("Failed to deserialize relay message: {}", e);
+                                    }
                                 }
                             } else {
                                 tracing::warn!("Failed to decode relay payload");

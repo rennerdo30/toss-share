@@ -72,9 +72,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   leading: const Icon(Icons.fingerprint),
                   title: const Text('Device ID'),
                   subtitle: Text(
-                    tossState.deviceId.isNotEmpty
-                        ? '${tossState.deviceId.substring(0, 16)}...'
-                        : 'Not initialized',
+                    tossState.deviceId.isEmpty
+                        ? 'Not initialized'
+                        : tossState.deviceId.length > 16
+                            ? '${tossState.deviceId.substring(0, 16)}...'
+                            : tossState.deviceId,
                   ),
                 ),
               ],
@@ -364,14 +366,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showDeviceNameDialog(BuildContext context, WidgetRef ref, String currentName) {
     final controller = TextEditingController(text: currentName);
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Device Name'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Enter device name'),
-          autofocus: true,
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Enter device name',
+              helperText: 'This name identifies your device to others',
+            ),
+            autofocus: true,
+            maxLength: 32,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Device name cannot be empty';
+              }
+              if (value.trim().length < 2) {
+                return 'Device name must be at least 2 characters';
+              }
+              return null;
+            },
+          ),
         ),
         actions: [
           TextButton(
@@ -380,8 +400,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           TextButton(
             onPressed: () {
-              ref.read(tossProvider.notifier).setDeviceName(controller.text);
-              Navigator.pop(context);
+              if (formKey.currentState?.validate() ?? false) {
+                ref.read(tossProvider.notifier).setDeviceName(controller.text.trim());
+                Navigator.pop(context);
+              }
             },
             child: const Text('Save'),
           ),
@@ -438,16 +460,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showRelayUrlDialog(BuildContext context, WidgetRef ref, String? currentUrl) {
     final controller = TextEditingController(text: currentUrl);
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Relay Server URL'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'https://relay.example.com',
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'https://relay.example.com',
+              helperText: 'Leave empty to use local network only',
+            ),
+            keyboardType: TextInputType.url,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return null; // Empty is allowed
+              }
+              // Basic URL validation
+              final uri = Uri.tryParse(value);
+              if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+                return 'Please enter a valid URL';
+              }
+              if (uri.scheme != 'http' && uri.scheme != 'https') {
+                return 'URL must start with http:// or https://';
+              }
+              return null;
+            },
           ),
-          keyboardType: TextInputType.url,
         ),
         actions: [
           TextButton(
@@ -456,9 +498,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           TextButton(
             onPressed: () {
-              final url = controller.text.isEmpty ? null : controller.text;
-              ref.read(settingsProvider.notifier).updateRelayUrl(url);
-              Navigator.pop(context);
+              if (formKey.currentState?.validate() ?? false) {
+                final url = controller.text.isEmpty ? null : controller.text;
+                ref.read(settingsProvider.notifier).updateRelayUrl(url);
+                Navigator.pop(context);
+              }
             },
             child: const Text('Save'),
           ),

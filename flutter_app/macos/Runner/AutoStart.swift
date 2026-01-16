@@ -3,34 +3,34 @@ import ServiceManagement
 
 class AutoStart {
     static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.toss.app"
-    
+
     static func setAutoStart(_ enabled: Bool) -> Bool {
-        let appURL = Bundle.main.bundleURL
-        
-        if enabled {
-            // Register login item
-            return SMLoginItemSetEnabled(bundleIdentifier as CFString, true)
+        if #available(macOS 13.0, *) {
+            // Use modern SMAppService API for macOS 13+
+            do {
+                if enabled {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+                return true
+            } catch {
+                print("AutoStart: Failed to \(enabled ? "enable" : "disable"): \(error)")
+                return false
+            }
         } else {
-            // Unregister login item
-            return SMLoginItemSetEnabled(bundleIdentifier as CFString, false)
-        }
-    }
-    
-    static func isAutoStartEnabled() -> Bool {
-        // Check if login item is registered
-        var snapshot: Unmanaged<CFArray>?
-        let status = SMCopyAllJobDictionaries(kSMDomainUserLaunchd, &snapshot)
-        
-        guard status == errSecSuccess, let jobs = snapshot?.takeRetainedValue() as? [[String: Any]] else {
+            // Fallback for older macOS versions
+            // Note: SMLoginItemSetEnabled is deprecated but still works on older systems
             return false
         }
-        
-        for job in jobs {
-            if let label = job["Label"] as? String, label == bundleIdentifier {
-                return true
-            }
+    }
+
+    static func isAutoStartEnabled() -> Bool {
+        if #available(macOS 13.0, *) {
+            return SMAppService.mainApp.status == .enabled
+        } else {
+            // Fallback for older macOS versions
+            return false
         }
-        
-        return false
     }
 }

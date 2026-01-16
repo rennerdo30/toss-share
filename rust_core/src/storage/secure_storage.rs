@@ -1,14 +1,29 @@
 //! Platform secure storage for device identity keys
 //!
 //! Provides platform-specific secure storage using:
-//! - macOS/iOS: Keychain Services (requires security-framework crate)
-//! - Windows: Credential Manager / DPAPI (requires winapi crate)
-//! - Linux: Secret Service API / libsecret (requires secret-service crate)
+//! - macOS/iOS: Keychain Services (security-framework crate)
+//! - Windows: Credential Manager (windows crate)
+//! - Linux: Secret Service API (secret-service crate)
 //! - Android: Android Keystore (requires JNI implementation)
 
 use crate::error::CryptoError;
 use std::collections::HashMap;
 use std::sync::Mutex;
+
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use security_framework::passwords::{
+    delete_generic_password, get_generic_password, set_generic_password,
+};
+
+#[cfg(target_os = "windows")]
+use windows::{
+    core::PCWSTR,
+    Win32::Foundation::ERROR_NOT_FOUND,
+    Win32::Security::Credentials::{
+        CredDeleteW, CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE,
+        CRED_TYPE_GENERIC,
+    },
+};
 
 /// Service name for storing identity keys
 const SERVICE_NAME: &str = "com.toss.device.identity";
@@ -97,16 +112,10 @@ fn get_platform_storage() -> Result<Box<dyn SecureStorage>, CryptoError> {
 }
 
 // Platform-specific implementations
-// TODO: Add platform-specific crates and implement:
-// - macOS/iOS: security-framework crate for Keychain Services
-// - Windows: winapi crate for Credential Manager
-// - Linux: secret-service crate for Secret Service API
-// - Android: JNI bindings for Android Keystore
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 struct MacOSKeychainStorage {
-        #[allow(dead_code)]
-        service: String,
+    service: String,
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -121,26 +130,47 @@ impl MacOSKeychainStorage {
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 impl SecureStorage for MacOSKeychainStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
-        // TODO: Implement using security-framework crate
-        // For now, use fallback
-        MemoryStorage::new().store(key, value)
+        // Use security-framework to store in macOS Keychain
+        set_generic_password(&self.service, key, value)
+            .map_err(|e| CryptoError::Storage(format!("Keychain store failed: {}", e)))
     }
-    
+
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
-        // TODO: Implement using security-framework crate
-        MemoryStorage::new().retrieve(key)
+        // Use security-framework to retrieve from macOS Keychain
+        match get_generic_password(&self.service, key) {
+            Ok(bytes) => Ok(Some(bytes)),
+            Err(e) => {
+                // Check if the error is "item not found"
+                let err_string = e.to_string();
+                if err_string.contains("not found") || err_string.contains("-25300") {
+                    Ok(None)
+                } else {
+                    Err(CryptoError::Storage(format!("Keychain retrieve failed: {}", e)))
+                }
+            }
+        }
     }
-    
+
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
-        // TODO: Implement using security-framework crate
-        MemoryStorage::new().delete(key)
+        // Use security-framework to delete from macOS Keychain
+        match delete_generic_password(&self.service, key) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                // Ignore "item not found" errors on delete
+                let err_string = e.to_string();
+                if err_string.contains("not found") || err_string.contains("-25300") {
+                    Ok(())
+                } else {
+                    Err(CryptoError::Storage(format!("Keychain delete failed: {}", e)))
+                }
+            }
+        }
     }
 }
 
 #[cfg(target_os = "windows")]
 struct WindowsCredentialStorage {
-        #[allow(dead_code)]
-        service: String,
+    service: String,
 }
 
 #[cfg(target_os = "windows")]
@@ -150,31 +180,101 @@ impl WindowsCredentialStorage {
             service: service.to_string(),
         })
     }
+
+    fn make_target_name(&self, key: &str) -> Vec<u16> {
+        let target = format!("{}:{}", self.service, key);
+        target.encode_utf16().chain(std::iter::once(0)).collect()
+    }
 }
 
 #[cfg(target_os = "windows")]
 impl SecureStorage for WindowsCredentialStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
-        // TODO: Implement using winapi crate for Credential Manager
-        // For now, use fallback
-        MemoryStorage::new().store(key, value)
+        use std::ptr;
+
+        let target_name = self.make_target_name(key);
+        let user_name: Vec<u16> = "toss_user".encode_utf16().chain(std::iter::once(0)).collect();
+
+        let cred = CREDENTIALW {
+            Flags: 0,
+            Type: CRED_TYPE_GENERIC,
+            TargetName: PCWSTR(target_name.as_ptr()),
+            Comment: PCWSTR::null(),
+            LastWritten: Default::default(),
+            CredentialBlobSize: value.len() as u32,
+            CredentialBlob: value.as_ptr() as *mut u8,
+            Persist: CRED_PERSIST_LOCAL_MACHINE,
+            AttributeCount: 0,
+            Attributes: ptr::null_mut(),
+            TargetAlias: PCWSTR::null(),
+            UserName: PCWSTR(user_name.as_ptr()),
+        };
+
+        unsafe {
+            CredWriteW(&cred, 0)
+                .map_err(|e| CryptoError::Storage(format!("Credential write failed: {}", e)))
+        }
     }
-    
+
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
-        // TODO: Implement using winapi crate
-        MemoryStorage::new().retrieve(key)
+        use std::slice;
+
+        let target_name = self.make_target_name(key);
+        let mut cred_ptr: *mut CREDENTIALW = std::ptr::null_mut();
+
+        unsafe {
+            match CredReadW(
+                PCWSTR(target_name.as_ptr()),
+                CRED_TYPE_GENERIC,
+                0,
+                &mut cred_ptr,
+            ) {
+                Ok(()) => {
+                    let cred = &*cred_ptr;
+                    let blob_size = cred.CredentialBlobSize as usize;
+                    let result = if blob_size > 0 && !cred.CredentialBlob.is_null() {
+                        let blob = slice::from_raw_parts(cred.CredentialBlob, blob_size);
+                        Some(blob.to_vec())
+                    } else {
+                        None
+                    };
+                    CredFree(cred_ptr as *mut _);
+                    Ok(result)
+                }
+                Err(e) => {
+                    // Check for "not found" error
+                    if e.code() == ERROR_NOT_FOUND.into() {
+                        Ok(None)
+                    } else {
+                        Err(CryptoError::Storage(format!("Credential read failed: {}", e)))
+                    }
+                }
+            }
+        }
     }
-    
+
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
-        // TODO: Implement using winapi crate
-        MemoryStorage::new().delete(key)
+        let target_name = self.make_target_name(key);
+
+        unsafe {
+            match CredDeleteW(PCWSTR(target_name.as_ptr()), CRED_TYPE_GENERIC, 0) {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    // Ignore "not found" error on delete
+                    if e.code() == ERROR_NOT_FOUND.into() {
+                        Ok(())
+                    } else {
+                        Err(CryptoError::Storage(format!("Credential delete failed: {}", e)))
+                    }
+                }
+            }
+        }
     }
 }
 
 #[cfg(target_os = "linux")]
 struct LinuxSecretStorage {
-        #[allow(dead_code)]
-        service: String,
+    service: String,
 }
 
 #[cfg(target_os = "linux")]
@@ -184,24 +284,194 @@ impl LinuxSecretStorage {
             service: service.to_string(),
         })
     }
+
+    fn make_attributes(&self, key: &str) -> HashMap<&str, &str> {
+        let mut attrs = HashMap::new();
+        attrs.insert("application", "toss");
+        // Note: We can't return references to local Strings, so we use static key names
+        attrs
+    }
 }
 
 #[cfg(target_os = "linux")]
 impl SecureStorage for LinuxSecretStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
-        // TODO: Implement using secret-service crate
-        // For now, use fallback
-        MemoryStorage::new().store(key, value)
+        // Use blocking runtime for secret-service which is async
+        use tokio::runtime::Handle;
+
+        // Try to use existing runtime, or create a new one for blocking
+        let result = if let Ok(handle) = Handle::try_current() {
+            // We're in an async context, need to use spawn_blocking
+            std::thread::scope(|s| {
+                s.spawn(|| {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
+
+                    rt.block_on(async {
+                        self.store_async(key, value).await
+                    })
+                }).join().unwrap()
+            })
+        } else {
+            // Create a new runtime for this operation
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
+
+            rt.block_on(async {
+                self.store_async(key, value).await
+            })
+        };
+
+        result
     }
-    
+
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
-        // TODO: Implement using secret-service crate
-        MemoryStorage::new().retrieve(key)
+        // Create a new runtime for this operation
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
+
+        rt.block_on(async {
+            self.retrieve_async(key).await
+        })
     }
-    
+
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
-        // TODO: Implement using secret-service crate
-        MemoryStorage::new().delete(key)
+        // Create a new runtime for this operation
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| CryptoError::Storage(format!("Runtime error: {}", e)))?;
+
+        rt.block_on(async {
+            self.delete_async(key).await
+        })
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl LinuxSecretStorage {
+    async fn store_async(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
+        use secret_service::{EncryptionType, SecretService};
+
+        let ss = SecretService::connect(EncryptionType::Dh)
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Secret Service connect failed: {}", e)))?;
+
+        let collection = ss.get_default_collection()
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Get default collection failed: {}", e)))?;
+
+        // Unlock collection if needed
+        if collection.is_locked().await.unwrap_or(true) {
+            collection.unlock()
+                .await
+                .map_err(|e| CryptoError::Storage(format!("Unlock collection failed: {}", e)))?;
+        }
+
+        let mut attributes = HashMap::new();
+        attributes.insert("application", "toss");
+        attributes.insert("service", &self.service);
+        attributes.insert("key", key);
+
+        let label = format!("Toss: {}", key);
+        collection.create_item(
+            &label,
+            attributes,
+            value,
+            true, // replace
+            "text/plain", // content_type
+        )
+        .await
+        .map_err(|e| CryptoError::Storage(format!("Create item failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn retrieve_async(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
+        use secret_service::{EncryptionType, SecretService};
+
+        let ss = SecretService::connect(EncryptionType::Dh)
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Secret Service connect failed: {}", e)))?;
+
+        let collection = ss.get_default_collection()
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Get default collection failed: {}", e)))?;
+
+        // Unlock collection if needed
+        if collection.is_locked().await.unwrap_or(true) {
+            collection.unlock()
+                .await
+                .map_err(|e| CryptoError::Storage(format!("Unlock collection failed: {}", e)))?;
+        }
+
+        let mut attributes = HashMap::new();
+        attributes.insert("application", "toss");
+        attributes.insert("service", &self.service as &str);
+        attributes.insert("key", key);
+
+        let items = collection.search_items(attributes)
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Search items failed: {}", e)))?;
+
+        if let Some(item) = items.first() {
+            // Unlock item if needed
+            if item.is_locked().await.unwrap_or(true) {
+                item.unlock()
+                    .await
+                    .map_err(|e| CryptoError::Storage(format!("Unlock item failed: {}", e)))?;
+            }
+
+            let secret = item.get_secret()
+                .await
+                .map_err(|e| CryptoError::Storage(format!("Get secret failed: {}", e)))?;
+
+            Ok(Some(secret))
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn delete_async(&self, key: &str) -> Result<(), CryptoError> {
+        use secret_service::{EncryptionType, SecretService};
+
+        let ss = SecretService::connect(EncryptionType::Dh)
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Secret Service connect failed: {}", e)))?;
+
+        let collection = ss.get_default_collection()
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Get default collection failed: {}", e)))?;
+
+        // Unlock collection if needed
+        if collection.is_locked().await.unwrap_or(true) {
+            collection.unlock()
+                .await
+                .map_err(|e| CryptoError::Storage(format!("Unlock collection failed: {}", e)))?;
+        }
+
+        let mut attributes = HashMap::new();
+        attributes.insert("application", "toss");
+        attributes.insert("service", &self.service as &str);
+        attributes.insert("key", key);
+
+        let items = collection.search_items(attributes)
+            .await
+            .map_err(|e| CryptoError::Storage(format!("Search items failed: {}", e)))?;
+
+        for item in items {
+            item.delete()
+                .await
+                .map_err(|e| CryptoError::Storage(format!("Delete item failed: {}", e)))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -245,10 +515,12 @@ impl SecureStorage for AndroidKeystoreStorage {
 }
 
 // Fallback in-memory storage for unsupported platforms or temporary use
+#[allow(dead_code)]
 struct MemoryStorage {
     data: Mutex<HashMap<String, Vec<u8>>>,
 }
 
+#[allow(dead_code)]
 impl MemoryStorage {
     fn new() -> Self {
         Self {

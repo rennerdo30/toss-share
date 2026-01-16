@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 
 use crate::clipboard::ClipboardManager;
 use crate::crypto::{DeviceIdentity, PairingSession, derive_key, DerivedKeyPurpose, encrypt, decrypt, EncryptedMessage};
-use crate::network::{NetworkConfig, NetworkManager, NetworkEvent};
+use crate::network::{NetworkConfig, NetworkManager, NetworkEvent, GetSessionKeyFn};
 use crate::protocol::{ClipboardContent, ClipboardUpdate, ContentType, Message};
 use crate::storage::{Storage, StoredDevice};
 
@@ -722,7 +722,7 @@ pub fn update_settings(settings: TossSettings) -> Result<(), String> {
 #[frb]
 pub async fn start_network() -> Result<(), String> {
     // Extract config while holding lock, then release before async operations
-    let (identity, config) = {
+    let (identity, config, get_session_key) = {
         let guard = TOSS_INSTANCE.read();
         let core = guard.as_ref().ok_or("Toss not initialized")?;
 
@@ -732,11 +732,31 @@ pub async fn start_network() -> Result<(), String> {
             ..Default::default()
         };
 
-        (core.identity.clone(), config)
+        // Create a callback to retrieve session keys from storage
+        // We need to capture the storage database path for later use
+        let db_path = core.storage.db_path().to_path_buf();
+        let get_session_key: Arc<GetSessionKeyFn> = Arc::new(Box::new(move |device_id: &[u8; 32]| {
+            // Open a temporary connection to look up the session key
+            if let Ok(storage) = Storage::new(&db_path) {
+                let device_id_hex = hex::encode(device_id);
+                if let Ok(Some(device)) = storage.devices().get_device(&device_id_hex) {
+                    if let Some(session_key_bytes) = device.session_key {
+                        if session_key_bytes.len() == 32 {
+                            let mut key = [0u8; 32];
+                            key.copy_from_slice(&session_key_bytes);
+                            return Some(key);
+                        }
+                    }
+                }
+            }
+            None
+        }));
+
+        (core.identity.clone(), config, get_session_key)
     };
 
     // Perform async operations without holding lock
-    let mut network = NetworkManager::new(identity, config)
+    let mut network = NetworkManager::new_with_callbacks(identity, config, None, Some(get_session_key))
         .await
         .map_err(|e| format!("Network init failed: {}", e))?;
 

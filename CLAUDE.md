@@ -167,26 +167,88 @@ toss/
 
 ## Development Commands
 
+The project uses a Makefile for build automation. Run `make help` for all available targets.
+
+### Quick Start
+```bash
+# Check dependencies
+make check-deps
+
+# Build everything (Rust core + relay server)
+make build
+
+# Run Flutter app
+make run-flutter
+
+# Run all tests
+make test
+```
+
+### Build Targets
+```bash
+make build          # Build all components (Rust core + relay)
+make build-rust     # Build Rust core library only
+make build-relay    # Build relay server only
+make build-flutter  # Build Flutter app (macOS by default)
+```
+
+### Test & Quality
+```bash
+make test           # Run all tests
+make test-rust      # Run Rust core tests
+make test-flutter   # Run Flutter tests
+make fmt            # Format all Rust code
+make lint           # Run Clippy lints
+make ci             # Run all CI checks (fmt, lint, test)
+```
+
+### Release Builds
+```bash
+make release-macos    # Build macOS app → dist/macos/
+make release-linux    # Build Linux app → dist/linux/
+make release-windows  # Build Windows app → dist/windows/
+make release-android  # Build Android APK → dist/android/
+make release-ios      # Build iOS app → dist/ios/
+make release-all      # Build ALL platforms
+make package-all      # Build all + create distributable archives
+```
+
+### Development
+```bash
+make run-relay        # Run relay server locally
+make run-flutter      # Run Flutter app in debug mode
+make generate-ffi     # Generate Rust FFI bindings for Flutter
+make generate-providers  # Generate Riverpod providers
+```
+
+### Docker (Relay Server)
+```bash
+make docker           # Build Docker image
+make docker-run       # Start relay in Docker (port 8080)
+make docker-stop      # Stop relay container
+make docker-logs      # View relay logs
+```
+
+### Clean
+```bash
+make clean            # Clean all build artifacts
+make clean-rust       # Clean Rust artifacts only
+make clean-flutter    # Clean Flutter artifacts only
+```
+
+### Manual Commands (without Makefile)
 ```bash
 # Build Rust core
 cd rust_core && cargo build --release
 
 # Generate FFI bindings
-flutter_rust_bridge_codegen generate
+cd flutter_app && flutter_rust_bridge_codegen generate --config-file frb_options.yaml
 
 # Run Flutter app
 cd flutter_app && flutter run
 
-# Run tests
-cargo test                    # Rust tests
-flutter test                  # Flutter tests
-
 # Build for release
-flutter build apk             # Android
-flutter build ios             # iOS
-flutter build macos           # macOS
-flutter build windows         # Windows
-flutter build linux           # Linux
+cd flutter_app && flutter build macos --release
 ```
 
 ## Key Design Decisions

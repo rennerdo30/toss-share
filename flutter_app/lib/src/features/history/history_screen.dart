@@ -274,7 +274,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border(
           bottom: BorderSide(
             color: Theme.of(context).dividerColor,
@@ -336,7 +336,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // Device filter
           if (devices.isNotEmpty) ...[
             DropdownButtonFormField<String>(
-              value: _selectedDeviceId,
+              initialValue: _selectedDeviceId,
               decoration: const InputDecoration(
                 labelText: 'Source Device',
                 border: OutlineInputBorder(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -20,6 +21,8 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   String? _pairingCode;
   String? _qrData;
   bool _isLoading = true;
+  bool _isPairing = false;
+  String? _error;
 
   @override
   void initState() {
@@ -35,15 +38,27 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   }
 
   Future<void> _startPairing() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-    final pairingInfo = await TossService.startPairing();
-    if (mounted) {
-      setState(() {
-        _pairingCode = pairingInfo.code;
-        _qrData = pairingInfo.qrData;
-        _isLoading = false;
-      });
+    try {
+      final pairingInfo = await TossService.startPairing();
+      if (mounted) {
+        setState(() {
+          _pairingCode = pairingInfo.code;
+          _qrData = pairingInfo.qrData;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to start pairing: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -68,25 +83,84 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
             isLoading: _isLoading,
             pairingCode: _pairingCode,
             qrData: _qrData,
+            error: _error,
             onRegenerate: _startPairing,
           ),
 
           // Tab 2: Scan QR code
           _ScanCodeTab(
             onScanned: _handleQrScanned,
+            onManualCode: _handleManualCode,
+            isPairing: _isPairing,
           ),
         ],
       ),
     );
   }
 
-  void _handleQrScanned(String data) async {
-    final device = await TossService.completePairingQR(data);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Device "${device.name}" paired successfully!')),
+  Future<void> _handleQrScanned(String data) async {
+    if (_isPairing) return; // Prevent multiple simultaneous pairing attempts
+
+    setState(() {
+      _isPairing = true;
+      _error = null;
+    });
+
+    try {
+      final device = await TossService.completePairingQR(data);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Device "${device.name}" paired successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isPairing = false;
+          _error = 'Pairing failed: $e';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pairing failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleManualCode(String code) async {
+    if (_isPairing) return;
+
+    setState(() {
+      _isPairing = true;
+      _error = null;
+    });
+
+    try {
+      // Manual code pairing requires discovering the device on the network
+      // For now, we'll show an error as this feature requires relay server support
+      throw UnimplementedError(
+        'Manual code pairing requires the other device to be discovered on the network. '
+        'Please use QR code scanning instead.',
       );
-      context.pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isPairing = false;
+          _error = e.toString();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 }
@@ -95,12 +169,14 @@ class _ShowCodeTab extends StatelessWidget {
   final bool isLoading;
   final String? pairingCode;
   final String? qrData;
+  final String? error;
   final VoidCallback onRegenerate;
 
   const _ShowCodeTab({
     required this.isLoading,
     required this.pairingCode,
     required this.qrData,
+    required this.error,
     required this.onRegenerate,
   });
 
@@ -108,6 +184,36 @@ class _ShowCodeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                error!,
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: onRegenerate,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return SingleChildScrollView(
@@ -177,8 +283,14 @@ class _ShowCodeTab extends StatelessWidget {
 
 class _ScanCodeTab extends StatefulWidget {
   final Function(String) onScanned;
+  final Function(String) onManualCode;
+  final bool isPairing;
 
-  const _ScanCodeTab({required this.onScanned});
+  const _ScanCodeTab({
+    required this.onScanned,
+    required this.onManualCode,
+    required this.isPairing,
+  });
 
   @override
   State<_ScanCodeTab> createState() => _ScanCodeTabState();
@@ -320,6 +432,7 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
             keyboardType: TextInputType.number,
             maxLength: 6,
             textAlign: TextAlign.center,
+            enabled: !widget.isPairing,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               letterSpacing: 8,
             ),
@@ -327,18 +440,33 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
               hintText: '000000',
               counterText: '',
             ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Manual code entry requires QR scan on the other device',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
 
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                if (_codeController.text.length == 6) {
-                  widget.onScanned(_codeController.text);
-                }
-              },
-              child: const Text('Connect'),
+              onPressed: widget.isPairing || _codeController.text.length != 6
+                  ? null
+                  : () => widget.onManualCode(_codeController.text),
+              child: widget.isPairing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Connect'),
             ),
           ),
         ],

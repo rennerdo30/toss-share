@@ -146,9 +146,16 @@ impl<'conn> HistoryStorage<'conn> {
             "SELECT created_at FROM clipboard_history ORDER BY created_at DESC LIMIT 1 OFFSET ?1"
         )?;
         let cutoff_timestamp: Option<u64> = stmt.query_row([max_items], |row| row.get(0)).ok();
+        drop(stmt);
 
         if let Some(timestamp) = cutoff_timestamp {
-            self.prune_old_items(timestamp)
+            // Delete directly instead of calling prune_old_items to avoid deadlock
+            // Use <= to include the cutoff item in deletion (we want to keep max_items, not max_items+1)
+            let deleted = conn.execute(
+                "DELETE FROM clipboard_history WHERE created_at <= ?1",
+                [timestamp],
+            )?;
+            Ok(deleted)
         } else {
             Ok(0)
         }

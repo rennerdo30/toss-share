@@ -55,8 +55,8 @@ class DeviceCard extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(
             color: device.isOnline
-                ? colorScheme.primary.withOpacity(0.5)
-                : colorScheme.outline.withOpacity(0.3),
+                ? colorScheme.primary.withValues(alpha: 0.5)
+                : colorScheme.outline.withValues(alpha: 0.3),
           ),
           borderRadius: BorderRadius.circular(12),
         ),

@@ -215,15 +215,7 @@ class TossService {
         publicKey: info.publicKey,
       );
     } catch (e) {
-      // Fallback: Mock pairing info if FFI fails
-      print('Warning: Failed to start pairing: $e');
-      final code = '${DateTime.now().millisecondsSinceEpoch % 1000000}'.padLeft(6, '0');
-      return PairingInfo(
-        code: code,
-        qrData: '{"v":1,"code":"$code","pk":"mock-key","name":"$_deviceName"}',
-        expiresAt: DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch,
-        publicKey: 'mock-public-key',
-      );
+      throw Exception('Failed to start pairing: $e');
     }
   }
 
@@ -239,13 +231,7 @@ class TossService {
         platform: device.platform,
       );
     } catch (e) {
-      print('Warning: Failed to complete pairing with QR: $e');
-      return const DeviceInfo(
-        id: 'mock-paired-device',
-        name: 'Paired Device',
-        isOnline: false,
-        platform: 'unknown',
-      );
+      throw Exception('Failed to complete pairing: $e');
     }
   }
 
@@ -261,13 +247,7 @@ class TossService {
         platform: device.platform,
       );
     } catch (e) {
-      print('Warning: Failed to complete pairing with code: $e');
-      return const DeviceInfo(
-        id: 'mock-paired-device',
-        name: 'Paired Device',
-        isOnline: false,
-        platform: 'unknown',
-      );
+      throw Exception('Failed to complete pairing with code: $e');
     }
   }
 

@@ -10,7 +10,7 @@ pub use device_storage::{DeviceStorage, StoredDevice};
 pub use history_storage::{HistoryStorage, StoredHistoryItem};
 pub use secure_storage::{delete_identity_key, retrieve_identity_key, store_identity_key};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use rusqlite::{Connection, Result as SqliteResult};
 
@@ -19,6 +19,7 @@ use rusqlite::{Connection, Result as SqliteResult};
 /// when needed for thread-safe access
 pub struct Storage {
     conn: Mutex<Connection>,
+    db_path: PathBuf,
 }
 
 // Safety: We ensure all access to Connection is through the Mutex,
@@ -29,12 +30,19 @@ unsafe impl Sync for Storage {}
 impl Storage {
     /// Create or open storage at the given path
     pub fn new<P: AsRef<Path>>(db_path: P) -> SqliteResult<Self> {
-        let conn = Connection::open(db_path)?;
+        let path = db_path.as_ref().to_path_buf();
+        let conn = Connection::open(&path)?;
         let storage = Self {
             conn: Mutex::new(conn),
+            db_path: path,
         };
         storage.init_schema()?;
         Ok(storage)
+    }
+
+    /// Get the database path
+    pub fn db_path(&self) -> &Path {
+        &self.db_path
     }
 
     /// Initialize database schema
