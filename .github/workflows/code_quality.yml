@@ -116,8 +116,12 @@ jobs:
         working-directory: ./rust_core
         run: cargo build --release
 
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
       - name: Generate FFI bindings
-        run: make generate-ffi || echo "FFI generation skipped (may need flutter_rust_bridge_codegen installed)"
+        working-directory: .
+        run: make generate-ffi
 
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
