@@ -8,7 +8,9 @@
 rust_core/target/
 relay_server/target/
 **/*.rs.bk
-Cargo.lock
+# Ignore Cargo.lock for library crates, but track it for the FFI wrapper
+rust_core/Cargo.lock
+relay_server/Cargo.lock
 
 # ==============================================================================
 # Flutter / Dart
