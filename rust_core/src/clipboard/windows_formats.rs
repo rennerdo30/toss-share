@@ -114,9 +114,7 @@ mod windows_impl {
             }
 
             let slice = std::slice::from_raw_parts(data_ptr, len);
-            let text = OsString::from_wide(slice)
-                .to_string_lossy()
-                .into_owned();
+            let text = OsString::from_wide(slice).to_string_lossy().into_owned();
 
             GlobalUnlock(handle.0 as *mut _);
 

@@ -515,7 +515,10 @@ impl TurnClient {
     fn compute_message_integrity(&self, message: &[u8], realm: &str, _nonce: &[u8]) -> Vec<u8> {
         use sha2::Sha256;
         // Key is MD5(username:realm:password), but we'll use SHA256 for simplicity
-        let key_input = format!("{}:{}:{}", self.config.username, realm, self.config.password);
+        let key_input = format!(
+            "{}:{}:{}",
+            self.config.username, realm, self.config.password
+        );
         let mut hasher = Sha256::new();
         hasher.update(key_input.as_bytes());
         let key = hasher.finalize();
@@ -524,8 +527,7 @@ impl TurnClient {
         use hmac::{Hmac, Mac};
         type HmacSha1 = Hmac<sha1::Sha1>;
 
-        let mut mac =
-            HmacSha1::new_from_slice(&key[..16]).expect("HMAC can take key of any size");
+        let mut mac = HmacSha1::new_from_slice(&key[..16]).expect("HMAC can take key of any size");
         mac.update(message);
         mac.finalize().into_bytes().to_vec()
     }
@@ -692,7 +694,11 @@ impl TurnClient {
         Self::add_attribute(&mut request, TURN_ATTR_REQUESTED_TRANSPORT, &transport);
 
         // Add USERNAME attribute
-        Self::add_attribute(&mut request, STUN_ATTR_USERNAME, self.config.username.as_bytes());
+        Self::add_attribute(
+            &mut request,
+            STUN_ATTR_USERNAME,
+            self.config.username.as_bytes(),
+        );
 
         // Add REALM attribute
         Self::add_attribute(&mut request, STUN_ATTR_REALM, realm.as_bytes());
@@ -752,7 +758,8 @@ impl TurnClient {
         let mut offset = 20;
         while offset + 4 <= 20 + msg_len && offset + 4 <= response.len() {
             let attr_type = u16::from_be_bytes([response[offset], response[offset + 1]]);
-            let attr_len = u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
+            let attr_len =
+                u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
 
             if offset + 4 + attr_len > response.len() {
                 break;
@@ -795,7 +802,8 @@ impl TurnClient {
         let mut offset = 20;
         while offset + 4 <= 20 + msg_len && offset + 4 <= response.len() {
             let attr_type = u16::from_be_bytes([response[offset], response[offset + 1]]);
-            let attr_len = u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
+            let attr_len =
+                u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
 
             if offset + 4 + attr_len > response.len() {
                 break;
@@ -834,7 +842,11 @@ impl TurnClient {
             session.lifetime = lifetime;
         }
 
-        tracing::info!("TURN allocation successful: relay={}, lifetime={}s", relay_addr, lifetime);
+        tracing::info!(
+            "TURN allocation successful: relay={}, lifetime={}s",
+            relay_addr,
+            lifetime
+        );
 
         Ok(relay_addr)
     }
@@ -866,7 +878,11 @@ impl TurnClient {
         Self::add_attribute(&mut request, TURN_ATTR_XOR_PEER_ADDRESS, &peer_addr_data);
 
         // Add authentication attributes
-        Self::add_attribute(&mut request, STUN_ATTR_USERNAME, self.config.username.as_bytes());
+        Self::add_attribute(
+            &mut request,
+            STUN_ATTR_USERNAME,
+            self.config.username.as_bytes(),
+        );
         Self::add_attribute(&mut request, STUN_ATTR_REALM, realm.as_bytes());
         Self::add_attribute(&mut request, STUN_ATTR_NONCE, &nonce);
 
@@ -991,7 +1007,8 @@ impl TurnClient {
         let mut offset = 20;
         while offset + 4 <= 20 + msg_len && offset + 4 <= response.len() {
             let attr_type = u16::from_be_bytes([response[offset], response[offset + 1]]);
-            let attr_len = u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
+            let attr_len =
+                u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
 
             if offset + 4 + attr_len > response.len() {
                 break;
@@ -1012,10 +1029,12 @@ impl TurnClient {
             offset += 4 + ((attr_len + 3) & !3);
         }
 
-        let peer = peer_addr
-            .ok_or_else(|| NetworkError::ConnectionFailed("No peer address in Data indication".to_string()))?;
-        let payload = data
-            .ok_or_else(|| NetworkError::ConnectionFailed("No data in Data indication".to_string()))?;
+        let peer = peer_addr.ok_or_else(|| {
+            NetworkError::ConnectionFailed("No peer address in Data indication".to_string())
+        })?;
+        let payload = data.ok_or_else(|| {
+            NetworkError::ConnectionFailed("No data in Data indication".to_string())
+        })?;
 
         Ok((payload, peer))
     }
@@ -1051,7 +1070,11 @@ impl TurnClient {
         Self::add_attribute(&mut request, TURN_ATTR_LIFETIME, &lifetime_bytes);
 
         // Add authentication
-        Self::add_attribute(&mut request, STUN_ATTR_USERNAME, self.config.username.as_bytes());
+        Self::add_attribute(
+            &mut request,
+            STUN_ATTR_USERNAME,
+            self.config.username.as_bytes(),
+        );
         Self::add_attribute(&mut request, STUN_ATTR_REALM, realm.as_bytes());
         Self::add_attribute(&mut request, STUN_ATTR_NONCE, &nonce);
 
@@ -1064,10 +1087,9 @@ impl TurnClient {
         let final_len = (request.len() - 20) as u16;
         request[2..4].copy_from_slice(&final_len.to_be_bytes());
 
-        socket
-            .send(&request)
-            .await
-            .map_err(|e| NetworkError::ConnectionFailed(format!("Failed to send Refresh: {}", e)))?;
+        socket.send(&request).await.map_err(|e| {
+            NetworkError::ConnectionFailed(format!("Failed to send Refresh: {}", e))
+        })?;
 
         // Wait for response
         let mut response_buf = [0u8; 1500];
@@ -1088,7 +1110,8 @@ impl TurnClient {
         let mut offset = 20;
         while offset + 4 <= 20 + msg_len && offset + 4 <= response.len() {
             let attr_type = u16::from_be_bytes([response[offset], response[offset + 1]]);
-            let attr_len = u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
+            let attr_len =
+                u16::from_be_bytes([response[offset + 2], response[offset + 3]]) as usize;
 
             if attr_type == TURN_ATTR_LIFETIME && attr_len >= 4 {
                 let attr_data = &response[offset + 4..offset + 4 + attr_len];

@@ -590,7 +590,8 @@ struct AndroidKeystoreStorage {
 }
 
 #[cfg(target_os = "android")]
-static ANDROID_ENCRYPTION_KEY: once_cell::sync::OnceCell<[u8; 32]> = once_cell::sync::OnceCell::new();
+static ANDROID_ENCRYPTION_KEY: once_cell::sync::OnceCell<[u8; 32]> =
+    once_cell::sync::OnceCell::new();
 
 #[cfg(target_os = "android")]
 impl AndroidKeystoreStorage {
@@ -631,7 +632,8 @@ impl AndroidKeystoreStorage {
     fn get_encryption_key() -> Result<[u8; 32], CryptoError> {
         ANDROID_ENCRYPTION_KEY.get().copied().ok_or_else(|| {
             CryptoError::Storage(
-                "Android encryption key not set. Call set_android_encryption_key first.".to_string(),
+                "Android encryption key not set. Call set_android_encryption_key first."
+                    .to_string(),
             )
         })
     }
@@ -691,9 +693,8 @@ impl SecureStorage for AndroidKeystoreStorage {
         let encrypted = Self::encrypt_data(value, &encryption_key)?;
 
         let file_path = self.get_file_path(key);
-        std::fs::write(&file_path, &encrypted).map_err(|e| {
-            CryptoError::Storage(format!("Failed to write secure file: {}", e))
-        })?;
+        std::fs::write(&file_path, &encrypted)
+            .map_err(|e| CryptoError::Storage(format!("Failed to write secure file: {}", e)))?;
 
         Ok(())
     }
@@ -705,9 +706,8 @@ impl SecureStorage for AndroidKeystoreStorage {
             return Ok(None);
         }
 
-        let encrypted = std::fs::read(&file_path).map_err(|e| {
-            CryptoError::Storage(format!("Failed to read secure file: {}", e))
-        })?;
+        let encrypted = std::fs::read(&file_path)
+            .map_err(|e| CryptoError::Storage(format!("Failed to read secure file: {}", e)))?;
 
         let encryption_key = Self::get_encryption_key()?;
         let decrypted = Self::decrypt_data(&encrypted, &encryption_key)?;
@@ -732,9 +732,9 @@ impl SecureStorage for AndroidKeystoreStorage {
 /// This key should be retrieved from Android Keystore via Flutter platform channel
 #[cfg(target_os = "android")]
 pub fn set_android_encryption_key(key: [u8; 32]) -> Result<(), CryptoError> {
-    ANDROID_ENCRYPTION_KEY.set(key).map_err(|_| {
-        CryptoError::Storage("Android encryption key already set".to_string())
-    })
+    ANDROID_ENCRYPTION_KEY
+        .set(key)
+        .map_err(|_| CryptoError::Storage("Android encryption key already set".to_string()))
 }
 
 /// Set the Android data directory from Flutter/Dart
