@@ -108,6 +108,7 @@ pub mod windows_impl {
     ///
     /// Uses the Windows clipboard API to read and write file lists
     /// in the CF_HDROP format.
+    #[allow(dead_code)]
     pub struct WindowsFileClipboardProvider;
 
     impl FileClipboardProvider for WindowsFileClipboardProvider {
@@ -125,6 +126,7 @@ pub mod windows_impl {
 
     impl WindowsFileClipboardProvider {
         /// Create a new Windows file clipboard provider
+        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }
