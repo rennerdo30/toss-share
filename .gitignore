@@ -5,11 +5,12 @@
 # ==============================================================================
 # Rust
 # ==============================================================================
+target/
 rust_core/target/
 relay_server/target/
 **/*.rs.bk
-# Ignore Cargo.lock for library crates, but track it for the FFI wrapper
-rust_core/Cargo.lock
+# Ignore Cargo.lock for relay_server (independent crate)
+# Root Cargo.lock is tracked for workspace reproducibility
 relay_server/Cargo.lock
 
 # ==============================================================================

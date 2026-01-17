@@ -1,0 +1,75 @@
+# Virtual workspace for Toss project
+# This ensures proper dependency resolution across all Rust crates
+
+[workspace]
+members = [
+    "rust_core",
+    "flutter_app/rust",
+]
+# relay_server is excluded as it has different dependency versions
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/rennerdo30/toss-share"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.49", features = ["full"] }
+
+# Crypto
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+aes-gcm = "0.10"
+hkdf = "0.12"
+sha2 = "0.10"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+rand_core = "0.6"
+
+# Networking
+quinn = "0.11"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+rcgen = "0.14"
+mdns-sd = "0.17"
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
+
+# Clipboard (desktop only)
+arboard = "3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+serde_json = "1"
+base64 = "0.22"
+
+# Async utilities
+futures = "0.3"
+futures-util = "0.3"
+
+# FFI
+flutter_rust_bridge = "=2.11.1"
+
+# Storage
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Utilities
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+parking_lot = "0.12"
+once_cell = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+hex = "0.4"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+
+# Platform-specific secure storage
+security-framework = "2"
+windows = { version = "0.58", features = ["Win32_Security_Credentials", "Win32_Foundation"] }
+secret-service = { version = "4", features = ["rt-tokio-crypto-rust"] }
+
+# Testing
+tokio-test = "0.4"
+tempfile = "3"
