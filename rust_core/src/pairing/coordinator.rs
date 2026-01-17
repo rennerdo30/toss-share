@@ -25,6 +25,8 @@ pub struct PairingDeviceInfo {
     pub addresses: Vec<SocketAddr>,
     /// Whether discovered via relay or mDNS
     pub via_relay: bool,
+    /// When the pairing session expires (Unix timestamp)
+    pub expires_at: Option<u64>,
 }
 
 /// Request to register pairing on relay server
@@ -37,7 +39,6 @@ struct RegisterPairingRequest {
 }
 
 /// Response from registering pairing
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct RegisterPairingResponse {
     code: String,
@@ -45,7 +46,6 @@ struct RegisterPairingResponse {
 }
 
 /// Response from finding pairing
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct FindPairingResponse {
     code: String,
@@ -150,7 +150,18 @@ impl PairingCoordinator {
             match self.http_client.post(&url).json(&request).send().await {
                 Ok(response) => {
                     if response.status().is_success() {
-                        tracing::info!("Pairing registered on relay server with code: {}", code);
+                        match response.json::<RegisterPairingResponse>().await {
+                            Ok(reg_response) => {
+                                tracing::info!(
+                                    "Pairing registered on relay server with code: {}, expires_at: {}",
+                                    reg_response.code,
+                                    reg_response.expires_at
+                                );
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to parse registration response: {}", e);
+                            }
+                        }
                     } else {
                         let status = response.status();
                         let error_text = response.text().await.unwrap_or_default();
@@ -255,6 +266,7 @@ impl PairingCoordinator {
                                         device_name,
                                         addresses,
                                         via_relay: false,
+                                        expires_at: None, // mDNS doesn't provide expiration
                                     });
                                 }
                             }
@@ -312,6 +324,7 @@ impl PairingCoordinator {
                 device_name: pairing.device_name,
                 addresses: vec![], // No direct addresses from relay
                 via_relay: true,
+                expires_at: Some(pairing.expires_at),
             })
         } else if response.status() == reqwest::StatusCode::NOT_FOUND {
             Err(NetworkError::Discovery(
