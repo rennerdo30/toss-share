@@ -37,6 +37,7 @@ struct RegisterPairingRequest {
 }
 
 /// Response from registering pairing
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct RegisterPairingResponse {
     code: String,
@@ -44,6 +45,7 @@ struct RegisterPairingResponse {
 }
 
 /// Response from finding pairing
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct FindPairingResponse {
     code: String,

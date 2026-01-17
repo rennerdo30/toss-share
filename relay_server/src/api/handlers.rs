@@ -265,11 +265,10 @@ pub async fn find_pairing(
     }
 
     // Find pairing session
-    let session = state
-        .db
-        .find_pairing(&code)
-        .await?
-        .ok_or_else(|| ApiError::NotFound("Pairing session not found or expired".to_string()))?;
+    let session =
+        state.db.find_pairing(&code).await?.ok_or_else(|| {
+            ApiError::NotFound("Pairing session not found or expired".to_string())
+        })?;
 
     // Encode public key as base64
     let public_key = base64::Engine::encode(
