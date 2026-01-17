@@ -1,7 +1,12 @@
 //! Platform-specific permissions service
 
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:toss/src/core/services/logging_service.dart';
 import 'dart:io';
+
+/// Platform channel for macOS accessibility permissions
+const _permissionsChannel = MethodChannel('toss.app/permissions');
 
 /// Service for managing platform-specific permissions
 class PermissionsService {
@@ -13,10 +18,18 @@ class PermissionsService {
   /// On macOS, this requires accessibility permissions
   Future<bool> checkClipboardAccess() async {
     if (Platform.isMacOS) {
-      // On macOS, we need to check accessibility permissions
-      // This is typically done via native code or platform channels
-      // For now, return true - full implementation requires native code
-      return true;
+      try {
+        final bool? isTrusted =
+            await _permissionsChannel.invokeMethod<bool>('checkAccessibilityPermission');
+        return isTrusted ?? false;
+      } on PlatformException catch (e) {
+        LoggingService.warn('Failed to check accessibility permission: $e');
+        return false;
+      } on MissingPluginException {
+        // Channel not available (e.g., running in debug without native code)
+        LoggingService.debug('Permissions channel not available');
+        return true;
+      }
     }
 
     // On other platforms, clipboard access is typically available
@@ -24,18 +37,28 @@ class PermissionsService {
   }
 
   /// Request clipboard access permissions
-  /// On macOS, this opens System Preferences
+  /// On macOS, this prompts the user and optionally opens System Preferences
   Future<bool> requestClipboardAccess() async {
     if (Platform.isMacOS) {
-      // On macOS, we need to request accessibility permissions
-      // This typically involves:
-      // 1. Checking current permission status
-      // 2. If denied, opening System Preferences to the accessibility section
-      // 3. Providing instructions to the user
+      try {
+        // First try to request permission (will show system prompt if not granted)
+        final bool? isTrusted =
+            await _permissionsChannel.invokeMethod<bool>('requestAccessibilityPermission');
 
-      // For now, return true - full implementation requires native code
-      // that can check and request accessibility permissions
-      return true;
+        if (isTrusted == true) {
+          return true;
+        }
+
+        // If still not granted, open accessibility settings
+        await openAccessibilitySettings();
+        return false;
+      } on PlatformException catch (e) {
+        LoggingService.warn('Failed to request accessibility permission: $e');
+        return false;
+      } on MissingPluginException {
+        LoggingService.debug('Permissions channel not available');
+        return true;
+      }
     }
 
     // On other platforms, clipboard access is typically granted automatically
@@ -69,9 +92,13 @@ class PermissionsService {
   /// Open system settings for accessibility (macOS)
   Future<void> openAccessibilitySettings() async {
     if (Platform.isMacOS) {
-      // Open System Preferences to Accessibility section
-      // This requires platform-specific code
-      // For now, this is a placeholder
+      try {
+        await _permissionsChannel.invokeMethod<bool>('openAccessibilitySettings');
+      } on PlatformException catch (e) {
+        LoggingService.warn('Failed to open accessibility settings: $e');
+      } on MissingPluginException {
+        LoggingService.debug('Permissions channel not available');
+      }
     }
   }
 

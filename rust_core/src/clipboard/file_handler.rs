@@ -102,163 +102,37 @@ impl FileClipboardProvider for DefaultFileClipboardProvider {
 #[cfg(target_os = "windows")]
 pub mod windows_impl {
     use super::*;
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
+    use crate::clipboard::windows_formats;
 
     /// Windows CF_HDROP file clipboard provider
     ///
-    /// The HDROP format is:
-    /// - DROPFILES header (20 bytes)
-    ///   - pFiles (DWORD): Offset to file list from start of structure
-    ///   - pt (POINT): Drop point (x, y)
-    ///   - fNC (BOOL): Whether pt is in non-client area
-    ///   - fWide (BOOL): Whether file list is Unicode (wide chars)
-    /// - Followed by null-terminated file paths (double-null terminated at end)
+    /// Uses the Windows clipboard API to read and write file lists
+    /// in the CF_HDROP format.
     pub struct WindowsFileClipboardProvider;
 
     impl FileClipboardProvider for WindowsFileClipboardProvider {
         fn read_files(&self) -> Result<Option<FileList>, ClipboardError> {
-            // Use arboard's file list reading via URL
-            // arboard doesn't directly support CF_HDROP, so we fall back to text-based URIs
-            // A full implementation would use Windows clipboard APIs directly
-
-            // For now, return not available - files can still be transferred as serialized paths
-            // Full native implementation requires winapi bindings
-            Ok(None)
+            match windows_formats::read_files()? {
+                Some(files) => Ok(Some(FileList { files })),
+                None => Ok(None),
+            }
         }
 
-        fn write_files(&self, _files: &FileList) -> Result<(), ClipboardError> {
-            // A full implementation would create an HDROP structure and write to clipboard
-            // This requires:
-            // 1. Allocate global memory
-            // 2. Create DROPFILES header
-            // 3. Append null-terminated Unicode file paths
-            // 4. Double-null terminate
-            // 5. Set clipboard data with CF_HDROP format
-
-            // For now, we serialize as text paths
-            Err(ClipboardError::UnsupportedFormat(
-                "Windows CF_HDROP writing requires native implementation".to_string(),
-            ))
+        fn write_files(&self, files: &FileList) -> Result<(), ClipboardError> {
+            windows_formats::write_files(&files.files)
         }
     }
 
     impl WindowsFileClipboardProvider {
         /// Create a new Windows file clipboard provider
-        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }
+    }
 
-        /// Parse DROPFILES structure from raw bytes
-        /// Returns file paths if successful
-        #[allow(dead_code)]
-        pub fn parse_hdrop(data: &[u8]) -> Option<Vec<PathBuf>> {
-            if data.len() < 20 {
-                return None; // Too small for DROPFILES header
-            }
-
-            // Read DROPFILES header
-            let p_files = u32::from_le_bytes([data[0], data[1], data[2], data[3]]) as usize;
-            let f_wide = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) != 0;
-
-            if p_files >= data.len() {
-                return None;
-            }
-
-            let file_data = &data[p_files..];
-            let mut files = Vec::new();
-
-            if f_wide {
-                // Unicode paths (UTF-16LE)
-                let mut i = 0;
-                while i + 1 < file_data.len() {
-                    // Find end of this path (null terminator)
-                    let mut end = i;
-                    while end + 1 < file_data.len() {
-                        let c = u16::from_le_bytes([file_data[end], file_data[end + 1]]);
-                        if c == 0 {
-                            break;
-                        }
-                        end += 2;
-                    }
-
-                    if end == i {
-                        // Double null - end of list
-                        break;
-                    }
-
-                    // Parse UTF-16 path
-                    let path_bytes: Vec<u16> = file_data[i..end]
-                        .chunks_exact(2)
-                        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
-                        .collect();
-
-                    let path = OsString::from_wide(&path_bytes);
-                    files.push(PathBuf::from(path));
-
-                    i = end + 2; // Skip null terminator
-                }
-            } else {
-                // ANSI paths (single byte)
-                let mut i = 0;
-                while i < file_data.len() {
-                    // Find end of this path (null terminator)
-                    let end = file_data[i..]
-                        .iter()
-                        .position(|&b| b == 0)
-                        .map(|pos| i + pos)
-                        .unwrap_or(file_data.len());
-
-                    if end == i {
-                        // Double null - end of list
-                        break;
-                    }
-
-                    // Parse ANSI path (assume UTF-8 compatible)
-                    if let Ok(path_str) = String::from_utf8(file_data[i..end].to_vec()) {
-                        files.push(PathBuf::from(path_str));
-                    }
-
-                    i = end + 1; // Skip null terminator
-                }
-            }
-
-            Some(files)
-        }
-
-        /// Create DROPFILES structure from file paths
-        /// Returns raw bytes for CF_HDROP clipboard format
-        #[allow(dead_code)]
-        pub fn create_hdrop(files: &[PathBuf]) -> Vec<u8> {
-            let mut data = Vec::new();
-
-            // DROPFILES header (20 bytes)
-            // pFiles: offset to file list (20 bytes = header size)
-            data.extend_from_slice(&20u32.to_le_bytes());
-            // pt.x (LONG)
-            data.extend_from_slice(&0i32.to_le_bytes());
-            // pt.y (LONG)
-            data.extend_from_slice(&0i32.to_le_bytes());
-            // fNC (BOOL)
-            data.extend_from_slice(&0u32.to_le_bytes());
-            // fWide (BOOL) - use Unicode
-            data.extend_from_slice(&1u32.to_le_bytes());
-
-            // File paths as null-terminated UTF-16LE strings
-            for path in files {
-                let path_str = path.to_string_lossy();
-                for c in path_str.encode_utf16() {
-                    data.extend_from_slice(&c.to_le_bytes());
-                }
-                // Null terminator
-                data.extend_from_slice(&0u16.to_le_bytes());
-            }
-
-            // Double null terminator to end list
-            data.extend_from_slice(&0u16.to_le_bytes());
-
-            data
+    impl Default for WindowsFileClipboardProvider {
+        fn default() -> Self {
+            Self::new()
         }
     }
 }

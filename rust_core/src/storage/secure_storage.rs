@@ -578,43 +578,182 @@ impl LinuxSecretStorage {
     }
 }
 
+/// Android secure storage using file-based encryption
+///
+/// On Android, the encryption key is managed by Flutter via Android Keystore.
+/// This Rust implementation stores encrypted data in files.
+/// The encryption key is passed from Dart when initializing secure storage.
 #[cfg(target_os = "android")]
 struct AndroidKeystoreStorage {
-    #[allow(dead_code)]
     service: String,
+    data_dir: std::path::PathBuf,
 }
+
+#[cfg(target_os = "android")]
+static ANDROID_ENCRYPTION_KEY: once_cell::sync::OnceCell<[u8; 32]> = once_cell::sync::OnceCell::new();
 
 #[cfg(target_os = "android")]
 impl AndroidKeystoreStorage {
     fn new(service: &str) -> Result<Self, CryptoError> {
+        // Get Android data directory from environment or use default
+        let data_dir = std::env::var("TOSS_DATA_DIR")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|_| {
+                // Fallback to app-specific directory
+                std::path::PathBuf::from("/data/data/dev.renner.toss/files/toss_secure")
+            });
+
+        // Create directory if it doesn't exist
+        if !data_dir.exists() {
+            std::fs::create_dir_all(&data_dir).map_err(|e| {
+                CryptoError::Storage(format!("Failed to create secure storage directory: {}", e))
+            })?;
+        }
+
         Ok(Self {
             service: service.to_string(),
+            data_dir,
         })
+    }
+
+    fn get_file_path(&self, key: &str) -> std::path::PathBuf {
+        // Use SHA256 hash of key as filename to avoid filesystem issues
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(self.service.as_bytes());
+        hasher.update(b":");
+        hasher.update(key.as_bytes());
+        let hash = hasher.finalize();
+        let filename = hex::encode(&hash[..16]); // Use first 16 bytes (32 hex chars)
+        self.data_dir.join(format!("{}.enc", filename))
+    }
+
+    fn get_encryption_key() -> Result<[u8; 32], CryptoError> {
+        ANDROID_ENCRYPTION_KEY.get().copied().ok_or_else(|| {
+            CryptoError::Storage(
+                "Android encryption key not set. Call set_android_encryption_key first.".to_string(),
+            )
+        })
+    }
+
+    fn encrypt_data(plaintext: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, CryptoError> {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm, Nonce,
+        };
+        use rand::RngCore;
+
+        let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| CryptoError::InvalidKey)?;
+
+        // Generate random nonce
+        let mut nonce_bytes = [0u8; 12];
+        rand::thread_rng().fill_bytes(&mut nonce_bytes);
+        let nonce = Nonce::from_slice(&nonce_bytes);
+
+        // Encrypt
+        let ciphertext = cipher
+            .encrypt(nonce, plaintext)
+            .map_err(|e| CryptoError::Encryption(e.to_string()))?;
+
+        // Format: nonce (12 bytes) || ciphertext
+        let mut result = Vec::with_capacity(12 + ciphertext.len());
+        result.extend_from_slice(&nonce_bytes);
+        result.extend_from_slice(&ciphertext);
+
+        Ok(result)
+    }
+
+    fn decrypt_data(encrypted: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, CryptoError> {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm, Nonce,
+        };
+
+        if encrypted.len() < 12 {
+            return Err(CryptoError::Decryption("Data too short".to_string()));
+        }
+
+        let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| CryptoError::InvalidKey)?;
+
+        let nonce = Nonce::from_slice(&encrypted[..12]);
+        let ciphertext = &encrypted[12..];
+
+        cipher
+            .decrypt(nonce, ciphertext)
+            .map_err(|e| CryptoError::Decryption(e.to_string()))
     }
 }
 
 #[cfg(target_os = "android")]
 impl SecureStorage for AndroidKeystoreStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
-        // TODO: Implement using JNI to call Android Keystore
-        Err(CryptoError::Storage(
-            "Android Keystore requires native JNI implementation".to_string(),
-        ))
+        let encryption_key = Self::get_encryption_key()?;
+        let encrypted = Self::encrypt_data(value, &encryption_key)?;
+
+        let file_path = self.get_file_path(key);
+        std::fs::write(&file_path, &encrypted).map_err(|e| {
+            CryptoError::Storage(format!("Failed to write secure file: {}", e))
+        })?;
+
+        Ok(())
     }
 
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
-        // TODO: Implement using JNI
-        Err(CryptoError::Storage(
-            "Android Keystore requires native JNI implementation".to_string(),
-        ))
+        let file_path = self.get_file_path(key);
+
+        if !file_path.exists() {
+            return Ok(None);
+        }
+
+        let encrypted = std::fs::read(&file_path).map_err(|e| {
+            CryptoError::Storage(format!("Failed to read secure file: {}", e))
+        })?;
+
+        let encryption_key = Self::get_encryption_key()?;
+        let decrypted = Self::decrypt_data(&encrypted, &encryption_key)?;
+
+        Ok(Some(decrypted))
     }
 
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
-        // TODO: Implement using JNI
-        Err(CryptoError::Storage(
-            "Android Keystore requires native JNI implementation".to_string(),
-        ))
+        let file_path = self.get_file_path(key);
+
+        if file_path.exists() {
+            std::fs::remove_file(&file_path).map_err(|e| {
+                CryptoError::Storage(format!("Failed to delete secure file: {}", e))
+            })?;
+        }
+
+        Ok(())
     }
+}
+
+/// Set the Android encryption key from Flutter/Dart
+/// This key should be retrieved from Android Keystore via Flutter platform channel
+#[cfg(target_os = "android")]
+pub fn set_android_encryption_key(key: [u8; 32]) -> Result<(), CryptoError> {
+    ANDROID_ENCRYPTION_KEY.set(key).map_err(|_| {
+        CryptoError::Storage("Android encryption key already set".to_string())
+    })
+}
+
+/// Set the Android data directory from Flutter/Dart
+#[cfg(target_os = "android")]
+pub fn set_android_data_dir(dir: &str) {
+    std::env::set_var("TOSS_DATA_DIR", dir);
+}
+
+// No-op implementations for non-Android platforms
+#[cfg(not(target_os = "android"))]
+#[allow(dead_code)]
+pub fn set_android_encryption_key(_key: [u8; 32]) -> Result<(), CryptoError> {
+    Ok(())
+}
+
+#[cfg(not(target_os = "android"))]
+#[allow(dead_code)]
+pub fn set_android_data_dir(_dir: &str) {
+    // No-op on non-Android platforms
 }
 
 // Fallback in-memory storage for unsupported platforms or temporary use

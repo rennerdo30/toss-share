@@ -1,11 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:toss/src/core/services/logging_service.dart';
 import 'dart:io';
 import 'dart:async';
 
 // Import generated FFI bindings
 import 'package:toss/src/rust/api.dart' as api;
 import 'package:toss/src/rust/frb_generated.dart';
+
+const _kFallbackDeviceIdKey = 'fallback_device_id';
 
 /// Pairing information returned from start_pairing
 class PairingInfo {
@@ -188,7 +191,7 @@ class TossService {
       _ffiAvailable = true;
     } catch (e) {
       _ffiAvailable = false;
-      debugPrint('Warning: flutter_rust_bridge initialization failed: $e');
+      LoggingService.warn(' flutter_rust_bridge initialization failed: $e');
     }
 
     // Call Rust FFI init_toss()
@@ -199,15 +202,37 @@ class TossService {
       } catch (e) {
         // Fallback: Mock device ID if FFI fails
         _ffiAvailable = false;
-        _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
-        debugPrint('Warning: FFI initialization failed: $e');
+        _deviceId = await _getOrCreateFallbackDeviceId();
+        LoggingService.warn(' FFI initialization failed: $e');
       }
     } else {
       // Fallback: Mock device ID when FFI not available
-      _deviceId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
+      _deviceId = await _getOrCreateFallbackDeviceId();
     }
 
     _initialized = true;
+  }
+
+  /// Get or create a persistent fallback device ID when FFI is unavailable
+  static Future<String> _getOrCreateFallbackDeviceId() async {
+    try {
+      final box = await Hive.openBox<String>('toss_fallback');
+      String? storedId = box.get(_kFallbackDeviceIdKey);
+
+      if (storedId == null) {
+        storedId = 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
+        await box.put(_kFallbackDeviceIdKey, storedId);
+        LoggingService.info('Created new fallback device ID: $storedId');
+      } else {
+        LoggingService.debug('Loaded existing fallback device ID: $storedId');
+      }
+
+      return storedId;
+    } catch (e) {
+      // If Hive fails, generate a new ID (this is a last resort)
+      LoggingService.warn(' Failed to persist fallback device ID: $e');
+      return 'mock-device-${DateTime.now().millisecondsSinceEpoch}';
+    }
   }
 
   /// Get a friendly device name based on platform
@@ -232,7 +257,7 @@ class TossService {
     try {
       api.setDeviceName(name: name);
     } catch (e) {
-      debugPrint('Warning: Failed to set device name: $e');
+      LoggingService.warn(' Failed to set device name: $e');
     }
   }
 
@@ -294,7 +319,7 @@ class TossService {
     try {
       api.cancelPairing();
     } catch (e) {
-      debugPrint('Warning: Failed to cancel pairing: $e');
+      LoggingService.warn(' Failed to cancel pairing: $e');
     }
   }
 
@@ -309,7 +334,7 @@ class TossService {
         viaRelay: device.viaRelay,
       );
     } catch (e) {
-      debugPrint('Warning: Failed to find pairing device: $e');
+      LoggingService.warn(' Failed to find pairing device: $e');
       return null;
     }
   }
@@ -338,7 +363,7 @@ class TossService {
     try {
       await api.registerPairingAdvertisement();
     } catch (e) {
-      debugPrint('Warning: Failed to register pairing advertisement: $e');
+      LoggingService.warn(' Failed to register pairing advertisement: $e');
     }
   }
 
@@ -361,7 +386,7 @@ class TossService {
               ))
           .toList();
     } catch (e) {
-      debugPrint('Warning: Failed to get paired devices: $e');
+      LoggingService.warn(' Failed to get paired devices: $e');
       return [];
     }
   }
@@ -381,7 +406,7 @@ class TossService {
               ))
           .toList();
     } catch (e) {
-      debugPrint('Warning: Failed to get connected devices: $e');
+      LoggingService.warn(' Failed to get connected devices: $e');
       return [];
     }
   }
@@ -391,7 +416,7 @@ class TossService {
     try {
       api.removeDevice(deviceId: deviceId);
     } catch (e) {
-      debugPrint('Warning: Failed to remove device: $e');
+      LoggingService.warn(' Failed to remove device: $e');
     }
   }
 
@@ -400,7 +425,7 @@ class TossService {
     try {
       api.renameDevice(deviceId: deviceId, newName: newName);
     } catch (e) {
-      debugPrint('Warning: Failed to rename device: $e');
+      LoggingService.warn(' Failed to rename device: $e');
       rethrow;
     }
   }
@@ -423,7 +448,7 @@ class TossService {
         sourceDevice: item.sourceDevice,
       );
     } catch (e) {
-      debugPrint('Warning: Failed to get current clipboard: $e');
+      LoggingService.warn(' Failed to get current clipboard: $e');
       return null;
     }
   }
@@ -462,12 +487,12 @@ class TossService {
       } catch (e) {
         attempt++;
         if (attempt >= maxRetries) {
-          debugPrint(
-              'Warning: Failed to $operationName after $maxRetries attempts: $e');
+          LoggingService.warn(
+              'Failed to $operationName after $maxRetries attempts: $e');
           rethrow; // Propagate error after all retries exhausted
         }
-        debugPrint(
-            'Warning: $operationName failed (attempt $attempt/$maxRetries), retrying in ${delay.inMilliseconds}ms: $e');
+        LoggingService.warn(
+            '$operationName failed (attempt $attempt/$maxRetries), retrying in ${delay.inMilliseconds}ms: $e');
         await Future.delayed(delay);
         delay *= 2; // Exponential backoff
       }
@@ -491,7 +516,7 @@ class TossService {
               ))
           .toList();
     } catch (e) {
-      debugPrint('Warning: Failed to get clipboard history: $e');
+      LoggingService.warn(' Failed to get clipboard history: $e');
       return [];
     }
   }
@@ -501,7 +526,7 @@ class TossService {
     try {
       api.removeHistoryItem(itemId: itemId);
     } catch (e) {
-      debugPrint('Warning: Failed to remove history item: $e');
+      LoggingService.warn(' Failed to remove history item: $e');
     }
   }
 
@@ -510,7 +535,7 @@ class TossService {
     try {
       api.clearClipboardHistory();
     } catch (e) {
-      debugPrint('Warning: Failed to clear clipboard history: $e');
+      LoggingService.warn(' Failed to clear clipboard history: $e');
     }
   }
 
@@ -523,7 +548,7 @@ class TossService {
         data: content.data,
       );
     } catch (e) {
-      debugPrint('Warning: Failed to get history item content: $e');
+      LoggingService.warn(' Failed to get history item content: $e');
       return null;
     }
   }
@@ -558,7 +583,7 @@ class TossService {
       );
       api.updateSettings(settings: settings);
     } catch (e) {
-      debugPrint('Warning: Failed to update settings: $e');
+      LoggingService.warn(' Failed to update settings: $e');
     }
   }
 
@@ -572,7 +597,7 @@ class TossService {
     try {
       await api.startNetwork();
     } catch (e) {
-      debugPrint('Warning: Failed to start network: $e');
+      LoggingService.warn(' Failed to start network: $e');
     }
   }
 
@@ -584,7 +609,7 @@ class TossService {
       if (event == null) return null;
       return TossEvent.fromApi(event);
     } catch (e) {
-      debugPrint('Warning: Failed to poll event: $e');
+      LoggingService.warn(' Failed to poll event: $e');
       return null;
     }
   }
@@ -595,7 +620,7 @@ class TossService {
     try {
       return api.checkClipboardChanged();
     } catch (e) {
-      debugPrint('Warning: Failed to check clipboard: $e');
+      LoggingService.warn(' Failed to check clipboard: $e');
       return false;
     }
   }
@@ -605,7 +630,7 @@ class TossService {
     try {
       await api.stopNetwork();
     } catch (e) {
-      debugPrint('Warning: Failed to stop network: $e');
+      LoggingService.warn(' Failed to stop network: $e');
     }
   }
 
@@ -619,7 +644,7 @@ class TossService {
     try {
       await api.shutdownToss();
     } catch (e) {
-      debugPrint('Warning: Failed to shutdown Toss: $e');
+      LoggingService.warn(' Failed to shutdown Toss: $e');
     }
     _initialized = false;
     _deviceId = null;
