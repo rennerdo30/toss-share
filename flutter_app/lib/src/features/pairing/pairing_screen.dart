@@ -325,10 +325,16 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
   void initState() {
     super.initState();
     _requestCameraPermission();
+    _codeController.addListener(_onCodeChanged);
+  }
+
+  void _onCodeChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _codeController.removeListener(_onCodeChanged);
     _codeController.dispose();
     _scannerController?.dispose();
     super.dispose();

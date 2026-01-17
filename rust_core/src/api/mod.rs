@@ -126,13 +126,21 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
     *LOG_GUARD.write() = Some(guard);
 
     // Initialize tracing subscriber with both stdout and file output
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("toss_core=debug"));
+
     let _ = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(std::io::stdout)
+                .with_ansi(true),
+        )
         .with(
             tracing_subscriber::fmt::layer()
                 .with_writer(non_blocking)
                 .with_ansi(false),
         )
-        .with(tracing_subscriber::EnvFilter::new("toss_core=debug"))
         .try_init();
 
     tracing::info!("Toss core initializing with data_dir: {}", data_dir);
