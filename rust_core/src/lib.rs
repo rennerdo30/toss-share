@@ -13,6 +13,7 @@ pub mod crypto;
 pub mod error;
 pub mod network;
 pub mod pairing;
+pub mod panic_handler;
 pub mod protocol;
 pub mod storage;
 

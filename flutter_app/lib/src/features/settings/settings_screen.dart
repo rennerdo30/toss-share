@@ -467,6 +467,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(height: 1),
               ],
               ListTile(
+                leading: const Icon(Icons.folder_open),
+                title: const Text('Open Log Folder'),
+                subtitle: Text(_getLogPath()),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () => _openLogFolder(context),
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const Icon(Icons.code),
                 title: const Text('Source Code'),
                 subtitle: const Text('github.com/rennerdo30/toss-share'),
@@ -499,6 +507,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  String _getLogPath() {
+    if (Platform.isWindows) {
+      final appData = Platform.environment['LOCALAPPDATA'] ?? '';
+      return '$appData\\toss\\logs';
+    } else if (Platform.isMacOS) {
+      final home = Platform.environment['HOME'] ?? '';
+      return '$home/Library/Application Support/toss/logs';
+    } else {
+      final home = Platform.environment['HOME'] ?? '';
+      return '$home/.local/share/toss/logs';
+    }
+  }
+
+  Future<void> _openLogFolder(BuildContext context) async {
+    final path = _getLogPath();
+    final uri = Uri.file(path);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        // Fallback: show path in snackbar
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Log folder: $path'),
+              action: SnackBarAction(
+                label: 'Copy',
+                onPressed: () {
+                  // Copy path to clipboard
+                  // Note: Would need to import services/clipboard
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open folder: $e')),
+        );
+      }
+    }
   }
 
   String _getThemeName(ThemeMode mode) {

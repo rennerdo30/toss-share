@@ -114,11 +114,16 @@ pub struct EventStream {
 /// Initialize Toss core
 #[frb(sync)]
 pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
-    // Initialize file-based logging
+    // Create log directory and install panic hook FIRST
+    // This ensures we can capture any panics during initialization
     let log_dir = std::path::Path::new(&data_dir).join("logs");
     std::fs::create_dir_all(&log_dir)
         .map_err(|e| format!("Failed to create log directory: {}", e))?;
 
+    // Install panic hook before any other initialization
+    crate::panic_handler::install_panic_hook(&log_dir);
+
+    // Initialize file-based logging
     let file_appender = tracing_appender::rolling::daily(&log_dir, "toss.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
@@ -129,7 +134,7 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("toss_core=debug"));
 
-    let _ = tracing_subscriber::registry()
+    match tracing_subscriber::registry()
         .with(env_filter)
         .with(
             tracing_subscriber::fmt::layer()
@@ -141,9 +146,14 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
                 .with_writer(non_blocking)
                 .with_ansi(false),
         )
-        .try_init();
-
-    tracing::info!("Toss core initializing with data_dir: {}", data_dir);
+        .try_init()
+    {
+        Ok(_) => tracing::info!("Toss core initializing with data_dir: {}", data_dir),
+        Err(e) => eprintln!(
+            "Warning: tracing init failed (may already be initialized): {}",
+            e
+        ),
+    }
 
     // Initialize storage
     let db_path = std::path::Path::new(&data_dir).join("toss.db");

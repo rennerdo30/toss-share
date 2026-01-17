@@ -71,6 +71,7 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg"]
 # Platform-specific secure storage
 security-framework = "2"
 windows = { version = "0.58", features = ["Win32_Security_Credentials", "Win32_Foundation"] }
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging"] }
 secret-service = { version = "4", features = ["rt-tokio-crypto-rust"] }
 
 # Testing
