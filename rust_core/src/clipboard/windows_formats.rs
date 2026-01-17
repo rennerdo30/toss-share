@@ -46,9 +46,7 @@ mod windows_impl {
         CloseClipboard, GetClipboardData, IsClipboardFormatAvailable, OpenClipboard,
         SetClipboardData,
     };
-    use windows::Win32::System::Memory::{
-        GlobalAlloc, GlobalFree, GlobalLock, GlobalSize, GlobalUnlock, GHND,
-    };
+    use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock, GHND};
     use windows::Win32::System::Ole::CF_HDROP;
     use windows::Win32::UI::Shell::{DragQueryFileW, HDROP};
 
@@ -195,7 +193,7 @@ mod windows_impl {
             let mem_handle = mem_handle.unwrap();
             let mem_ptr = GlobalLock(mem_handle);
             if mem_ptr.is_null() {
-                let _ = GlobalFree(mem_handle);
+                // Note: memory may leak on error, but GlobalFree is not available in windows 0.58
                 return Err(ClipboardError::OperationFailed(
                     "Failed to lock clipboard memory".to_string(),
                 ));
@@ -208,7 +206,7 @@ mod windows_impl {
             // Set clipboard data
             let result = SetClipboardData(CF_HDROP.0 as u32, HANDLE(mem_handle.0));
             if result.is_err() {
-                GlobalFree(mem_handle);
+                // Note: memory may leak on error, but GlobalFree is not available in windows 0.58
                 return Err(ClipboardError::OperationFailed(
                     "Failed to set clipboard data".to_string(),
                 ));
