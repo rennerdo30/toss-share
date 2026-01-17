@@ -119,8 +119,7 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
     std::fs::create_dir_all(&log_dir)
         .map_err(|e| format!("Failed to create log directory: {}", e))?;
 
-    let file_appender =
-        tracing_appender::rolling::daily(&log_dir, "toss.log");
+    let file_appender = tracing_appender::rolling::daily(&log_dir, "toss.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     // Store the guard to keep logging active
@@ -468,11 +467,9 @@ pub fn complete_manual_pairing(
     peer_device_name: String,
 ) -> Result<DeviceInfoDto, String> {
     // Decode public key from base64
-    let public_key_bytes = base64::Engine::decode(
-        &base64::engine::general_purpose::STANDARD,
-        &peer_public_key,
-    )
-    .map_err(|e| format!("Invalid public key encoding: {}", e))?;
+    let public_key_bytes =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &peer_public_key)
+            .map_err(|e| format!("Invalid public key encoding: {}", e))?;
 
     if public_key_bytes.len() != 32 {
         return Err("Invalid public key length (expected 32 bytes)".to_string());
@@ -556,16 +553,19 @@ pub async fn register_pairing_advertisement() -> Result<(), String> {
             .ok_or("No active pairing session")?;
 
         let info = session.info(&core.device_name);
-        let public_key_bytes = base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            &info.public_key,
-        )
-        .map_err(|e| format!("Invalid public key: {}", e))?;
+        let public_key_bytes =
+            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &info.public_key)
+                .map_err(|e| format!("Invalid public key: {}", e))?;
 
         let mut pk = [0u8; 32];
         pk.copy_from_slice(&public_key_bytes);
 
-        (info.code, pk, core.settings.relay_url.clone(), core.device_name.clone())
+        (
+            info.code,
+            pk,
+            core.settings.relay_url.clone(),
+            core.device_name.clone(),
+        )
     };
 
     // Create pairing coordinator and start advertisement

@@ -148,10 +148,7 @@ impl PairingCoordinator {
             match self.http_client.post(&url).json(&request).send().await {
                 Ok(response) => {
                     if response.status().is_success() {
-                        tracing::info!(
-                            "Pairing registered on relay server with code: {}",
-                            code
-                        );
+                        tracing::info!("Pairing registered on relay server with code: {}", code);
                     } else {
                         let status = response.status();
                         let error_text = response.text().await.unwrap_or_default();
@@ -301,9 +298,7 @@ impl PairingCoordinator {
             .map_err(|e| NetworkError::Relay(format!("Invalid public key encoding: {}", e)))?;
 
             if pk_bytes.len() != 32 {
-                return Err(NetworkError::Relay(
-                    "Invalid public key length".to_string(),
-                ));
+                return Err(NetworkError::Relay("Invalid public key length".to_string()));
             }
 
             let mut public_key = [0u8; 32];
@@ -322,10 +317,7 @@ impl PairingCoordinator {
             ))
         } else {
             let error_text = response.text().await.unwrap_or_default();
-            Err(NetworkError::Relay(format!(
-                "Relay error: {}",
-                error_text
-            )))
+            Err(NetworkError::Relay(format!("Relay error: {}", error_text)))
         }
     }
 
