@@ -78,6 +78,7 @@ fn show_message_box(title: &str, message: &str) {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
     use std::fs;
     use tempfile::tempdir;
