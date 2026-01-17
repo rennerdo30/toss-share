@@ -42,7 +42,7 @@ bool FlutterWindow::OnCreate() {
   static std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_storage;
   channel_storage = std::move(channel);
 
-  channel->SetMethodCallHandler(
+  channel_storage->SetMethodCallHandler(
       [](const flutter::MethodCall<flutter::EncodableValue>& call,
          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
         if (call.method_name() == "enableAutoStart") {
