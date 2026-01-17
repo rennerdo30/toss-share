@@ -41,7 +41,7 @@ mod windows_impl {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
     use std::ptr;
-    use windows::Win32::Foundation::{HANDLE, HWND};
+    use windows::Win32::Foundation::{HANDLE, HGLOBAL, HWND};
     use windows::Win32::System::DataExchange::{
         CloseClipboard, GetClipboardData, IsClipboardFormatAvailable, OpenClipboard,
         SetClipboardData,
@@ -102,7 +102,8 @@ mod windows_impl {
                 return Ok(None);
             }
 
-            let data_ptr = GlobalLock(handle.0 as *mut _) as *const u16;
+            let hglobal = HGLOBAL(handle.0);
+            let data_ptr = GlobalLock(hglobal) as *const u16;
             if data_ptr.is_null() {
                 return Ok(None);
             }
@@ -116,7 +117,7 @@ mod windows_impl {
             let slice = std::slice::from_raw_parts(data_ptr, len);
             let text = OsString::from_wide(slice).to_string_lossy().into_owned();
 
-            GlobalUnlock(handle.0 as *mut _);
+            let _ = GlobalUnlock(hglobal);
 
             Ok(Some(text))
         }
@@ -192,9 +193,9 @@ mod windows_impl {
             }
 
             let mem_handle = mem_handle.unwrap();
-            let mem_ptr = GlobalLock(mem_handle.0 as *mut _);
+            let mem_ptr = GlobalLock(mem_handle);
             if mem_ptr.is_null() {
-                GlobalFree(mem_handle);
+                let _ = GlobalFree(mem_handle);
                 return Err(ClipboardError::OperationFailed(
                     "Failed to lock clipboard memory".to_string(),
                 ));
@@ -202,10 +203,10 @@ mod windows_impl {
 
             // Copy data to global memory
             ptr::copy_nonoverlapping(hdrop_data.as_ptr(), mem_ptr as *mut u8, hdrop_data.len());
-            GlobalUnlock(mem_handle.0 as *mut _);
+            let _ = GlobalUnlock(mem_handle);
 
             // Set clipboard data
-            let result = SetClipboardData(CF_HDROP.0 as u32, HANDLE(mem_handle.0 as *mut _));
+            let result = SetClipboardData(CF_HDROP.0 as u32, HANDLE(mem_handle.0));
             if result.is_err() {
                 GlobalFree(mem_handle);
                 return Err(ClipboardError::OperationFailed(
@@ -269,18 +270,19 @@ mod windows_impl {
                 return Ok(None);
             }
 
-            let size = GlobalSize(handle.0 as *mut _);
+            let hglobal = HGLOBAL(handle.0);
+            let size = GlobalSize(hglobal);
             if size == 0 {
                 return Ok(None);
             }
 
-            let data_ptr = GlobalLock(handle.0 as *mut _) as *const u8;
+            let data_ptr = GlobalLock(hglobal) as *const u8;
             if data_ptr.is_null() {
                 return Ok(None);
             }
 
             let data = std::slice::from_raw_parts(data_ptr, size).to_vec();
-            GlobalUnlock(handle.0 as *mut _);
+            let _ = GlobalUnlock(hglobal);
 
             Ok(Some(data))
         }
