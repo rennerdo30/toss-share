@@ -52,6 +52,9 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
           _isLoading = false;
         });
       }
+
+      // Register pairing advertisement on relay server and mDNS
+      await TossService.registerPairingAdvertisement();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -142,17 +145,33 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
     });
 
     try {
-      // Manual code pairing requires discovering the device on the network
-      // For now, we'll show an error as this feature requires relay server support
-      throw UnimplementedError(
-        'Manual code pairing requires the other device to be discovered on the network. '
-        'Please use QR code scanning instead.',
-      );
+      // Search for device by pairing code via mDNS and relay server
+      final device = await TossService.findPairingDevice(code);
+
+      if (device == null) {
+        throw Exception(
+          'Device not found. Make sure the other device is showing the pairing code.',
+        );
+      }
+
+      // Complete the pairing
+      final pairedDevice = await TossService.completeManualPairing(device);
+
+      if (mounted) {
+        final viaText = device.viaRelay ? ' (via relay)' : ' (local network)';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Device "${pairedDevice.name}" paired successfully$viaText!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.pop();
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isPairing = false;
-          _error = e.toString();
+          _error = e.toString().replaceAll('Exception: ', '');
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -446,7 +465,7 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Manual code entry requires QR scan on the other device',
+            'Enter the 6-digit code shown on the other device',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
@@ -461,10 +480,17 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
                   ? null
                   : () => widget.onManualCode(_codeController.text),
               child: widget.isPairing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Searching...'),
+                      ],
                     )
                   : const Text('Connect'),
             ),

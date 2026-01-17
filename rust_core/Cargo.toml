@@ -29,6 +29,7 @@ rustls.workspace = true
 rcgen.workspace = true
 mdns-sd.workspace = true
 tokio-tungstenite.workspace = true
+reqwest.workspace = true
 
 # Serialization
 serde.workspace = true
@@ -50,6 +51,7 @@ rusqlite.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+tracing-appender.workspace = true
 parking_lot.workspace = true
 once_cell.workspace = true
 uuid.workspace = true

@@ -7,6 +7,9 @@ use flutter_rust_bridge::frb;
 use parking_lot::RwLock;
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, Mutex};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 use crate::clipboard::ClipboardManager;
 use crate::crypto::{
@@ -19,6 +22,9 @@ use crate::storage::{Storage, StoredDevice};
 
 /// Global Toss instance
 static TOSS_INSTANCE: RwLock<Option<TossCore>> = RwLock::new(None);
+
+/// Guard for file logger (must be kept alive for logging to work)
+static LOG_GUARD: RwLock<Option<WorkerGuard>> = RwLock::new(None);
 
 /// Core Toss functionality
 pub struct TossCore {
@@ -108,10 +114,29 @@ pub struct EventStream {
 /// Initialize Toss core
 #[frb(sync)]
 pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
-    // Initialize logging
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter("toss_core=debug")
+    // Initialize file-based logging
+    let log_dir = std::path::Path::new(&data_dir).join("logs");
+    std::fs::create_dir_all(&log_dir)
+        .map_err(|e| format!("Failed to create log directory: {}", e))?;
+
+    let file_appender =
+        tracing_appender::rolling::daily(&log_dir, "toss.log");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+    // Store the guard to keep logging active
+    *LOG_GUARD.write() = Some(guard);
+
+    // Initialize tracing subscriber with both stdout and file output
+    let _ = tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(non_blocking)
+                .with_ansi(false),
+        )
+        .with(tracing_subscriber::EnvFilter::new("toss_core=debug"))
         .try_init();
+
+    tracing::info!("Toss core initializing with data_dir: {}", data_dir);
 
     // Initialize storage
     let db_path = std::path::Path::new(&data_dir).join("toss.db");
@@ -386,6 +411,173 @@ pub fn cancel_pairing() {
     if let Some(ref mut core) = *TOSS_INSTANCE.write() {
         core.pairing_session = None;
     }
+}
+
+/// Pairing device info returned from find_pairing_device
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PairingDeviceDto {
+    pub code: String,
+    pub public_key: String, // Base64 encoded
+    pub device_name: String,
+    pub via_relay: bool,
+}
+
+/// Find a device by pairing code (searches mDNS and relay server)
+#[frb]
+pub async fn find_pairing_device(code: String) -> Result<PairingDeviceDto, String> {
+    // Validate code format
+    if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
+        return Err("Pairing code must be 6 digits".to_string());
+    }
+
+    // Get relay URL and device name from settings
+    let (relay_url, device_name) = {
+        let guard = TOSS_INSTANCE.read();
+        let core = guard.as_ref().ok_or("Toss not initialized")?;
+        (core.settings.relay_url.clone(), core.device_name.clone())
+    };
+
+    // Create pairing coordinator
+    let coordinator = crate::pairing::PairingCoordinator::new(&device_name, relay_url)
+        .map_err(|e| format!("Failed to create pairing coordinator: {}", e))?;
+
+    // Find device
+    let device_info = coordinator
+        .find_device(&code)
+        .await
+        .map_err(|e| format!("Failed to find device: {}", e))?;
+
+    // Encode public key as base64
+    let public_key = base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        &device_info.public_key,
+    );
+
+    Ok(PairingDeviceDto {
+        code: device_info.code,
+        public_key,
+        device_name: device_info.device_name,
+        via_relay: device_info.via_relay,
+    })
+}
+
+/// Complete pairing with a device found via find_pairing_device
+#[frb(sync)]
+pub fn complete_manual_pairing(
+    peer_public_key: String,
+    peer_device_name: String,
+) -> Result<DeviceInfoDto, String> {
+    // Decode public key from base64
+    let public_key_bytes = base64::Engine::decode(
+        &base64::engine::general_purpose::STANDARD,
+        &peer_public_key,
+    )
+    .map_err(|e| format!("Invalid public key encoding: {}", e))?;
+
+    if public_key_bytes.len() != 32 {
+        return Err("Invalid public key length (expected 32 bytes)".to_string());
+    }
+
+    let mut peer_key = [0u8; 32];
+    peer_key.copy_from_slice(&public_key_bytes);
+
+    let mut guard = TOSS_INSTANCE.write();
+    let core = guard.as_mut().ok_or("Toss not initialized")?;
+
+    // Get or create a pairing session
+    let session = core
+        .pairing_session
+        .take()
+        .unwrap_or_else(|| PairingSession::new(&core.device_name));
+
+    // Complete the pairing using X25519 key exchange
+    let session_key = session
+        .complete_with_peer_key(&peer_key)
+        .map_err(|e| format!("Pairing failed: {}", e))?;
+
+    // Derive device ID from public key
+    let device_id = hex::encode(&Sha256::digest(&peer_key)[..16]);
+
+    // Encrypt session key before storing
+    let encrypted_session_key = {
+        let storage_key = derive_key(
+            core.identity.device_id() as &[u8],
+            DerivedKeyPurpose::StorageEncryption,
+            Some(b"toss-session-key-v1"),
+        )
+        .map_err(|e| format!("Failed to derive storage key: {}", e))?;
+
+        let aad = format!("session:{}", device_id).into_bytes();
+        let encrypted = encrypt(&storage_key, &session_key, &aad)
+            .map_err(|e| format!("Failed to encrypt session key: {}", e))?;
+        Some(encrypted.to_bytes())
+    };
+
+    // Store the paired device
+    let stored_device = StoredDevice {
+        id: device_id.clone(),
+        name: peer_device_name.clone(),
+        public_key: peer_key.to_vec(),
+        session_key: encrypted_session_key,
+        last_seen: None,
+        created_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
+        is_active: true,
+        platform: Some("unknown".to_string()), // Platform not available from pairing info
+    };
+
+    core.storage
+        .devices()
+        .store_device(&stored_device)
+        .map_err(|e| format!("Failed to store device: {}", e))?;
+
+    Ok(DeviceInfoDto {
+        id: device_id,
+        name: peer_device_name,
+        is_online: false,
+        last_seen: 0,
+        platform: "unknown".to_string(),
+    })
+}
+
+/// Register pairing code on relay server and via mDNS
+#[frb]
+pub async fn register_pairing_advertisement() -> Result<(), String> {
+    // Get current pairing session, relay URL, and device name
+    let (code, public_key, relay_url, device_name) = {
+        let guard = TOSS_INSTANCE.read();
+        let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+        let session = core
+            .pairing_session
+            .as_ref()
+            .ok_or("No active pairing session")?;
+
+        let info = session.info(&core.device_name);
+        let public_key_bytes = base64::Engine::decode(
+            &base64::engine::general_purpose::STANDARD,
+            &info.public_key,
+        )
+        .map_err(|e| format!("Invalid public key: {}", e))?;
+
+        let mut pk = [0u8; 32];
+        pk.copy_from_slice(&public_key_bytes);
+
+        (info.code, pk, core.settings.relay_url.clone(), core.device_name.clone())
+    };
+
+    // Create pairing coordinator and start advertisement
+    let coordinator = crate::pairing::PairingCoordinator::new(&device_name, relay_url)
+        .map_err(|e| format!("Failed to create pairing coordinator: {}", e))?;
+
+    coordinator
+        .start_advertisement(&code, &public_key)
+        .await
+        .map_err(|e| format!("Failed to start advertisement: {}", e))?;
+
+    Ok(())
 }
 
 // ============================================================================

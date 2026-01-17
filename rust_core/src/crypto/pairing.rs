@@ -158,6 +158,30 @@ impl PairingSession {
 
         Ok((session_key, payload.name, payload.pk))
     }
+
+    /// Complete pairing with peer's public key only (code already verified via relay/mDNS)
+    /// This is used when finding a device via the pairing coordinator
+    pub fn complete_with_peer_key(
+        self,
+        peer_public_key: &[u8; 32],
+    ) -> Result<[u8; KEY_SIZE], CryptoError> {
+        // Check expiration
+        if self.is_expired() {
+            return Err(CryptoError::SessionExpired);
+        }
+
+        // Derive shared secret using X25519
+        let shared_secret = self.ephemeral.derive_shared_secret(peer_public_key);
+
+        // Derive session key from shared secret
+        let session_key = derive_key(
+            shared_secret.as_bytes(),
+            DerivedKeyPurpose::SessionEncryption,
+            None,
+        )?;
+
+        Ok(session_key)
+    }
 }
 
 /// Generate a 6-digit pairing code

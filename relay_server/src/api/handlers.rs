@@ -183,3 +183,118 @@ pub async fn device_status(
         last_seen: device.last_seen,
     }))
 }
+
+// ============================================================================
+// Pairing
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct RegisterPairingRequest {
+    pub code: String,
+    pub public_key: String, // Base64 encoded
+    pub device_name: String,
+    pub expires_in_secs: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RegisterPairingResponse {
+    pub code: String,
+    pub expires_at: u64,
+}
+
+pub async fn register_pairing(
+    State(state): State<AppState>,
+    Json(req): Json<RegisterPairingRequest>,
+) -> ApiResult<Json<RegisterPairingResponse>> {
+    // Validate code format (6 digits)
+    if req.code.len() != 6 || !req.code.chars().all(|c| c.is_ascii_digit()) {
+        return Err(ApiError::BadRequest(
+            "Pairing code must be 6 digits".to_string(),
+        ));
+    }
+
+    // Decode public key
+    let public_key =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.public_key)
+            .map_err(|_| ApiError::BadRequest("Invalid public key encoding".to_string()))?;
+
+    // Validate public key length (32 bytes for X25519)
+    if public_key.len() != 32 {
+        return Err(ApiError::BadRequest(
+            "Public key must be 32 bytes".to_string(),
+        ));
+    }
+
+    // Calculate expiration (default 5 minutes)
+    let expires_in = req.expires_in_secs.unwrap_or(300);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let expires_at = now + expires_in;
+
+    // Register pairing session
+    state
+        .db
+        .register_pairing(&req.code, &public_key, &req.device_name, expires_at as i64)
+        .await?;
+
+    Ok(Json(RegisterPairingResponse {
+        code: req.code,
+        expires_at,
+    }))
+}
+
+#[derive(Debug, Serialize)]
+pub struct FindPairingResponse {
+    pub code: String,
+    pub public_key: String, // Base64 encoded
+    pub device_name: String,
+    pub expires_at: u64,
+}
+
+pub async fn find_pairing(
+    State(state): State<AppState>,
+    Path(code): Path<String>,
+) -> ApiResult<Json<FindPairingResponse>> {
+    // Validate code format
+    if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
+        return Err(ApiError::BadRequest(
+            "Pairing code must be 6 digits".to_string(),
+        ));
+    }
+
+    // Find pairing session
+    let session = state
+        .db
+        .find_pairing(&code)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Pairing session not found or expired".to_string()))?;
+
+    // Encode public key as base64
+    let public_key = base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        &session.public_key,
+    );
+
+    Ok(Json(FindPairingResponse {
+        code: session.code,
+        public_key,
+        device_name: session.device_name,
+        expires_at: session.expires_at as u64,
+    }))
+}
+
+pub async fn cancel_pairing(
+    State(state): State<AppState>,
+    Path(code): Path<String>,
+) -> ApiResult<StatusCode> {
+    // Cancel pairing session
+    let deleted = state.db.cancel_pairing(&code).await?;
+
+    if deleted {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(ApiError::NotFound("Pairing session not found".to_string()))
+    }
+}

@@ -7,7 +7,7 @@ use crate::error::ApiError;
 
 mod models;
 
-pub use models::{Device, QueuedMessage};
+pub use models::{Device, PairingSession, QueuedMessage};
 
 /// Database wrapper
 pub struct Database {
@@ -63,6 +63,21 @@ impl Database {
             r#"
             CREATE INDEX IF NOT EXISTS idx_message_queue_to_device
             ON message_queue(to_device)
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Pairing sessions table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS pairing_sessions (
+                code TEXT PRIMARY KEY,
+                public_key BLOB NOT NULL,
+                device_name TEXT NOT NULL,
+                expires_at INTEGER NOT NULL,
+                created_at INTEGER NOT NULL
+            )
             "#,
         )
         .execute(&self.pool)
@@ -224,6 +239,77 @@ impl Database {
 
         let result = sqlx::query("DELETE FROM message_queue WHERE created_at < ?")
             .bind(cutoff)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected())
+    }
+
+    // Pairing session operations
+
+    /// Register a pairing session
+    pub async fn register_pairing(
+        &self,
+        code: &str,
+        public_key: &[u8],
+        device_name: &str,
+        expires_at: i64,
+    ) -> Result<(), ApiError> {
+        let now = Utc::now().timestamp();
+
+        sqlx::query(
+            r#"
+            INSERT OR REPLACE INTO pairing_sessions (code, public_key, device_name, expires_at, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(code)
+        .bind(public_key)
+        .bind(device_name)
+        .bind(expires_at)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Find a pairing session by code
+    pub async fn find_pairing(&self, code: &str) -> Result<Option<PairingSession>, ApiError> {
+        let now = Utc::now().timestamp();
+
+        // Find non-expired session
+        let session = sqlx::query_as::<_, PairingSession>(
+            r#"
+            SELECT code, public_key, device_name, expires_at, created_at
+            FROM pairing_sessions
+            WHERE code = ? AND expires_at > ?
+            "#,
+        )
+        .bind(code)
+        .bind(now)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(session)
+    }
+
+    /// Cancel/delete a pairing session
+    pub async fn cancel_pairing(&self, code: &str) -> Result<bool, ApiError> {
+        let result = sqlx::query("DELETE FROM pairing_sessions WHERE code = ?")
+            .bind(code)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Cleanup expired pairing sessions
+    pub async fn cleanup_expired_pairings(&self) -> Result<u64, ApiError> {
+        let now = Utc::now().timestamp();
+
+        let result = sqlx::query("DELETE FROM pairing_sessions WHERE expires_at < ?")
+            .bind(now)
             .execute(&self.pool)
             .await?;
 

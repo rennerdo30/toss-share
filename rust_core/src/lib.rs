@@ -12,6 +12,7 @@ pub mod clipboard;
 pub mod crypto;
 pub mod error;
 pub mod network;
+pub mod pairing;
 pub mod protocol;
 pub mod storage;
 

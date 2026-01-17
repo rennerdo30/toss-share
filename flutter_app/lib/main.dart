@@ -9,10 +9,15 @@ import 'src/core/services/storage_service.dart';
 import 'src/core/services/update_service.dart';
 import 'src/core/services/tray_service.dart';
 import 'src/core/services/notification_service.dart';
+import 'src/core/services/logging_service.dart';
 import 'src/core/providers/update_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize logging service first for early error capture
+  await LoggingService.initialize();
+  LoggingService.info('Toss app starting...');
 
   // Initialize local storage
   await StorageService.initialize();

@@ -22,6 +22,21 @@ class PairingInfo {
   });
 }
 
+/// Pairing device found via findPairingDevice
+class PairingDevice {
+  final String code;
+  final String publicKey;
+  final String deviceName;
+  final bool viaRelay;
+
+  const PairingDevice({
+    required this.code,
+    required this.publicKey,
+    required this.deviceName,
+    required this.viaRelay,
+  });
+}
+
 /// Device information
 class DeviceInfo {
   final String id;
@@ -280,6 +295,50 @@ class TossService {
       api.cancelPairing();
     } catch (e) {
       debugPrint('Warning: Failed to cancel pairing: $e');
+    }
+  }
+
+  /// Find a device by pairing code (searches mDNS and relay server)
+  static Future<PairingDevice?> findPairingDevice(String code) async {
+    try {
+      final device = await api.findPairingDevice(code: code);
+      return PairingDevice(
+        code: device.code,
+        publicKey: device.publicKey,
+        deviceName: device.deviceName,
+        viaRelay: device.viaRelay,
+      );
+    } catch (e) {
+      debugPrint('Warning: Failed to find pairing device: $e');
+      return null;
+    }
+  }
+
+  /// Complete pairing with a device found via findPairingDevice
+  static Future<DeviceInfo> completeManualPairing(PairingDevice device) async {
+    try {
+      final result = api.completeManualPairing(
+        peerPublicKey: device.publicKey,
+        peerDeviceName: device.deviceName,
+      );
+      return DeviceInfo(
+        id: result.id,
+        name: result.name,
+        isOnline: result.isOnline,
+        lastSeen: result.lastSeen.toInt(),
+        platform: result.platform,
+      );
+    } catch (e) {
+      throw Exception('Failed to complete manual pairing: $e');
+    }
+  }
+
+  /// Register pairing code on relay server and via mDNS for discovery
+  static Future<void> registerPairingAdvertisement() async {
+    try {
+      await api.registerPairingAdvertisement();
+    } catch (e) {
+      debugPrint('Warning: Failed to register pairing advertisement: $e');
     }
   }
 

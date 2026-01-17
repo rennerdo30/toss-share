@@ -24,3 +24,13 @@ pub struct QueuedMessage {
     pub encrypted_payload: String,
     pub created_at: i64,
 }
+
+/// Pairing session record
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct PairingSession {
+    pub code: String,
+    pub public_key: Vec<u8>,
+    pub device_name: String,
+    pub expires_at: i64,
+    pub created_at: i64,
+}
