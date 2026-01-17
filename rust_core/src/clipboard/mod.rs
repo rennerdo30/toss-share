@@ -5,10 +5,17 @@
 //! - Change detection via polling
 //! - Content type detection
 
+// Desktop-only modules (require arboard and image crates)
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod file_handler;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod formats;
+
 mod handler;
 mod monitor;
+
+// Desktop-only modules
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod rich_text;
 
 #[cfg(target_os = "windows")]
@@ -17,6 +24,7 @@ pub mod windows_formats;
 #[cfg(target_os = "linux")]
 pub mod linux_display;
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub use formats::{decode_image, encode_image_to_png};
 pub use handler::{ClipboardHandler, ClipboardProvider};
 pub use monitor::ClipboardMonitor;
