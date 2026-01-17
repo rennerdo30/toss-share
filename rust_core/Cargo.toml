@@ -30,7 +30,8 @@ rcgen = "0.14"
 mdns-sd = "0.17"
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
 
-# Clipboard
+# Clipboard (desktop only - Android/iOS use Flutter's clipboard)
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 arboard = "3"
 
 # Serialization

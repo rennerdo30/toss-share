@@ -1,15 +1,25 @@
-//! Clipboard read/write operations using arboard
+//! Clipboard read/write operations
+//!
+//! On desktop platforms, uses arboard for clipboard access.
+//! On mobile (Android/iOS), clipboard is handled by Flutter - this provides a stub.
 
+use crate::error::ClipboardError;
+use crate::protocol::{ClipboardContent, ContentType};
+
+// Desktop-only imports
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use arboard::Clipboard;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use parking_lot::Mutex;
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use super::file_handler::{DefaultFileClipboardProvider, FileClipboardProvider, FileList};
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use super::formats::{decode_image, encode_image_to_png};
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use super::rich_text::{
     DefaultRichTextClipboardProvider, RichTextClipboardProvider, RichTextFormat,
 };
-use crate::error::ClipboardError;
-use crate::protocol::{ClipboardContent, ContentType};
 
 /// Trait for clipboard operations
 pub trait ClipboardProvider: Send + Sync {
@@ -26,13 +36,19 @@ pub trait ClipboardProvider: Send + Sync {
     fn supports_type(&self, content_type: ContentType) -> bool;
 }
 
-/// Clipboard handler using arboard
+// ============================================================================
+// Desktop Implementation (using arboard)
+// ============================================================================
+
+/// Clipboard handler using arboard (desktop platforms only)
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub struct ClipboardHandler {
     clipboard: Mutex<Clipboard>,
     file_provider: Box<dyn FileClipboardProvider>,
     rich_text_provider: Box<dyn RichTextClipboardProvider>,
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl ClipboardHandler {
     /// Create a new clipboard handler
     pub fn new() -> Result<Self, ClipboardError> {
@@ -47,6 +63,51 @@ impl ClipboardHandler {
     }
 }
 
+// ============================================================================
+// Mobile Stub Implementation (Android/iOS)
+// ============================================================================
+
+/// Clipboard handler stub for mobile platforms
+/// On mobile, clipboard operations should be handled by Flutter/Dart
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub struct ClipboardHandler;
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+impl ClipboardHandler {
+    /// Create a new clipboard handler (mobile stub)
+    pub fn new() -> Result<Self, ClipboardError> {
+        Ok(Self)
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+impl ClipboardProvider for ClipboardHandler {
+    fn read(&self) -> Result<Option<ClipboardContent>, ClipboardError> {
+        // On mobile, clipboard is handled by Flutter
+        Ok(None)
+    }
+
+    fn write(&self, _content: &ClipboardContent) -> Result<(), ClipboardError> {
+        // On mobile, clipboard is handled by Flutter
+        Err(ClipboardError::OperationFailed(
+            "Clipboard operations on mobile should use Flutter's clipboard API".to_string(),
+        ))
+    }
+
+    fn clear(&self) -> Result<(), ClipboardError> {
+        // On mobile, clipboard is handled by Flutter
+        Err(ClipboardError::OperationFailed(
+            "Clipboard operations on mobile should use Flutter's clipboard API".to_string(),
+        ))
+    }
+
+    fn supports_type(&self, _content_type: ContentType) -> bool {
+        // Mobile clipboard is handled by Flutter
+        false
+    }
+}
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl ClipboardProvider for ClipboardHandler {
     fn read(&self) -> Result<Option<ClipboardContent>, ClipboardError> {
         let mut clipboard = self.clipboard.lock();
