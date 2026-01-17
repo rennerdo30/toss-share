@@ -54,6 +54,51 @@ let image = dib_to_image(data);
 - **System Tray**: Taskbar integration
 - **Notifications**: Toast notifications
 
+## Logging and Diagnostics
+
+Toss includes production-level logging for Windows diagnostics:
+
+### Log Locations
+
+| Log Type | Path |
+|----------|------|
+| Application logs | `%LOCALAPPDATA%\toss\logs\toss.log` |
+| Panic/crash logs | `%LOCALAPPDATA%\toss\logs\panic.log` |
+
+### Viewing Console Output
+
+Windows GUI applications don't show console output by default. To see Rust log output:
+
+**From Command Prompt (cmd.exe):**
+```cmd
+start /wait toss.exe
+```
+
+**From PowerShell:**
+```powershell
+& .\toss.exe
+```
+
+PowerShell naturally waits for the process to complete.
+
+### Crash Diagnostics
+
+When Toss encounters a crash (Rust panic), it will:
+1. Display a Windows MessageBox with crash details
+2. Write the panic information to `panic.log`
+3. Print to stderr (visible in console mode)
+
+### Accessing Logs from the App
+
+Go to **Settings → About → Open Log Folder** to quickly access the logs directory.
+
+### Troubleshooting Silent Failures
+
+If the app doesn't open or closes immediately:
+1. Run from command line with `start /wait toss.exe`
+2. Check `%LOCALAPPDATA%\toss\logs\` for log files
+3. Look for `panic.log` for crash information
+
 ## Next Steps
 
 - [Platform Overview](overview.md) - Return to platform overview

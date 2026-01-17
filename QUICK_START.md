@@ -267,6 +267,25 @@ cd flutter_app && flutter build
 - See `docs/IOS_ANDROID_IMPLEMENTATION.md` for mobile platforms
 - Check platform-specific service files in `flutter_app/lib/src/core/services/`
 
+### Logging and Diagnostics
+
+Log files are stored in platform-specific locations:
+
+| Platform | Path |
+|----------|------|
+| Windows | `%LOCALAPPDATA%\toss\logs\` |
+| macOS | `~/Library/Application Support/toss/logs/` |
+| Linux | `~/.local/share/toss/logs/` |
+
+**Quick access:** Settings → About → Open Log Folder
+
+**Windows console output:**
+```cmd
+start /wait toss.exe
+```
+
+**Crash diagnostics:** Check `panic.log` in the logs directory for crash/panic information.
+
 ## Project Structure
 
 ```

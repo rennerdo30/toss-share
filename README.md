@@ -150,6 +150,22 @@ flutter clean
 flutter pub get
 ```
 
+### Logging and Diagnostics
+
+Log files are stored in platform-specific locations:
+
+| Platform | Path |
+|----------|------|
+| Windows | `%LOCALAPPDATA%\toss\logs\` |
+| macOS | `~/Library/Application Support/toss/logs/` |
+| Linux | `~/.local/share/toss/logs/` |
+
+**Access logs from the app:** Settings → About → Open Log Folder
+
+**Windows console output:** Run `start /wait toss.exe` from cmd.exe to see log output.
+
+**Crash diagnostics:** Check `panic.log` in the logs directory for crash details.
+
 ## Quick Start
 
 1. **Install Toss** on two or more devices
