@@ -182,6 +182,14 @@ jobs:
       - name: Generate FFI bindings
         run: make generate-ffi
 
+      - name: Pre-fetch dependencies for Android targets
+        working-directory: ./flutter_app/rust
+        run: |
+          cargo fetch --target aarch64-linux-android
+          cargo fetch --target armv7-linux-androideabi
+          cargo fetch --target x86_64-linux-android
+          cargo fetch --target i686-linux-android
+
       - name: Build Android APK
         working-directory: ./flutter_app
         run: |
