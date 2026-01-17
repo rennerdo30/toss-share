@@ -168,8 +168,15 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain with Android targets
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Setup Android NDK
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
 
       - name: Build Rust core
         working-directory: ./rust_core
