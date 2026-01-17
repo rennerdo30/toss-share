@@ -126,6 +126,27 @@ impl From<toss_core::api::PairingInfoDto> for PairingInfoDto {
     }
 }
 
+/// Pairing device info from find_pairing_device
+#[derive(Debug, Clone)]
+#[frb(dart_metadata=("freezed"))]
+pub struct PairingDeviceDto {
+    pub code: String,
+    pub public_key: String,
+    pub device_name: String,
+    pub via_relay: bool,
+}
+
+impl From<toss_core::api::PairingDeviceDto> for PairingDeviceDto {
+    fn from(p: toss_core::api::PairingDeviceDto) -> Self {
+        Self {
+            code: p.code,
+            public_key: p.public_key,
+            device_name: p.device_name,
+            via_relay: p.via_relay,
+        }
+    }
+}
+
 /// Decrypted clipboard content from history
 #[derive(Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
@@ -241,6 +262,29 @@ pub fn complete_pairing_code(
 #[frb(sync)]
 pub fn cancel_pairing() {
     toss_core::api::cancel_pairing()
+}
+
+/// Find a device by pairing code (searches mDNS and relay server)
+#[frb]
+pub async fn find_pairing_device(code: String) -> Result<PairingDeviceDto, String> {
+    toss_core::api::find_pairing_device(code)
+        .await
+        .map(|p| p.into())
+}
+
+/// Complete pairing with a device found via find_pairing_device
+#[frb(sync)]
+pub fn complete_manual_pairing(
+    peer_public_key: String,
+    peer_device_name: String,
+) -> Result<DeviceInfoDto, String> {
+    toss_core::api::complete_manual_pairing(peer_public_key, peer_device_name).map(|d| d.into())
+}
+
+/// Register pairing code on relay server and via mDNS for discovery
+#[frb]
+pub async fn register_pairing_advertisement() -> Result<(), String> {
+    toss_core::api::register_pairing_advertisement().await
 }
 
 // ============================================================================
