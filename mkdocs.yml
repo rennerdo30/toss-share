@@ -9,32 +9,57 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  custom_dir: overrides
+  language: en
+
+  # Color palette with toggle (dark mode default, matching renner.dev)
   palette:
-    # Light mode
-    - scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    # Dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+  # Font configuration
+  font:
+    text: Inter
+    code: Fira Code
+
+  # Features
   features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
     - navigation.tabs
     - navigation.sections
     - navigation.expand
+    - navigation.path
     - navigation.top
+    - navigation.footer
+    - toc.follow
     - search.suggest
     - search.highlight
-    - content.code.annotate
+    - search.share
     - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
+
+  # Icons
   icon:
+    logo: material/rocket-launch
     repo: fontawesome/brands/github
+
+  # Favicon
+  favicon: assets/images/favicon.png
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -91,6 +116,9 @@ nav:
     - Changelog: project-status/changelog.md
   - Future Enhancements: future-enhancements.md
   - Specification: specification.md
+
+extra_css:
+  - assets/stylesheets/extra.css
 
 extra:
   social:
