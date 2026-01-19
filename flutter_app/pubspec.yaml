@@ -51,7 +51,7 @@ dependencies:
   # Auto-updater
   http: ^1.2.0
   package_info_plus: ^8.0.0
-  archive: ^3.6.0
+  archive: ^4.0.7
 
   # UI
   flutter_svg: ^2.0.10+1
