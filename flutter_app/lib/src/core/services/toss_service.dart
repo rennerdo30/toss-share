@@ -174,43 +174,57 @@ class TossService {
   /// Initialize the Toss service
   static Future<void> initialize() async {
     if (_initialized) return;
+    LoggingService.debug('TossService: Starting initialization...');
 
+    LoggingService.debug('TossService: Getting application documents directory...');
     final appDir = await getApplicationDocumentsDirectory();
+    LoggingService.debug('TossService: App dir: ${appDir.path}');
     final dataDir = Directory('${appDir.path}/toss');
 
     if (!await dataDir.exists()) {
+      LoggingService.debug('TossService: Creating data directory...');
       await dataDir.create(recursive: true);
     }
 
     _dataDir = dataDir.path;
+    LoggingService.debug('TossService: Data dir: $_dataDir');
+
     _deviceName = await _getDeviceName();
+    LoggingService.debug('TossService: Device name: $_deviceName');
 
     // Initialize flutter_rust_bridge first
+    LoggingService.debug('TossService: Initializing flutter_rust_bridge (RustLib.init)...');
     try {
       await RustLib.init();
       _ffiAvailable = true;
-    } catch (e) {
+      LoggingService.info('TossService: flutter_rust_bridge initialized successfully');
+    } catch (e, stack) {
       _ffiAvailable = false;
-      LoggingService.warn(' flutter_rust_bridge initialization failed: $e');
+      LoggingService.error('TossService: flutter_rust_bridge initialization failed', e, stack);
     }
 
     // Call Rust FFI init_toss()
     if (_ffiAvailable) {
+      LoggingService.debug('TossService: Calling Rust init_toss()...');
       try {
         api.initToss(dataDir: _dataDir!, deviceName: _deviceName);
+        LoggingService.debug('TossService: init_toss() completed, getting device ID...');
         _deviceId = api.getDeviceId();
-      } catch (e) {
+        LoggingService.info('TossService: Rust core initialized, device ID: $_deviceId');
+      } catch (e, stack) {
         // Fallback: Mock device ID if FFI fails
         _ffiAvailable = false;
         _deviceId = await _getOrCreateFallbackDeviceId();
-        LoggingService.warn(' FFI initialization failed: $e');
+        LoggingService.error('TossService: FFI initialization failed, using fallback', e, stack);
       }
     } else {
       // Fallback: Mock device ID when FFI not available
+      LoggingService.warn('TossService: FFI not available, using fallback device ID');
       _deviceId = await _getOrCreateFallbackDeviceId();
     }
 
     _initialized = true;
+    LoggingService.info('TossService: Initialization complete (FFI: $_ffiAvailable)');
   }
 
   /// Get or create a persistent fallback device ID when FFI is unavailable

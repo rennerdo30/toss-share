@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'logging_service.dart';
 
 /// Service for local storage using Hive
 class StorageService {
@@ -14,11 +15,17 @@ class StorageService {
 
   /// Initialize the storage service
   static Future<void> initialize() async {
+    LoggingService.debug('StorageService: Initializing Hive...');
     await Hive.initFlutter();
+    LoggingService.debug('StorageService: Hive initialized');
 
+    LoggingService.debug('StorageService: Opening settings box...');
     _settingsBox = await Hive.openBox(_settingsBoxName);
+    LoggingService.debug('StorageService: Opening devices box...');
     _devicesBox = await Hive.openBox(_devicesBoxName);
+    LoggingService.debug('StorageService: Opening history box...');
     _historyBox = await Hive.openBox(_historyBoxName);
+    LoggingService.info('StorageService: Initialized successfully');
   }
 
   /// Close all boxes

@@ -1,9 +1,9 @@
 //! Notification service for showing app notifications
 
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'logging_service.dart';
 
 /// Service for managing app notifications
 class NotificationService {
@@ -18,17 +18,21 @@ class NotificationService {
   /// Initialize notification service
   Future<bool> initialize() async {
     if (_initialized) return true;
+    LoggingService.debug('NotificationService: Starting initialization...');
 
     // Request notification permission (only on platforms that support it)
     // permission_handler doesn't support notification permission on macOS/Linux
     if (Platform.isAndroid || Platform.isIOS) {
+      LoggingService.debug('NotificationService: Requesting notification permission...');
       try {
         final status = await Permission.notification.request();
         if (!status.isGranted) {
+          LoggingService.warn('NotificationService: Permission denied');
           return false;
         }
+        LoggingService.debug('NotificationService: Permission granted');
       } catch (e) {
-        debugPrint('Warning: Could not request notification permission: $e');
+        LoggingService.warn('NotificationService: Could not request permission: $e');
       }
     }
 
@@ -55,12 +59,14 @@ class NotificationService {
       linux: linuxSettings,
     );
 
+    LoggingService.debug('NotificationService: Initializing plugin...');
     final initialized = await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
     _initialized = initialized ?? false;
+    LoggingService.info('NotificationService: Initialized (success: $_initialized)');
     return _initialized;
   }
 

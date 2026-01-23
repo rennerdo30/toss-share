@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
+import 'logging_service.dart';
 
 /// Service for managing system tray on desktop platforms
 class TrayService with TrayListener {
@@ -24,14 +25,17 @@ class TrayService with TrayListener {
   /// Initialize system tray
   Future<bool> initialize() async {
     if (_initialized) return true;
+    LoggingService.debug('TrayService: Starting initialization...');
 
     // Only initialize on desktop platforms
     if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
+      LoggingService.debug('TrayService: Skipping (not desktop platform)');
       return false;
     }
 
     try {
       // Add listener for tray events
+      LoggingService.debug('TrayService: Adding tray listener...');
       trayManager.addListener(this);
 
       // Set tray icon
@@ -49,17 +53,20 @@ class TrayService with TrayListener {
         iconPath = 'assets/tray_icon.png';
       }
 
+      LoggingService.debug('TrayService: Setting icon: $iconPath');
       await trayManager.setIcon(iconPath);
       await trayManager.setToolTip('Toss - Clipboard Sharing');
 
       // Create context menu
+      LoggingService.debug('TrayService: Creating context menu...');
       await _updateMenu();
 
       _initialized = true;
+      LoggingService.info('TrayService: Initialized successfully');
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       // Tray may not be available on all platforms/configurations
-      debugPrint('Warning: Failed to initialize system tray: $e');
+      LoggingService.error('TrayService: Failed to initialize', e, stack);
       return false;
     }
   }

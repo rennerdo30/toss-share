@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/app_update.dart';
 import 'storage_service.dart';
+import 'logging_service.dart';
 
 /// Service for checking and applying app updates from GitHub Releases
 class UpdateService {
@@ -22,12 +23,15 @@ class UpdateService {
 
   /// Initialize the update service
   static Future<void> initialize() async {
+    LoggingService.debug('UpdateService: Getting package info...');
     final packageInfo = await PackageInfo.fromPlatform();
     _currentVersion = packageInfo.version;
+    LoggingService.debug('UpdateService: Version: $_currentVersion');
 
     // Load stored SHA of current installation
     _currentSha =
         StorageService.getSetting<String>(SettingsKeys.currentBuildSha);
+    LoggingService.info('UpdateService: Initialized (SHA: ${_currentSha ?? "none"})');
   }
 
   /// Get current app version

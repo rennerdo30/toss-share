@@ -107,9 +107,11 @@ class LoggingService {
       debugPrint(formattedMessage);
     }
 
-    // Write to file if initialized
+    // ALWAYS write to file (debug AND release) if initialized
     if (_initialized && _logSink != null) {
       _logSink!.writeln(formattedMessage);
+      // Flush immediately for crash debugging
+      _logSink!.flush();
     }
   }
 
