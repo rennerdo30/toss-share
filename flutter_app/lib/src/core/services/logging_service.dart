@@ -9,7 +9,6 @@ class LoggingService {
   LoggingService._();
 
   static File? _logFile;
-  static IOSink? _logSink;
   static bool _initialized = false;
   static final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
 
@@ -59,8 +58,10 @@ class LoggingService {
       final logFilePath = '${logDir.path}${Platform.pathSeparator}toss-$today.log';
       _logFile = File(logFilePath);
 
-      // Open file for appending
-      _logSink = _logFile!.openWrite(mode: FileMode.append);
+      // Ensure file exists
+      if (!_logFile!.existsSync()) {
+        _logFile!.createSync();
+      }
 
       _initialized = true;
 
@@ -97,6 +98,8 @@ class LoggingService {
   }
 
   /// Log a message
+  /// Uses synchronous file write to ensure logs are flushed immediately
+  /// This is critical for crash debugging
   static void log(String message, {LogLevel level = LogLevel.debug}) {
     final timestamp = _dateFormat.format(DateTime.now());
     final levelStr = level.name.toUpperCase().padRight(5);
@@ -107,11 +110,19 @@ class LoggingService {
       debugPrint(formattedMessage);
     }
 
-    // ALWAYS write to file (debug AND release) if initialized
-    if (_initialized && _logSink != null) {
-      _logSink!.writeln(formattedMessage);
-      // Flush immediately for crash debugging
-      _logSink!.flush();
+    // Write to file synchronously (debug AND release) if initialized
+    // Using writeAsStringSync with append mode ensures data is flushed to disk
+    if (_initialized && _logFile != null) {
+      try {
+        _logFile!.writeAsStringSync(
+          '$formattedMessage\n',
+          mode: FileMode.append,
+          flush: true,
+        );
+      } catch (e) {
+        // Don't fail silently but also don't crash the app
+        debugPrint('Warning: Failed to write log: $e');
+      }
     }
   }
 
@@ -138,9 +149,9 @@ class LoggingService {
     log(message, level: LogLevel.debug);
   }
 
-  /// Flush logs to disk
+  /// Flush logs to disk (no-op now since we write synchronously)
   static Future<void> flush() async {
-    await _logSink?.flush();
+    // Logs are already flushed synchronously
   }
 
   /// Close the logging service
@@ -148,9 +159,6 @@ class LoggingService {
     if (!_initialized) return;
 
     log('LoggingService shutting down', level: LogLevel.info);
-    await _logSink?.flush();
-    await _logSink?.close();
-    _logSink = null;
     _logFile = null;
     _initialized = false;
   }
