@@ -37,7 +37,7 @@ dependencies:
   permission_handler: ^12.0.1
 
   # Notifications
-  flutter_local_notifications: ^18.0.1
+  flutter_local_notifications: ^19.5.0
 
   # Utilities
   path_provider: ^2.1.3
@@ -50,7 +50,7 @@ dependencies:
 
   # Auto-updater
   http: ^1.2.0
-  package_info_plus: ^8.0.0
+  package_info_plus: ^9.0.0
   archive: ^4.0.7
 
   # UI
