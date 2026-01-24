@@ -9,6 +9,8 @@ export default defineConfig({
     starlight({
       title: "Toss",
       description: "Cross-platform clipboard sharing with end-to-end encryption",
+      logo: { src: "/logo.svg", alt: "Toss" },
+      favicon: "/logo.svg",
       plugins: [starlightThemeGalaxy(), starlightClientMermaid()],
       customCss: ["./src/styles/custom.css"],
       social: [
