@@ -58,3 +58,9 @@ FlutterUI <-> FFI Bridge <-> Rust Core
 - `nightly.yml`: Full platform builds on main
 - `security.yml`: cargo audit for vulnerabilities
 - `release.yml`: Version tag releases
+
+## Documentation
+
+- **Always use Mermaid** for diagrams in documentation
+- Mermaid is supported in the Starlight docs site
+- Avoid external diagram tools or image files when possible

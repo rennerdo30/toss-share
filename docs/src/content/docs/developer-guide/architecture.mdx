@@ -9,20 +9,15 @@ Toss uses a hybrid architecture for optimal performance and reliability.
 
 ## System Overview
 
-```
-┌─────────────┐     P2P (QUIC)      ┌─────────────┐
-│  Device A   │◄───────────────────►│  Device B   │
-│  (Flutter)  │                     │  (Flutter)  │
-└──────┬──────┘                     └──────┬──────┘
-       │                                   │
-       │         Relay (Fallback)          │
-       └──────────────►┌───┐◄──────────────┘
-                       │ R │
-                       │ E │
-                       │ L │
-                       │ A │
-                       │ Y │
-                       └───┘
+```mermaid
+graph TB
+    A[Device A<br/>Flutter] <-->|P2P QUIC| B[Device B<br/>Flutter]
+    A -->|Fallback| R[Relay Server]
+    B -->|Fallback| R
+
+    style A fill:#4a90e2,stroke:#2c5aa0,color:#fff
+    style B fill:#4a90e2,stroke:#2c5aa0,color:#fff
+    style R fill:#50c878,stroke:#3a9d5f,color:#fff
 ```
 
 ## Core Components
