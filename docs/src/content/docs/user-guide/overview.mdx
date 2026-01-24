@@ -168,20 +168,15 @@ flutter pub get
 
 Toss uses a hybrid architecture for optimal performance and reliability:
 
-```
-┌─────────────┐     P2P (QUIC)      ┌─────────────┐
-│  Device A   │◄───────────────────►│  Device B   │
-│  (Flutter)  │                     │  (Flutter)  │
-└──────┬──────┘                     └──────┬──────┘
-       │                                   │
-       │         Relay (Fallback)          │
-       └──────────────►┌───┐◄──────────────┘
-                       │ R │
-                       │ E │
-                       │ L │
-                       │ A │
-                       │ Y │
-                       └───┘
+```mermaid
+graph TB
+    A[Device A<br/><i>Flutter</i>] <-->|P2P QUIC| B[Device B<br/><i>Flutter</i>]
+    A -->|Fallback| R[Relay Server]
+    B -->|Fallback| R
+
+    style A fill:#22d3ee,stroke:#0891b2,color:#000
+    style B fill:#22d3ee,stroke:#0891b2,color:#000
+    style R fill:#f97316,stroke:#ea580c,color:#fff
 ```
 
 - **Rust Core**: Handles encryption, networking, and clipboard operations
