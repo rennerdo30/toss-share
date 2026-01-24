@@ -153,3 +153,8 @@ site/
 logs_*
 docs/node_modules
 docs/dist
+
+# Astro generated files
+docs/.astro
+docs/dist
+docs/node_modules
