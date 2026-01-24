@@ -1,0 +1,88 @@
+---
+title: "Linux Platform Support"
+description: "Documentation for Linux Platform Support"
+---
+
+# Linux Platform Support
+
+Linux-specific implementation details for Toss.
+
+## Display Server Support
+
+Linux supports both X11 and Wayland, each with different clipboard APIs:
+
+- **X11**: Uses xcb or Xlib for clipboard access
+- **Wayland**: Uses wl-clipboard or similar protocols
+
+**Implementation Status**: Detection logic created in `linux_display.rs`. Full implementation requires both X11 and Wayland backends.
+
+**Files**:
+- `rust_core/src/clipboard/linux_display.rs`
+
+**Priority**: 
+1. Detect display server (X11 vs Wayland)
+2. Implement X11 clipboard (xcb)
+3. Implement Wayland clipboard (wl-clipboard)
+4. Handle display server switching
+
+## Implementation Details
+
+### Display Server Detection
+
+Detect which display server is running:
+
+```rust
+fn detect_display_server() -> DisplayServer {
+    if std::env::var("WAYLAND_DISPLAY").is_ok() {
+        DisplayServer::Wayland
+    } else if std::env::var("DISPLAY").is_ok() {
+        DisplayServer::X11
+    } else {
+        DisplayServer::Unknown
+    }
+}
+```
+
+### X11 Clipboard
+
+Use xcb for X11 clipboard access:
+
+```rust
+// X11 clipboard implementation
+let connection = xcb::Connection::connect(None)?;
+// Access clipboard via xcb
+```
+
+### Wayland Clipboard
+
+Use wl-clipboard for Wayland:
+
+```rust
+// Wayland clipboard implementation
+// Use wl-clipboard crate or similar
+```
+
+## Dependencies
+
+### X11
+
+```bash
+sudo apt-get install libxcb1-dev libxcb-render0-dev
+```
+
+### Wayland
+
+```bash
+sudo apt-get install libwayland-dev
+```
+
+## System Integration
+
+- **Keyring**: Secure storage for device keys (libsecret)
+- **System Tray**: Desktop environment integration
+- **Notifications**: Desktop notifications
+
+## Next Steps
+
+- [Platform Overview](overview.md) - Return to platform overview
+- [macOS Implementation](macos.md) - macOS platform details
