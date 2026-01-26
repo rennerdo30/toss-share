@@ -1028,6 +1028,22 @@ impl SseDecode for String {
     }
 }
 
+impl SseDecode for crate::api::AdvertisementResultDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_mdnsRegistered = <bool>::sse_decode(deserializer);
+        let mut var_relayRegistered = <bool>::sse_decode(deserializer);
+        let mut var_mdnsError = <Option<String>>::sse_decode(deserializer);
+        let mut var_relayError = <Option<String>>::sse_decode(deserializer);
+        return crate::api::AdvertisementResultDto {
+            mdns_registered: var_mdnsRegistered,
+            relay_registered: var_relayRegistered,
+            mdns_error: var_mdnsError,
+            relay_error: var_relayError,
+        };
+    }
+}
+
 impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1353,6 +1369,29 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::AdvertisementResultDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.mdns_registered.into_into_dart().into_dart(),
+            self.relay_registered.into_into_dart().into_dart(),
+            self.mdns_error.into_into_dart().into_dart(),
+            self.relay_error.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::AdvertisementResultDto
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::AdvertisementResultDto>
+    for crate::api::AdvertisementResultDto
+{
+    fn into_into_dart(self) -> crate::api::AdvertisementResultDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::ClipboardContentDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -1511,6 +1550,16 @@ impl SseEncode for String {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<u8>>::sse_encode(self.into_bytes(), serializer);
+    }
+}
+
+impl SseEncode for crate::api::AdvertisementResultDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.mdns_registered, serializer);
+        <bool>::sse_encode(self.relay_registered, serializer);
+        <Option<String>>::sse_encode(self.mdns_error, serializer);
+        <Option<String>>::sse_encode(self.relay_error, serializer);
     }
 }
 
