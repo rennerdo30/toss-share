@@ -2,4 +2,4 @@
 
 mod coordinator;
 
-pub use coordinator::{PairingCoordinator, PairingDeviceInfo};
+pub use coordinator::{AdvertisementResult, PairingCoordinator, PairingDeviceInfo};

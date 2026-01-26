@@ -439,6 +439,19 @@ pub struct PairingDeviceDto {
     pub via_relay: bool,
 }
 
+/// Result of pairing advertisement registration
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AdvertisementResultDto {
+    /// Whether mDNS registration succeeded
+    pub mdns_registered: bool,
+    /// Whether relay server registration succeeded
+    pub relay_registered: bool,
+    /// Error message if mDNS registration failed
+    pub mdns_error: Option<String>,
+    /// Error message if relay registration failed
+    pub relay_error: Option<String>,
+}
+
 /// Find a device by pairing code (searches mDNS and relay server)
 #[frb]
 pub async fn find_pairing_device(code: String) -> Result<PairingDeviceDto, String> {
@@ -558,8 +571,9 @@ pub fn complete_manual_pairing(
 }
 
 /// Register pairing code on relay server and via mDNS
+/// Returns the result indicating which methods succeeded/failed
 #[frb]
-pub async fn register_pairing_advertisement() -> Result<(), String> {
+pub async fn register_pairing_advertisement() -> Result<AdvertisementResultDto, String> {
     // Get current pairing session, relay URL, and device name
     let (code, public_key, relay_url, device_name) = {
         let guard = TOSS_INSTANCE.read();
@@ -590,12 +604,17 @@ pub async fn register_pairing_advertisement() -> Result<(), String> {
     let coordinator = crate::pairing::PairingCoordinator::new(&device_name, relay_url)
         .map_err(|e| format!("Failed to create pairing coordinator: {}", e))?;
 
-    coordinator
+    let result = coordinator
         .start_advertisement(&code, &public_key)
         .await
         .map_err(|e| format!("Failed to start advertisement: {}", e))?;
 
-    Ok(())
+    Ok(AdvertisementResultDto {
+        mdns_registered: result.mdns_registered,
+        relay_registered: result.relay_registered,
+        mdns_error: result.mdns_error,
+        relay_error: result.relay_error,
+    })
 }
 
 // ============================================================================
