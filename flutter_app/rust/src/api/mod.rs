@@ -147,6 +147,31 @@ impl From<toss_core::api::PairingDeviceDto> for PairingDeviceDto {
     }
 }
 
+/// Result of pairing advertisement registration
+#[derive(Debug, Clone)]
+#[frb(dart_metadata=("freezed"))]
+pub struct AdvertisementResultDto {
+    /// Whether mDNS registration succeeded
+    pub mdns_registered: bool,
+    /// Whether relay server registration succeeded
+    pub relay_registered: bool,
+    /// Error message if mDNS registration failed
+    pub mdns_error: Option<String>,
+    /// Error message if relay registration failed
+    pub relay_error: Option<String>,
+}
+
+impl From<toss_core::api::AdvertisementResultDto> for AdvertisementResultDto {
+    fn from(r: toss_core::api::AdvertisementResultDto) -> Self {
+        Self {
+            mdns_registered: r.mdns_registered,
+            relay_registered: r.relay_registered,
+            mdns_error: r.mdns_error,
+            relay_error: r.relay_error,
+        }
+    }
+}
+
 /// Decrypted clipboard content from history
 #[derive(Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
@@ -282,9 +307,12 @@ pub fn complete_manual_pairing(
 }
 
 /// Register pairing code on relay server and via mDNS for discovery
+/// Returns the result indicating which methods succeeded/failed
 #[frb]
-pub async fn register_pairing_advertisement() -> Result<(), String> {
-    toss_core::api::register_pairing_advertisement().await
+pub async fn register_pairing_advertisement() -> Result<AdvertisementResultDto, String> {
+    toss_core::api::register_pairing_advertisement()
+        .await
+        .map(|r| r.into())
 }
 
 // ============================================================================
