@@ -6,6 +6,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/providers/settings_provider.dart';
+import '../../core/services/logging_service.dart';
 import '../../core/services/toss_service.dart';
 
 class PairingScreen extends ConsumerStatefulWidget {
@@ -38,13 +40,38 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   }
 
   Future<void> _startPairing() async {
+    LoggingService.info('Starting pairing session...');
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
+      // Check relay configuration and show warning if not configured
+      final settings = ref.read(settingsProvider);
+      if (settings.relayUrl == null && mounted) {
+        // Show warning that pairing only works on same network without relay
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'No relay server configured. Pairing only works on the same Wi-Fi network.',
+                ),
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: () => context.push('/settings'),
+                ),
+                duration: const Duration(seconds: 8),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        });
+      }
+
       final pairingInfo = await TossService.startPairing();
+      LoggingService.info('Pairing session started with code: ${pairingInfo.code}');
       if (mounted) {
         setState(() {
           _pairingCode = pairingInfo.code;
@@ -54,8 +81,30 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
       }
 
       // Register pairing advertisement on relay server and mDNS
-      await TossService.registerPairingAdvertisement();
+      final advResult = await TossService.registerPairingAdvertisement();
+
+      if (mounted) {
+        // Show warning if device is not discoverable at all
+        if (advResult.totalFailure) {
+          setState(() {
+            _error = 'Failed to make device discoverable. Check your network connection.';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to register for discovery: ${advResult.mdnsError ?? advResult.relayError}',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        } else if (!advResult.mdnsRegistered && advResult.relayRegistered) {
+          // mDNS failed but relay succeeded - local network discovery won't work
+          LoggingService.warn('mDNS registration failed, only relay will work: ${advResult.mdnsError}');
+        }
+      }
     } catch (e) {
+      LoggingService.error('Failed to start pairing', e);
       if (mounted) {
         setState(() {
           _error = 'Failed to start pairing: $e';
@@ -139,6 +188,7 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   Future<void> _handleManualCode(String code) async {
     if (_isPairing) return;
 
+    LoggingService.info('Starting manual pairing with code: ${code.substring(0, 2)}***');
     setState(() {
       _isPairing = true;
       _error = null;
@@ -146,19 +196,16 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
 
     try {
       // Search for device by pairing code via mDNS and relay server
+      LoggingService.debug('Searching for device...');
       final device = await TossService.findPairingDevice(code);
 
-      if (device == null) {
-        throw Exception(
-          'Device not found. Make sure the other device is showing the pairing code.',
-        );
-      }
-
       // Complete the pairing
+      LoggingService.info('Device found, completing pairing with: ${device.deviceName}');
       final pairedDevice = await TossService.completeManualPairing(device);
 
       if (mounted) {
         final viaText = device.viaRelay ? ' (via relay)' : ' (local network)';
+        LoggingService.info('Pairing completed successfully${viaText}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Device "${pairedDevice.name}" paired successfully$viaText!'),
@@ -168,15 +215,47 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
         context.pop();
       }
     } catch (e) {
+      LoggingService.error('Pairing failed', e);
       if (mounted) {
         setState(() {
           _isPairing = false;
-          _error = e.toString().replaceAll('Exception: ', '');
         });
+
+        // Extract meaningful error message
+        String errorMsg = e.toString();
+        // Remove common prefixes
+        errorMsg = errorMsg.replaceAll('Exception: ', '');
+        errorMsg = errorMsg.replaceAll('Failed to find device: ', '');
+
+        // Check for specific error patterns and provide helpful messages
+        if (errorMsg.contains('not found on local network') ||
+            errorMsg.contains('same Wi-Fi')) {
+          // Already a helpful message from Rust, use it as-is
+        } else if (errorMsg.contains('Pairing code not found or expired')) {
+          errorMsg =
+              'Device not found. Make sure the other device is showing the pairing code.';
+        } else if (errorMsg.contains('relay') && errorMsg.contains('contact')) {
+          errorMsg =
+              'Could not reach relay server. Check your internet connection.';
+        } else if (!errorMsg.contains('network') && !errorMsg.contains('relay')) {
+          // Generic fallback for unknown errors
+          errorMsg =
+              'Device not found. Make sure the other device is showing the pairing code and both devices are on the same Wi-Fi network.';
+        }
+
+        setState(() {
+          _error = errorMsg;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(errorMsg),
             backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: () => context.push('/settings'),
+            ),
           ),
         );
       }

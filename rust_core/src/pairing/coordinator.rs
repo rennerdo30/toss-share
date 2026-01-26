@@ -12,6 +12,19 @@ use crate::error::NetworkError;
 /// Service type for pairing discovery
 const PAIRING_SERVICE_TYPE: &str = "_toss-pair._udp.local.";
 
+/// Result of pairing advertisement registration
+#[derive(Debug, Clone, Default)]
+pub struct AdvertisementResult {
+    /// Whether mDNS registration succeeded
+    pub mdns_registered: bool,
+    /// Whether relay server registration succeeded
+    pub relay_registered: bool,
+    /// Error message if mDNS registration failed
+    pub mdns_error: Option<String>,
+    /// Error message if relay registration failed
+    pub relay_error: Option<String>,
+}
+
 /// Device info discovered during pairing
 #[derive(Debug, Clone)]
 pub struct PairingDeviceInfo {
@@ -89,13 +102,16 @@ impl PairingCoordinator {
     }
 
     /// Start advertising this device for pairing with the given code and public key
+    /// Returns an `AdvertisementResult` indicating which methods succeeded/failed
     pub async fn start_advertisement(
         &self,
         code: &str,
         public_key: &[u8; 32],
-    ) -> Result<(), NetworkError> {
+    ) -> Result<AdvertisementResult, NetworkError> {
         // Store the current code
         *self.current_code.write().await = Some(code.to_string());
+
+        let mut result = AdvertisementResult::default();
 
         // Encode public key as base64
         let public_key_b64 =
@@ -126,15 +142,23 @@ impl PairingCoordinator {
             ) {
                 Ok(service_info) => {
                     if let Err(e) = daemon.register(service_info) {
-                        tracing::warn!("Failed to register mDNS pairing service: {}", e);
+                        let error_msg = format!("Failed to register mDNS service: {}", e);
+                        tracing::warn!("{}", error_msg);
+                        result.mdns_error = Some(error_msg);
                     } else {
                         tracing::info!("mDNS pairing service registered with code: {}", code);
+                        result.mdns_registered = true;
                     }
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to create mDNS service info: {}", e);
+                    let error_msg = format!("Failed to create mDNS service info: {}", e);
+                    tracing::warn!("{}", error_msg);
+                    result.mdns_error = Some(error_msg);
                 }
             }
+        } else {
+            result.mdns_error = Some("mDNS daemon not available".to_string());
+            tracing::warn!("mDNS daemon not available for pairing advertisement");
         }
 
         // Try relay server registration
@@ -157,34 +181,45 @@ impl PairingCoordinator {
                                     reg_response.code,
                                     reg_response.expires_at
                                 );
+                                result.relay_registered = true;
                             }
                             Err(e) => {
-                                tracing::warn!("Failed to parse registration response: {}", e);
+                                let error_msg =
+                                    format!("Failed to parse registration response: {}", e);
+                                tracing::warn!("{}", error_msg);
+                                result.relay_error = Some(error_msg);
                             }
                         }
                     } else {
                         let status = response.status();
                         let error_text = response.text().await.unwrap_or_default();
-                        tracing::warn!(
-                            "Failed to register pairing on relay: {} - {}",
-                            status,
-                            error_text
-                        );
+                        let error_msg =
+                            format!("Relay registration failed: {} - {}", status, error_text);
+                        tracing::warn!("{}", error_msg);
+                        result.relay_error = Some(error_msg);
                     }
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to contact relay server for pairing: {}", e);
+                    let error_msg = format!("Failed to contact relay server: {}", e);
+                    tracing::warn!("{}", error_msg);
+                    result.relay_error = Some(error_msg);
                 }
             }
+        } else {
+            result.relay_error = Some("No relay server configured".to_string());
+            tracing::debug!("No relay server configured for pairing advertisement");
         }
 
-        Ok(())
+        Ok(result)
     }
 
     /// Find a device by pairing code
     pub async fn find_device(&self, code: &str) -> Result<PairingDeviceInfo, NetworkError> {
+        tracing::debug!("Starting device search for pairing code: {}...", &code[..2]);
+
         // First try mDNS discovery
         if let Some(ref daemon) = self.mdns_daemon {
+            tracing::debug!("Searching via mDNS...");
             match self.find_via_mdns(daemon, code).await {
                 Ok(Some(info)) => {
                     tracing::info!("Found device via mDNS with code: {}", code);
@@ -197,15 +232,19 @@ impl PairingCoordinator {
                     tracing::warn!("mDNS search failed: {}, trying relay...", e);
                 }
             }
+        } else {
+            tracing::warn!("mDNS daemon not available for device search");
         }
 
         // Fall back to relay server
         if let Some(ref relay_url) = self.relay_url {
+            tracing::debug!("Searching via relay server: {}", relay_url);
             return self.find_via_relay(relay_url, code).await;
         }
 
+        // Provide a helpful error message when relay is not configured
         Err(NetworkError::Discovery(
-            "Device not found via mDNS or relay".to_string(),
+            "Device not found on local network. Both devices must be on the same Wi-Fi network, or configure a relay server in Settings.".to_string(),
         ))
     }
 
@@ -215,13 +254,15 @@ impl PairingCoordinator {
         daemon: &ServiceDaemon,
         code: &str,
     ) -> Result<Option<PairingDeviceInfo>, NetworkError> {
+        tracing::debug!("Starting mDNS browse for pairing code: {}", code);
         let receiver = daemon
             .browse(PAIRING_SERVICE_TYPE)
             .map_err(|e| NetworkError::Discovery(format!("Failed to browse mDNS: {}", e)))?;
 
-        // Listen for a short time for pairing services
-        let timeout = tokio::time::timeout(Duration::from_secs(3), async {
+        // Listen for pairing services (5 second timeout for slow announcements)
+        let timeout = tokio::time::timeout(Duration::from_secs(5), async {
             while let Ok(event) = receiver.recv() {
+                tracing::trace!("mDNS event: {:?}", event);
                 if let ServiceEvent::ServiceResolved(info) = event {
                     if let Some(found_code) = info.get_properties().get("code") {
                         if found_code.val_str() == code {

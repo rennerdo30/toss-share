@@ -40,6 +40,27 @@ class PairingDevice {
   });
 }
 
+/// Result of pairing advertisement registration
+class AdvertisementResult {
+  final bool mdnsRegistered;
+  final bool relayRegistered;
+  final String? mdnsError;
+  final String? relayError;
+
+  const AdvertisementResult({
+    required this.mdnsRegistered,
+    required this.relayRegistered,
+    this.mdnsError,
+    this.relayError,
+  });
+
+  /// Returns true if at least one method succeeded
+  bool get isDiscoverable => mdnsRegistered || relayRegistered;
+
+  /// Returns true if both methods failed
+  bool get totalFailure => !mdnsRegistered && !relayRegistered;
+}
+
 /// Device information
 class DeviceInfo {
   final String id;
@@ -338,9 +359,12 @@ class TossService {
   }
 
   /// Find a device by pairing code (searches mDNS and relay server)
-  static Future<PairingDevice?> findPairingDevice(String code) async {
+  /// Throws an exception with a descriptive error message if device is not found
+  static Future<PairingDevice> findPairingDevice(String code) async {
+    LoggingService.info('Searching for device with pairing code: ${code.substring(0, 2)}***');
     try {
       final device = await api.findPairingDevice(code: code);
+      LoggingService.info('Device found via ${device.viaRelay ? "relay" : "mDNS"}: ${device.deviceName}');
       return PairingDevice(
         code: device.code,
         publicKey: device.publicKey,
@@ -348,8 +372,8 @@ class TossService {
         viaRelay: device.viaRelay,
       );
     } catch (e) {
-      LoggingService.warn(' Failed to find pairing device: $e');
-      return null;
+      LoggingService.error('Failed to find pairing device', e);
+      rethrow; // Let the caller handle the specific error
     }
   }
 
@@ -373,11 +397,39 @@ class TossService {
   }
 
   /// Register pairing code on relay server and via mDNS for discovery
-  static Future<void> registerPairingAdvertisement() async {
+  /// Returns an AdvertisementResult indicating which methods succeeded/failed
+  static Future<AdvertisementResult> registerPairingAdvertisement() async {
+    LoggingService.info('Registering pairing advertisement...');
     try {
-      await api.registerPairingAdvertisement();
+      final result = await api.registerPairingAdvertisement();
+      final advResult = AdvertisementResult(
+        mdnsRegistered: result.mdnsRegistered,
+        relayRegistered: result.relayRegistered,
+        mdnsError: result.mdnsError,
+        relayError: result.relayError,
+      );
+
+      if (advResult.mdnsRegistered) {
+        LoggingService.info('mDNS pairing registration successful');
+      } else {
+        LoggingService.warn('mDNS registration failed: ${advResult.mdnsError}');
+      }
+
+      if (advResult.relayRegistered) {
+        LoggingService.info('Relay server pairing registration successful');
+      } else {
+        LoggingService.debug('Relay registration failed: ${advResult.relayError}');
+      }
+
+      return advResult;
     } catch (e) {
-      LoggingService.warn(' Failed to register pairing advertisement: $e');
+      LoggingService.error('Failed to register pairing advertisement', e);
+      return AdvertisementResult(
+        mdnsRegistered: false,
+        relayRegistered: false,
+        mdnsError: 'Registration failed: $e',
+        relayError: 'Registration failed: $e',
+      );
     }
   }
 
