@@ -247,6 +247,19 @@ class UpdateService {
     return dir.existsSync();
   }
 
+  /// Validate SHA format (40 hex chars or timestamp-based "ts-...")
+  static bool _isValidSha(String sha) {
+    // Valid 40-char hex SHA
+    if (RegExp(r'^[a-f0-9]{40}$', caseSensitive: false).hasMatch(sha)) {
+      return true;
+    }
+    // Timestamp-based fallback SHA
+    if (sha.startsWith('ts-')) {
+      return true;
+    }
+    return false;
+  }
+
   /// Apply pending update (called early in app startup)
   static Future<bool> applyPendingUpdate() async {
     LoggingService.info('UpdateService: Checking for pending update...');
@@ -264,6 +277,20 @@ class UpdateService {
       }
 
       LoggingService.info('UpdateService: Found pending update - SHA: $pendingSha, Path: $pendingPath');
+
+      // Validate SHA format - reject invalid SHAs (like "main" from old broken downloads)
+      if (!_isValidSha(pendingSha)) {
+        LoggingService.warn('UpdateService: Invalid SHA format "$pendingSha", clearing pending update...');
+        await _clearPendingUpdate();
+        // Clean up the extracted directory
+        try {
+          final dir = Directory(pendingPath);
+          if (dir.existsSync()) {
+            await dir.delete(recursive: true);
+          }
+        } catch (_) {}
+        return false;
+      }
 
       final extractedDir = Directory(pendingPath);
       if (!extractedDir.existsSync()) {
@@ -283,7 +310,15 @@ class UpdateService {
       if (Platform.isMacOS) {
         success = await _applyMacOSUpdate(extractedDir, currentDir);
       } else if (Platform.isWindows) {
+        // IMPORTANT: For Windows, we must clear pending update BEFORE calling
+        // _applyWindowsUpdate because it calls exit(0) and never returns.
+        // Store SHA first, then clear pending markers
+        LoggingService.info('UpdateService: Pre-clearing pending update for Windows...');
+        await StorageService.setSetting(SettingsKeys.currentBuildSha, pendingSha);
+        await _clearPendingUpdate();
+
         success = await _applyWindowsUpdate(extractedDir, currentDir);
+        // Note: On Windows, we won't reach here due to exit(0)
       } else if (Platform.isLinux) {
         success = await _applyLinuxUpdate(extractedDir, currentDir);
       }
