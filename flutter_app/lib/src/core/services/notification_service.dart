@@ -52,11 +52,19 @@ class NotificationService {
       defaultActionName: 'Open notification',
     );
 
+    // Initialize Windows settings
+    const windowsSettings = WindowsInitializationSettings(
+      appName: 'Toss',
+      appUserModelId: 'dev.renner.toss',
+      guid: 'd3b3c3e3-1234-5678-9abc-def012345678',
+    );
+
     const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: darwinSettings,
       macOS: darwinSettings,
       linux: linuxSettings,
+      windows: windowsSettings,
     );
 
     LoggingService.debug('NotificationService: Initializing plugin...');
