@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/services/logging_service.dart';
 import '../../core/services/toss_service.dart';
+
+/// Search phase for manual pairing code entry
+enum SearchPhase { none, mdns, relay }
 
 class PairingScreen extends ConsumerStatefulWidget {
   const PairingScreen({super.key});
@@ -399,6 +404,8 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
   bool _isScanning = false;
   MobileScannerController? _scannerController;
   bool _hasPermission = false;
+  SearchPhase _searchPhase = SearchPhase.none;
+  Timer? _phaseTimer;
 
   @override
   void initState() {
@@ -413,6 +420,7 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
 
   @override
   void dispose() {
+    _phaseTimer?.cancel();
     _codeController.removeListener(_onCodeChanged);
     _codeController.dispose();
     _scannerController?.dispose();
@@ -431,6 +439,34 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
           );
         }
       });
+    }
+  }
+
+  Future<void> _startSearch() async {
+    if (widget.isPairing) return;
+
+    setState(() {
+      _searchPhase = SearchPhase.mdns;
+    });
+
+    // Transition to relay phase after 4.5s (just under mDNS 5s timeout)
+    _phaseTimer = Timer(const Duration(milliseconds: 4500), () {
+      if (mounted && _searchPhase == SearchPhase.mdns) {
+        setState(() {
+          _searchPhase = SearchPhase.relay;
+        });
+      }
+    });
+
+    try {
+      await widget.onManualCode(_codeController.text);
+    } finally {
+      _phaseTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _searchPhase = SearchPhase.none;
+        });
+      }
     }
   }
 
@@ -563,18 +599,20 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
             child: ElevatedButton(
               onPressed: widget.isPairing || _codeController.text.length != 6
                   ? null
-                  : () => widget.onManualCode(_codeController.text),
-              child: widget.isPairing
+                  : _startSearch,
+              child: _searchPhase != SearchPhase.none
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        SizedBox(
+                      children: [
+                        const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        SizedBox(width: 12),
-                        Text('Searching...'),
+                        const SizedBox(width: 12),
+                        Text(_searchPhase == SearchPhase.relay
+                            ? 'Searching via cloud...'
+                            : 'Searching local network...'),
                       ],
                     )
                   : const Text('Connect'),
