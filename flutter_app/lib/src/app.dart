@@ -8,6 +8,7 @@ import 'core/router/app_router.dart';
 import 'core/services/tray_service.dart';
 import 'core/services/clipboard_monitor_service.dart';
 import 'core/services/toss_service.dart';
+import 'core/services/ios_background_service.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/clipboard_provider.dart';
 import 'core/providers/devices_provider.dart';
@@ -20,10 +21,13 @@ class TossApp extends ConsumerStatefulWidget {
   ConsumerState<TossApp> createState() => _TossAppState();
 }
 
-class _TossAppState extends ConsumerState<TossApp> {
+class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    // Register for app lifecycle events
+    WidgetsBinding.instance.addObserver(this);
+
     // Set up tray service callback after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -33,6 +37,11 @@ class _TossAppState extends ConsumerState<TossApp> {
               .read(settingsProvider.notifier)
               .updateAutoSync(!settings.autoSync);
         });
+      }
+
+      // Initialize iOS background service
+      if (Platform.isIOS) {
+        _initializeIosBackgroundService();
       }
 
       // Load clipboard history on app start
@@ -46,6 +55,41 @@ class _TossAppState extends ConsumerState<TossApp> {
         debugPrint('Warning: Failed to start network: $e');
       });
     });
+  }
+
+  /// Initialize iOS-specific background service
+  Future<void> _initializeIosBackgroundService() async {
+    final iosService = IosBackgroundService();
+    await iosService.initialize();
+
+    // Set up sync callback
+    iosService.setOnSyncRequested(() async {
+      // Refresh clipboard history from network
+      await ref.read(clipboardHistoryProvider.notifier).loadHistory();
+      // Refresh devices
+      await ref.read(devicesProvider.notifier).refresh();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (Platform.isIOS) {
+      final iosService = IosBackgroundService();
+      switch (state) {
+        case AppLifecycleState.resumed:
+          // App came to foreground - sync clipboard
+          iosService.syncOnForeground();
+          break;
+        case AppLifecycleState.paused:
+          // App going to background - update widget
+          iosService.updateWidget();
+          break;
+        default:
+          break;
+      }
+    }
   }
 
   @override
@@ -85,7 +129,16 @@ class _TossAppState extends ConsumerState<TossApp> {
 
   @override
   void dispose() {
+    // Remove lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
+
     ClipboardMonitorService().stopMonitoring();
+
+    // Clean up iOS background service
+    if (Platform.isIOS) {
+      IosBackgroundService().dispose();
+    }
+
     // Stop network on app disposal
     TossService.stopNetwork().catchError((e) {
       debugPrint('Warning: Failed to stop network: $e');

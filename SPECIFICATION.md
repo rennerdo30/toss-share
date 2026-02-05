@@ -336,13 +336,75 @@ CREATE TABLE settings (
 | macOS | NSPasteboard via arboard | Accessibility | `AXIsProcessTrusted()` check |
 | Windows | Win32 API | None | CF_UNICODETEXT, CF_HDROP, CF_DIB formats |
 | Linux | X11/Wayland via arboard | None | Dual protocol support |
-| iOS | UIPasteboard (Flutter) | Local Network | Limited background access |
+| iOS | UIPasteboard (Flutter) | Local Network | Limited background access, iOS 14+ restrictions |
 | Android | ClipboardManager (Flutter) | None | Android 10+ restrictions, Keystore for storage |
 
 ### 8.1 Windows Clipboard Formats
 - **CF_UNICODETEXT**: Unicode text
 - **CF_HDROP**: File list (drag & drop)
 - **CF_DIB**: Device-independent bitmap
+
+### 8.2 iOS Background Service Implementation
+
+iOS has significant restrictions on background clipboard access starting with iOS 14. The following strategies are implemented to provide the best possible user experience:
+
+#### 8.2.1 iOS Clipboard Restrictions
+
+| iOS Version | Restriction |
+|-------------|-------------|
+| iOS 14+ | Clipboard read shows user notification ("App pasted from...") |
+| iOS 14+ | Background clipboard reading is blocked |
+| iOS 16+ | App must be in foreground to read clipboard |
+
+#### 8.2.2 Background Sync Strategies
+
+1. **Foreground Sync**: Clipboard sync triggers automatically when app returns to foreground
+2. **Siri Shortcuts Integration**: Users can create shortcuts for quick sync:
+   - "Sync Clipboard" - Sends current clipboard to paired devices
+   - "Send Clipboard" - Same as sync
+   - "Get Latest Clipboard" - Receives clipboard from devices
+3. **Background Fetch**: Limited background processing for receiving (not reading) clipboard
+4. **App Extensions**: Share extension for sending content without opening main app
+5. **Widgets**: WidgetKit widget for quick status view and sync trigger
+
+#### 8.2.3 Implementation Details
+
+```
+iOS Background Service Flow:
+┌─────────────────────────────────────────────────────────┐
+│ App in Foreground                                       │
+│ ├── Full clipboard access                               │
+│ ├── Monitor clipboard changes (250ms polling)          │
+│ └── Auto-sync on change (rate limited)                 │
+├─────────────────────────────────────────────────────────┤
+│ App Becomes Active (from background)                   │
+│ ├── syncOnForeground() called                          │
+│ ├── Check for local clipboard changes                  │
+│ └── Receive pending content from network               │
+├─────────────────────────────────────────────────────────┤
+│ App Goes to Background                                  │
+│ ├── Update widget with current status                  │
+│ ├── Schedule background refresh task                   │
+│ └── Cannot read clipboard (iOS restriction)            │
+├─────────────────────────────────────────────────────────┤
+│ Background Fetch Triggered                              │
+│ ├── Receive content from paired devices                │
+│ ├── Update widget                                       │
+│ └── Cannot access local clipboard                      │
+├─────────────────────────────────────────────────────────┤
+│ Siri Shortcut Invoked                                   │
+│ ├── handleShortcutAction() processes request           │
+│ ├── Can read clipboard (user interaction)              │
+│ └── Sync content to/from devices                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 8.2.4 User Recommendations for iOS
+
+- **Enable Background App Refresh** in iOS Settings for best sync experience
+- **Use Siri Shortcuts** for quick clipboard sync without opening the app
+- **Add Home Screen Widget** for at-a-glance status and quick sync
+- **Note**: iOS will show a notification when the app reads the clipboard (this is expected)
 
 ---
 
