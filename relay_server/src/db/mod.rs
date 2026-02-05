@@ -392,4 +392,22 @@ impl Database {
 
         Ok(count.0)
     }
+
+    /// List all active pairing sessions (for admin dashboard)
+    pub async fn list_all_pairing_sessions(&self) -> Result<Vec<PairingSession>, ApiError> {
+        let now = Utc::now().timestamp();
+        let sessions = sqlx::query_as::<_, PairingSession>(
+            r#"
+            SELECT code, public_key, device_name, expires_at, created_at
+            FROM pairing_sessions
+            WHERE expires_at > ?
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(now)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(sessions)
+    }
 }

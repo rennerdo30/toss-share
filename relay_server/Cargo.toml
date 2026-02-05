@@ -54,6 +54,10 @@ bcrypt = "0.17"
 hmac = "0.12"
 sha2 = "0.10"
 
+# System information
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 tokio-test = "0.4"
 hex = "0.4"

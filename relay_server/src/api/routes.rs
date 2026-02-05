@@ -44,6 +44,14 @@ pub fn create_router() -> Router<AppState> {
         .route("/admin/cleanup/messages", post(admin::cleanup_messages))
         .route("/admin/cleanup/pairings", post(admin::cleanup_pairings))
         .route("/admin/cleanup/devices", post(admin::cleanup_devices))
+        .route("/admin/sessions", get(admin::sessions_list))
+        .route("/admin/sessions/{code}/cancel", post(admin::cancel_session))
+        .route(
+            "/admin/devices/{device_id}/disconnect",
+            post(admin::disconnect_device),
+        )
+        .route("/admin/logs", get(admin::logs_page))
+        .route("/admin/logs/clear", post(admin::clear_logs))
         .route("/api/admin/stats", get(admin::get_stats))
 }
 
