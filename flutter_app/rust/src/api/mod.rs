@@ -482,3 +482,14 @@ pub fn get_clipboard_history_content(item_id: String) -> Result<ClipboardContent
 pub fn get_device_session_key(device_id: String) -> Result<Vec<u8>, String> {
     toss_core::api::get_device_session_key(device_id)
 }
+
+// ============================================================================
+// WebSocket Authentication
+// ============================================================================
+
+/// Sign a message with the device's identity key for WebSocket authentication
+/// Returns the signature as a base64-encoded string
+#[frb(sync)]
+pub fn sign_message(message: String) -> Result<String, String> {
+    toss_core::api::sign_message(message)
+}

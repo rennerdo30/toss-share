@@ -11,6 +11,7 @@ import '../../core/providers/toss_provider.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/providers/clipboard_provider.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/providers/websocket_provider.dart';
 import '../../core/services/toss_service.dart';
 import '../../core/models/device.dart';
 import '../../core/models/clipboard_item.dart';
@@ -28,17 +29,21 @@ class HomeScreen extends ConsumerWidget {
     final tossState = ref.watch(tossProvider);
     final devices = ref.watch(devicesProvider);
     final currentClipboard = ref.watch(currentClipboardProvider);
+    final wsState = ref.watch(webSocketProvider);
 
     return ResponsiveBuilder(
       builder: (context, isMobile, isTablet, isDesktop) {
         // On tablet/desktop, the DesktopShell handles title bar and devices are in sidebar
         // On mobile, we show the full mobile layout
+        final syncMethod = SyncMethod.fromWebSocketState(wsState.connectionState);
+
         if (isMobile) {
           return _MobileLayout(
             tossState: tossState,
             devices: devices,
             currentClipboard: currentClipboard,
             ref: ref,
+            syncMethod: syncMethod,
           );
         }
 
@@ -47,6 +52,7 @@ class HomeScreen extends ConsumerWidget {
           devices: devices,
           currentClipboard: currentClipboard,
           ref: ref,
+          syncMethod: syncMethod,
         );
       },
     );
@@ -59,12 +65,14 @@ class _MobileLayout extends StatelessWidget {
   final List<Device> devices;
   final ClipboardItem? currentClipboard;
   final WidgetRef ref;
+  final SyncMethod syncMethod;
 
   const _MobileLayout({
     required this.tossState,
     required this.devices,
     required this.currentClipboard,
     required this.ref,
+    required this.syncMethod,
   });
 
   @override
@@ -108,6 +116,7 @@ class _MobileLayout extends StatelessWidget {
               connectedCount: devices.where((d) => d.isOnline).length,
               isSyncing: tossState.isSyncing,
               relayConfigured: ref.watch(settingsProvider).relayUrl != null,
+              syncMethod: syncMethod,
             ),
 
             // Main content
@@ -239,12 +248,14 @@ class _DesktopLayout extends StatelessWidget {
   final List<Device> devices;
   final ClipboardItem? currentClipboard;
   final WidgetRef ref;
+  final SyncMethod syncMethod;
 
   const _DesktopLayout({
     required this.tossState,
     required this.devices,
     required this.currentClipboard,
     required this.ref,
+    required this.syncMethod,
   });
 
   @override

@@ -9,9 +9,11 @@ import 'core/services/tray_service.dart';
 import 'core/services/clipboard_monitor_service.dart';
 import 'core/services/toss_service.dart';
 import 'core/services/ios_background_service.dart';
+import 'core/services/websocket_service.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/clipboard_provider.dart';
 import 'core/providers/devices_provider.dart';
+import 'core/providers/websocket_provider.dart';
 import 'shared/theme/app_theme.dart';
 
 class TossApp extends ConsumerStatefulWidget {
@@ -60,6 +62,11 @@ class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
       TossService.startNetwork().catchError((e) {
         debugPrint('Warning: Failed to start network: $e');
       });
+
+      // Start WebSocket connection for real-time sync (if relay is configured)
+      ref.read(webSocketProvider.notifier).connect().catchError((e) {
+        debugPrint('Warning: Failed to start WebSocket: $e');
+      });
     });
   }
 
@@ -80,6 +87,22 @@ class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+
+    // Handle WebSocket reconnection on app lifecycle changes
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came to foreground - try to reconnect WebSocket if disconnected
+        final wsState = ref.read(webSocketProvider);
+        if (!wsState.isConnected) {
+          ref.read(webSocketProvider.notifier).connect();
+        }
+        break;
+      case AppLifecycleState.paused:
+        // App going to background - WebSocket will auto-reconnect if needed
+        break;
+      default:
+        break;
+    }
 
     if (Platform.isIOS) {
       final iosService = IosBackgroundService();
@@ -139,6 +162,9 @@ class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
 
     ClipboardMonitorService().stopMonitoring();
+
+    // Disconnect WebSocket
+    WebSocketService.instance.disconnect();
 
     // Note: Device status polling timer is automatically cleaned up
     // by the devicesProvider's onDispose callback
