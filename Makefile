@@ -1,11 +1,11 @@
 # Toss - Makefile
 # Build, test, and manage all components
 
-.PHONY: all build build-rust build-relay build-flutter \
+.PHONY: all build build-rust build-relay build-flutter build-extension \
         test test-rust test-relay test-flutter \
-        clean clean-rust clean-relay clean-flutter \
+        clean clean-rust clean-relay clean-flutter clean-extension \
         fmt lint check docker run-relay help \
-        release release-all package-all package-relay \
+        release release-all package-all package-relay package-extension \
         release-macos release-linux release-windows release-android release-ios \
         setup check-deps check-deps-macos pod-install \
         generate-ffi verify-ffi \
@@ -76,6 +76,12 @@ build-flutter-all: build-flutter
 	@cd flutter_app && flutter build windows || true
 	@cd flutter_app && flutter build apk || true
 	@cd flutter_app && flutter build ios || true
+
+## Build browser extension
+build-extension:
+	@echo "Building browser extension..."
+	@cd browser_extension && npm install --silent && npm run build
+	@echo "✓ Browser extension built (Chrome + Firefox)"
 
 # ==============================================================================
 # Test Targets
@@ -264,6 +270,12 @@ clean-flutter:
 	@cd flutter_app && flutter clean || true
 	@echo "✓ Flutter app clean"
 
+## Clean browser extension build artifacts
+clean-extension:
+	@echo "Cleaning browser extension..."
+	@cd browser_extension && npm run clean 2>/dev/null || rm -rf browser_extension/dist
+	@echo "✓ Browser extension clean"
+
 # ==============================================================================
 # Release Targets
 # ==============================================================================
@@ -283,6 +295,14 @@ package-relay: build-relay
 	@cd relay_server && docker build -t toss-relay:latest .
 	@docker save toss-relay:latest | gzip > dist/relay-server/toss-relay-docker.tar.gz
 	@echo "✓ Packaged to dist/relay-server/toss-relay-docker.tar.gz"
+
+## Package browser extension for distribution
+package-extension: build-extension
+	@echo "Packaging browser extension..."
+	@cd browser_extension && npm run package
+	@mkdir -p dist/browser-extension
+	@cp browser_extension/dist/*.zip dist/browser-extension/ 2>/dev/null || true
+	@echo "✓ Browser extension packages in dist/browser-extension/"
 
 ## Build and package everything for all platforms
 release-all: clean build release package-relay release-macos release-linux release-windows release-android release-ios
