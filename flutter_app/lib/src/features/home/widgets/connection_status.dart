@@ -1,15 +1,71 @@
 import 'package:flutter/material.dart';
 
+/// Connection type enum matching the Rust ConnectionType
+enum ConnectionType {
+  direct,
+  stunReflexive,
+  turnRelay,
+  websocketRelay,
+  unknown;
+
+  static ConnectionType fromString(String value) {
+    switch (value) {
+      case 'direct':
+        return ConnectionType.direct;
+      case 'stun_reflexive':
+        return ConnectionType.stunReflexive;
+      case 'turn_relay':
+        return ConnectionType.turnRelay;
+      case 'websocket_relay':
+        return ConnectionType.websocketRelay;
+      default:
+        return ConnectionType.unknown;
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case ConnectionType.direct:
+        return 'Direct';
+      case ConnectionType.stunReflexive:
+        return 'NAT Traversal';
+      case ConnectionType.turnRelay:
+        return 'TURN Relay';
+      case ConnectionType.websocketRelay:
+        return 'Cloud Relay';
+      case ConnectionType.unknown:
+        return 'Unknown';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case ConnectionType.direct:
+        return Icons.wifi;
+      case ConnectionType.stunReflexive:
+        return Icons.swap_horiz;
+      case ConnectionType.turnRelay:
+        return Icons.compare_arrows;
+      case ConnectionType.websocketRelay:
+        return Icons.cloud;
+      case ConnectionType.unknown:
+        return Icons.help_outline;
+    }
+  }
+}
+
 class ConnectionStatusBanner extends StatelessWidget {
   final int connectedCount;
   final bool isSyncing;
   final bool relayConfigured;
+  final ConnectionType? connectionType;
 
   const ConnectionStatusBanner({
     super.key,
     required this.connectedCount,
     this.isSyncing = false,
     this.relayConfigured = false,
+    this.connectionType,
   });
 
   @override
@@ -53,6 +109,19 @@ class ConnectionStatusBanner extends StatelessWidget {
               ),
             ),
           ),
+
+          // Connection type indicator (when connected)
+          if (isConnected && connectionType != null) ...[
+            Tooltip(
+              message: 'Connection: ${connectionType!.displayName}',
+              child: Icon(
+                connectionType!.icon,
+                size: 16,
+                color: foregroundColor.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
 
           // Relay indicator
           if (relayConfigured) ...[

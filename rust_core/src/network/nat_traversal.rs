@@ -32,36 +32,24 @@ const STUN_MAGIC_COOKIE: u32 = 0x2112A442;
 /// STUN message types
 const STUN_BINDING_REQUEST: u16 = 0x0001;
 const STUN_BINDING_RESPONSE: u16 = 0x0101;
-#[allow(dead_code)]
-const STUN_BINDING_ERROR: u16 = 0x0111;
 
 /// TURN message types (RFC 5766)
 const TURN_ALLOCATE_REQUEST: u16 = 0x0003;
 const TURN_ALLOCATE_RESPONSE: u16 = 0x0103;
 const TURN_ALLOCATE_ERROR: u16 = 0x0113;
 const TURN_REFRESH_REQUEST: u16 = 0x0004;
-#[allow(dead_code)]
-const TURN_REFRESH_RESPONSE: u16 = 0x0104;
 const TURN_CREATE_PERMISSION_REQUEST: u16 = 0x0008;
 const TURN_CREATE_PERMISSION_RESPONSE: u16 = 0x0108;
 const TURN_SEND_INDICATION: u16 = 0x0016;
 const TURN_DATA_INDICATION: u16 = 0x0017;
-#[allow(dead_code)]
-const TURN_CHANNEL_BIND_REQUEST: u16 = 0x0009;
-#[allow(dead_code)]
-const TURN_CHANNEL_BIND_RESPONSE: u16 = 0x0109;
 
 /// STUN attribute types
 const STUN_ATTR_MAPPED_ADDRESS: u16 = 0x0001;
 const STUN_ATTR_USERNAME: u16 = 0x0006;
 const STUN_ATTR_MESSAGE_INTEGRITY: u16 = 0x0008;
-#[allow(dead_code)]
-const STUN_ATTR_ERROR_CODE: u16 = 0x0009;
 const STUN_ATTR_REALM: u16 = 0x0014;
 const STUN_ATTR_NONCE: u16 = 0x0015;
 const STUN_ATTR_XOR_MAPPED_ADDRESS: u16 = 0x0020;
-#[allow(dead_code)]
-const STUN_ATTR_SOFTWARE: u16 = 0x8022;
 
 /// TURN attribute types
 const TURN_ATTR_LIFETIME: u16 = 0x000D;
@@ -69,13 +57,12 @@ const TURN_ATTR_XOR_PEER_ADDRESS: u16 = 0x0012;
 const TURN_ATTR_DATA: u16 = 0x0013;
 const TURN_ATTR_XOR_RELAYED_ADDRESS: u16 = 0x0016;
 const TURN_ATTR_REQUESTED_TRANSPORT: u16 = 0x0019;
-#[allow(dead_code)]
-const TURN_ATTR_CHANNEL_NUMBER: u16 = 0x000C;
 
 /// Default TURN allocation lifetime in seconds
 const DEFAULT_LIFETIME: u32 = 600;
 
 /// STUN server configuration
+#[derive(Debug, Clone)]
 pub struct StunConfig {
     /// STUN server hostname
     pub server_host: String,
@@ -108,6 +95,7 @@ impl StunConfig {
 }
 
 /// TURN server configuration
+#[derive(Debug, Clone)]
 pub struct TurnConfig {
     /// TURN server address
     pub server: SocketAddr,
@@ -147,7 +135,6 @@ pub struct StunBinding {
 
 /// STUN client for NAT discovery
 pub struct StunClient {
-    #[allow(dead_code)]
     config: StunConfig,
 }
 
@@ -426,12 +413,6 @@ struct TurnSession {
     lifetime: u32,
     /// Permissions granted for peer addresses
     permissions: Vec<SocketAddr>,
-    /// Channel bindings (peer address -> channel number)
-    #[allow(dead_code)]
-    channel_bindings: Vec<(SocketAddr, u16)>,
-    /// Next channel number to assign (0x4000-0x7FFF)
-    #[allow(dead_code)]
-    next_channel: u16,
 }
 
 impl Default for TurnSession {
@@ -442,8 +423,6 @@ impl Default for TurnSession {
             realm: None,
             lifetime: DEFAULT_LIFETIME,
             permissions: Vec::new(),
-            channel_bindings: Vec::new(),
-            next_channel: 0x4000,
         }
     }
 }

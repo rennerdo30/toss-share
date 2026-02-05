@@ -16,7 +16,9 @@ use crate::crypto::{
     decrypt, derive_key, encrypt, DerivedKeyPurpose, DeviceIdentity, EncryptedMessage,
     PairingSession,
 };
-use crate::network::{GetSessionKeyFn, NetworkConfig, NetworkEvent, NetworkManager};
+use crate::network::{
+    ConnectionType, GetSessionKeyFn, NetworkConfig, NetworkEvent, NetworkManager,
+};
 use crate::protocol::{ClipboardContent, ClipboardUpdate, ContentType, Message};
 use crate::storage::{Storage, StoredDevice};
 
@@ -77,6 +79,7 @@ pub struct DeviceInfoDto {
     pub is_online: bool,
     pub last_seen: u64,
     pub platform: String, // Platform name: "macos", "windows", "linux", "ios", "android", "unknown"
+    pub connection_type: String, // Connection type: "direct", "stun_reflexive", "turn_relay", "websocket_relay", "unknown"
 }
 
 /// Clipboard item for display
@@ -359,6 +362,7 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
         is_online: false,
         last_seen: 0,
         platform: format!("{:?}", crate::protocol::Platform::current()).to_lowercase(),
+        connection_type: "unknown".to_string(),
     })
 }
 
@@ -428,6 +432,7 @@ pub fn complete_pairing_code(
         is_online: false,
         last_seen: 0,
         platform: format!("{:?}", crate::protocol::Platform::current()).to_lowercase(),
+        connection_type: "unknown".to_string(),
     })
 }
 
@@ -576,6 +581,7 @@ pub fn complete_manual_pairing(
         is_online: false,
         last_seen: 0,
         platform: "unknown".to_string(),
+        connection_type: "unknown".to_string(),
     })
 }
 
@@ -664,6 +670,7 @@ pub fn get_paired_devices() -> Vec<DeviceInfoDto> {
             is_online: connected_device_ids.contains(&d.id),
             last_seen: d.last_seen.unwrap_or(0),
             platform: d.platform.unwrap_or_else(|| "unknown".to_string()),
+            connection_type: "unknown".to_string(), // Connection type not stored
         })
         .collect()
 }
@@ -1105,7 +1112,15 @@ pub fn poll_event() -> Option<TossEvent> {
             Ok(NetworkEvent::PeerConnected {
                 device_id,
                 device_name,
+                connection_type,
             }) => {
+                let conn_type_str = match connection_type {
+                    ConnectionType::Direct => "direct",
+                    ConnectionType::StunReflexive => "stun_reflexive",
+                    ConnectionType::TurnRelay => "turn_relay",
+                    ConnectionType::WebSocketRelay => "websocket_relay",
+                    ConnectionType::Unknown => "unknown",
+                };
                 Some(TossEvent::DeviceConnected {
                     device: DeviceInfoDto {
                         id: hex::encode(device_id),
@@ -1113,6 +1128,7 @@ pub fn poll_event() -> Option<TossEvent> {
                         is_online: true,
                         last_seen: 0,
                         platform: "unknown".to_string(), // Platform info not available in event yet
+                        connection_type: conn_type_str.to_string(),
                     },
                 })
             }
@@ -1410,12 +1426,22 @@ pub fn get_connected_devices() -> Vec<DeviceInfoDto> {
             return network
                 .connected_peers()
                 .into_iter()
-                .map(|peer| DeviceInfoDto {
-                    id: hex::encode(peer.device_id),
-                    name: peer.device_name,
-                    is_online: peer.is_connected,
-                    last_seen: 0,
-                    platform: "unknown".to_string(), // Platform info not available in PeerInfo yet
+                .map(|peer| {
+                    let conn_type_str = match peer.connection_type {
+                        ConnectionType::Direct => "direct",
+                        ConnectionType::StunReflexive => "stun_reflexive",
+                        ConnectionType::TurnRelay => "turn_relay",
+                        ConnectionType::WebSocketRelay => "websocket_relay",
+                        ConnectionType::Unknown => "unknown",
+                    };
+                    DeviceInfoDto {
+                        id: hex::encode(peer.device_id),
+                        name: peer.device_name,
+                        is_online: peer.is_connected,
+                        last_seen: 0,
+                        platform: "unknown".to_string(), // Platform info not available in PeerInfo yet
+                        connection_type: conn_type_str.to_string(),
+                    }
                 })
                 .collect();
         }
