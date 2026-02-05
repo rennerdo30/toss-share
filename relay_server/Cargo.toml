@@ -50,11 +50,16 @@ askama = "0.12"
 askama_axum = "0.4"
 bcrypt = "0.17"
 
+# Cryptographic HMAC for session tokens
+hmac = "0.12"
+sha2 = "0.10"
+
 [dev-dependencies]
 tokio-test = "0.4"
 hex = "0.4"
-reqwest = { version = "0.13", features = ["json"] }
+reqwest = { version = "0.13", features = ["json", "cookies", "form"] }
 tokio-tungstenite = "0.28"
+bcrypt = "0.17"
 
 [[test]]
 name = "integration_tests"
