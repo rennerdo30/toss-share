@@ -61,6 +61,10 @@ impl Storage {
             .conn
             .lock()
             .expect("storage mutex poisoned - this is a bug");
+
+        // Enable foreign key enforcement
+        conn.execute_batch("PRAGMA foreign_keys = ON")?;
+
         // Create devices table
         conn.execute(
             r#"
@@ -152,7 +156,7 @@ impl Storage {
                 joined_at INTEGER NOT NULL,
                 invited_by TEXT,
                 PRIMARY KEY (team_id, device_id),
-                FOREIGN KEY (team_id) REFERENCES teams(id)
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
             )
             "#,
             [],
@@ -181,7 +185,7 @@ impl Storage {
                 status INTEGER NOT NULL DEFAULT 0,
                 max_uses INTEGER DEFAULT 1,
                 use_count INTEGER DEFAULT 0,
-                FOREIGN KEY (team_id) REFERENCES teams(id)
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
             )
             "#,
             [],
@@ -207,7 +211,7 @@ impl Storage {
                 target_device_id TEXT,
                 details TEXT,
                 timestamp INTEGER NOT NULL,
-                FOREIGN KEY (team_id) REFERENCES teams(id)
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
             )
             "#,
             [],

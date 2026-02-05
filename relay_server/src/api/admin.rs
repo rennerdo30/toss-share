@@ -731,7 +731,16 @@ pub async fn team_details(
     // Get team
     let team = match state.db.get_team(&team_id).await {
         Ok(Some(t)) => t,
-        _ => return Redirect::to("/admin/teams").into_response(),
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Html("Team not found".to_string())).into_response()
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database error".to_string()),
+            )
+                .into_response()
+        }
     };
 
     let member_count = state.db.count_team_members(&team.id).await.unwrap_or(0);
@@ -837,6 +846,19 @@ pub async fn delete_team(
         return redirect.into_response();
     }
 
+    // Verify team exists before deleting
+    match state.db.get_team(&team_id).await {
+        Ok(Some(_)) => {}
+        Ok(None) => {
+            tracing::warn!("Admin attempted to delete non-existent team: {}", team_id);
+            return Redirect::to("/admin/teams").into_response();
+        }
+        Err(e) => {
+            tracing::error!("Error checking team existence: {}", e);
+            return Redirect::to("/admin/teams").into_response();
+        }
+    }
+
     // Delete the team
     let _ = state.db.delete_team(&team_id).await;
     tracing::info!("Admin deleted team: {}", team_id);
@@ -865,14 +887,21 @@ pub async fn remove_team_member(
     // Remove the member
     let _ = state.db.remove_team_member(&team_id, &device_id).await;
 
-    // Log the action
+    // Log the action with admin identity from session
+    let admin_identity = cookies
+        .unwrap_or("")
+        .split(';')
+        .find(|c| c.trim().starts_with("admin_session="))
+        .map(|_| "admin_dashboard")
+        .unwrap_or("admin");
+
     let audit_id = uuid::Uuid::new_v4().to_string();
     let _ = state
         .db
         .add_team_audit_entry(
             &audit_id,
             &team_id,
-            "admin",
+            admin_identity,
             "member_removed",
             Some(&device_id),
         )

@@ -30,6 +30,11 @@ impl Database {
 
     /// Run migrations
     pub async fn migrate(&self) -> Result<(), sqlx::Error> {
+        // Enable foreign key enforcement
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&self.pool)
+            .await?;
+
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS devices (
@@ -625,6 +630,21 @@ impl Database {
         device_id: &str,
         role: TeamRole,
     ) -> Result<(), ApiError> {
+        // Check max_members limit
+        let team = self
+            .get_team(team_id)
+            .await?
+            .ok_or_else(|| ApiError::Internal("Team not found".to_string()))?;
+
+        if team.max_members > 0 {
+            let member_count = self.count_team_members(team_id).await?;
+            if member_count >= team.max_members {
+                return Err(ApiError::Internal(
+                    "Team has reached maximum member limit".to_string(),
+                ));
+            }
+        }
+
         let now = Utc::now().timestamp();
 
         sqlx::query(

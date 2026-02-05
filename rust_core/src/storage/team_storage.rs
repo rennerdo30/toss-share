@@ -210,6 +210,31 @@ impl<'a> TeamStorage<'a> {
         Self { conn }
     }
 
+    /// Execute a closure within a SQLite transaction.
+    /// If the closure returns Ok, the transaction is committed.
+    /// If it returns Err, the transaction is rolled back.
+    pub fn with_transaction<F, T>(&self, f: F) -> SqliteResult<T>
+    where
+        F: FnOnce(&Connection) -> SqliteResult<T>,
+    {
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
+
+        conn.execute("BEGIN IMMEDIATE", [])?;
+        match f(&conn) {
+            Ok(result) => {
+                conn.execute("COMMIT", [])?;
+                Ok(result)
+            }
+            Err(e) => {
+                let _ = conn.execute("ROLLBACK", []);
+                Err(e)
+            }
+        }
+    }
+
     // Team CRUD operations
 
     /// Create a new team
@@ -331,19 +356,159 @@ impl<'a> TeamStorage<'a> {
         Ok(())
     }
 
-    /// Delete a team
+    /// Delete a team (within a transaction for atomicity)
     pub fn delete_team(&self, id: &str) -> SqliteResult<()> {
-        let conn = self
-            .conn
-            .lock()
-            .expect("storage mutex poisoned - this is a bug");
+        self.with_transaction(|conn| {
+            // Delete in order: audit logs, invitations, members, then team
+            conn.execute("DELETE FROM team_audit_log WHERE team_id = ?", [id])?;
+            conn.execute("DELETE FROM team_invitations WHERE team_id = ?", [id])?;
+            conn.execute("DELETE FROM team_members WHERE team_id = ?", [id])?;
+            conn.execute("DELETE FROM teams WHERE id = ?", [id])?;
+            Ok(())
+        })
+    }
 
-        // Delete in order: audit logs, invitations, members, then team
-        conn.execute("DELETE FROM team_audit_log WHERE team_id = ?", [id])?;
-        conn.execute("DELETE FROM team_invitations WHERE team_id = ?", [id])?;
-        conn.execute("DELETE FROM team_members WHERE team_id = ?", [id])?;
-        conn.execute("DELETE FROM teams WHERE id = ?", [id])?;
-        Ok(())
+    /// Create a team and add the creator as admin atomically
+    pub fn create_team_with_admin(
+        &self,
+        team: &StoredTeam,
+        admin_member: &StoredTeamMember,
+    ) -> SqliteResult<()> {
+        self.with_transaction(|conn| {
+            conn.execute(
+                r#"
+                INSERT INTO teams (id, name, description, created_at, updated_at, broadcast_enabled, max_members)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                "#,
+                (
+                    &team.id,
+                    &team.name,
+                    &team.description,
+                    team.created_at as i64,
+                    team.updated_at as i64,
+                    team.broadcast_enabled,
+                    team.max_members,
+                ),
+            )?;
+
+            conn.execute(
+                r#"
+                INSERT OR REPLACE INTO team_members (team_id, device_id, display_name, role, joined_at, invited_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+                "#,
+                (
+                    &admin_member.team_id,
+                    &admin_member.device_id,
+                    &admin_member.display_name,
+                    i32::from(admin_member.role),
+                    admin_member.joined_at as i64,
+                    &admin_member.invited_by,
+                ),
+            )?;
+
+            Ok(())
+        })
+    }
+
+    /// Accept an invitation atomically: check limits, add member, update invitation
+    pub fn accept_invitation_atomic(
+        &self,
+        invitation_id: &str,
+        team_id: &str,
+        max_members: u32,
+        max_uses: u32,
+        member: &StoredTeamMember,
+    ) -> SqliteResult<()> {
+        self.with_transaction(|conn| {
+            // Re-check member count within transaction
+            if max_members > 0 {
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM team_members WHERE team_id = ?",
+                    [team_id],
+                    |row| row.get(0),
+                )?;
+                if count as u32 >= max_members {
+                    return Err(rusqlite::Error::QueryReturnedNoRows); // Signal limit exceeded
+                }
+            }
+
+            // Re-check max_uses within transaction
+            if max_uses > 0 {
+                let use_count: i64 = conn.query_row(
+                    "SELECT use_count FROM team_invitations WHERE id = ?",
+                    [invitation_id],
+                    |row| row.get(0),
+                )?;
+                if use_count as u32 >= max_uses {
+                    return Err(rusqlite::Error::QueryReturnedNoRows); // Signal limit exceeded
+                }
+            }
+
+            // Add member
+            conn.execute(
+                r#"
+                INSERT OR REPLACE INTO team_members (team_id, device_id, display_name, role, joined_at, invited_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+                "#,
+                (
+                    &member.team_id,
+                    &member.device_id,
+                    &member.display_name,
+                    i32::from(member.role),
+                    member.joined_at as i64,
+                    &member.invited_by,
+                ),
+            )?;
+
+            // Increment use count
+            conn.execute(
+                "UPDATE team_invitations SET use_count = use_count + 1 WHERE id = ?",
+                [invitation_id],
+            )?;
+
+            // If single-use, mark as accepted
+            if max_uses == 1 {
+                conn.execute(
+                    "UPDATE team_invitations SET status = ? WHERE id = ?",
+                    (i32::from(InvitationStatus::Accepted), invitation_id),
+                )?;
+            }
+
+            Ok(())
+        })
+    }
+
+    /// Update member role with admin count check (atomic)
+    pub fn update_member_role_checked(
+        &self,
+        team_id: &str,
+        device_id: &str,
+        role: TeamRole,
+    ) -> SqliteResult<bool> {
+        self.with_transaction(|conn| {
+            // If demoting to member, verify at least one other admin remains
+            if role == TeamRole::Member {
+                let admin_count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM team_members WHERE team_id = ? AND role = 0 AND device_id != ?",
+                    [team_id, device_id],
+                    |row| row.get(0),
+                )?;
+                if admin_count == 0 {
+                    return Ok(false); // Cannot demote: would leave team with no admin
+                }
+            }
+
+            conn.execute(
+                r#"
+                UPDATE team_members
+                SET role = ?
+                WHERE team_id = ? AND device_id = ?
+                "#,
+                (i32::from(role), team_id, device_id),
+            )?;
+
+            Ok(true)
+        })
     }
 
     // Team membership operations
@@ -397,7 +562,13 @@ impl<'a> TeamStorage<'a> {
                 team_id: row.get(0)?,
                 device_id: row.get(1)?,
                 display_name: row.get(2)?,
-                role: TeamRole::try_from(role_int).unwrap_or(TeamRole::Member),
+                role: TeamRole::try_from(role_int).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        3,
+                        rusqlite::types::Type::Integer,
+                        Box::from(format!("Invalid team role: {}", role_int)),
+                    )
+                })?,
                 joined_at: row.get::<_, i64>(4)? as u64,
                 invited_by: row.get(5)?,
             })
@@ -433,7 +604,13 @@ impl<'a> TeamStorage<'a> {
                     team_id: row.get(0)?,
                     device_id: row.get(1)?,
                     display_name: row.get(2)?,
-                    role: TeamRole::try_from(role_int).unwrap_or(TeamRole::Member),
+                    role: TeamRole::try_from(role_int).map_err(|_| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            3,
+                            rusqlite::types::Type::Integer,
+                            Box::from(format!("Invalid team role: {}", role_int)),
+                        )
+                    })?,
                     joined_at: row.get::<_, i64>(4)? as u64,
                     invited_by: row.get(5)?,
                 })
@@ -565,11 +742,23 @@ impl<'a> TeamStorage<'a> {
                 id: row.get(0)?,
                 team_id: row.get(1)?,
                 code: row.get(2)?,
-                role: TeamRole::try_from(role_int).unwrap_or(TeamRole::Member),
+                role: TeamRole::try_from(role_int).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        3,
+                        rusqlite::types::Type::Integer,
+                        Box::from(format!("Invalid team role: {}", role_int)),
+                    )
+                })?,
                 created_by: row.get(4)?,
                 created_at: row.get::<_, i64>(5)? as u64,
                 expires_at: row.get::<_, i64>(6)? as u64,
-                status: InvitationStatus::try_from(status_int).unwrap_or(InvitationStatus::Pending),
+                status: InvitationStatus::try_from(status_int).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        7,
+                        rusqlite::types::Type::Integer,
+                        Box::from(format!("Invalid invitation status: {}", status_int)),
+                    )
+                })?,
                 max_uses: row.get(8)?,
                 use_count: row.get(9)?,
             })
@@ -606,12 +795,23 @@ impl<'a> TeamStorage<'a> {
                     id: row.get(0)?,
                     team_id: row.get(1)?,
                     code: row.get(2)?,
-                    role: TeamRole::try_from(role_int).unwrap_or(TeamRole::Member),
+                    role: TeamRole::try_from(role_int).map_err(|_| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            3,
+                            rusqlite::types::Type::Integer,
+                            Box::from(format!("Invalid team role: {}", role_int)),
+                        )
+                    })?,
                     created_by: row.get(4)?,
                     created_at: row.get::<_, i64>(5)? as u64,
                     expires_at: row.get::<_, i64>(6)? as u64,
-                    status: InvitationStatus::try_from(status_int)
-                        .unwrap_or(InvitationStatus::Pending),
+                    status: InvitationStatus::try_from(status_int).map_err(|_| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            7,
+                            rusqlite::types::Type::Integer,
+                            Box::from(format!("Invalid invitation status: {}", status_int)),
+                        )
+                    })?,
                     max_uses: row.get(8)?,
                     use_count: row.get(9)?,
                 })
@@ -706,27 +906,31 @@ impl<'a> TeamStorage<'a> {
             .lock()
             .expect("storage mutex poisoned - this is a bug");
 
-        let limit_clause = limit.map_or(String::new(), |l| format!(" LIMIT {}", l));
-        let query = format!(
+        let mut stmt = conn.prepare(
             r#"
             SELECT id, team_id, action, actor_device_id, target_device_id, details, timestamp
             FROM team_audit_log
             WHERE team_id = ?
             ORDER BY timestamp DESC
-            {}
+            LIMIT ?
             "#,
-            limit_clause
-        );
+        )?;
 
-        let mut stmt = conn.prepare(&query)?;
+        let limit_val: i64 = limit.map_or(i64::MAX, |l| l as i64);
 
         let entries = stmt
-            .query_map([team_id], |row| {
+            .query_map(rusqlite::params![team_id, limit_val], |row| {
                 let action_int: i32 = row.get(2)?;
                 Ok(StoredAuditEntry {
                     id: row.get(0)?,
                     team_id: row.get(1)?,
-                    action: AuditAction::try_from(action_int).unwrap_or(AuditAction::TeamUpdated),
+                    action: AuditAction::try_from(action_int).map_err(|_| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            2,
+                            rusqlite::types::Type::Integer,
+                            Box::from(format!("Invalid audit action: {}", action_int)),
+                        )
+                    })?,
                     actor_device_id: row.get(3)?,
                     target_device_id: row.get(4)?,
                     details: row.get(5)?,
