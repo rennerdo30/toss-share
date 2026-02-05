@@ -48,7 +48,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
-      await ref.read(clipboardHistoryProvider.notifier).loadHistory();
+      await ref.read(clipboardHistoryProvider.notifier).loadHistory(
+            startDate: _startDate,
+            endDate: _endDate,
+          );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -383,14 +386,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               const Spacer(),
               TextButton(
                 onPressed: () {
+                  final hadDateFilter = _startDate != null || _endDate != null;
                   setState(() {
                     _selectedContentType = null;
                     _selectedDeviceId = null;
                     _startDate = null;
                     _endDate = null;
                   });
+                  // Reload history if date filters were cleared (to fetch all data)
+                  if (hadDateFilter) {
+                    _loadHistory();
+                  }
                 },
-                child: const Text('Clear'),
+                child: const Text('Clear Filters'),
               ),
             ],
           ),
@@ -460,47 +468,115 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _startDate ?? DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _startDate = date;
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today, size: 16),
-                  label: Text(_startDate == null
-                      ? 'Start Date'
-                      : '${_startDate!.month}/${_startDate!.day}/${_startDate!.year}'),
-                ),
+                child: _startDate != null
+                    ? FilledButton.icon(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _startDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              _startDate = date;
+                            });
+                            _loadHistory();
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                                '${_startDate!.month}/${_startDate!.day}/${_startDate!.year}'),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _startDate = null;
+                                });
+                                _loadHistory();
+                              },
+                              child: const Icon(Icons.close, size: 16),
+                            ),
+                          ],
+                        ),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              _startDate = date;
+                            });
+                            _loadHistory();
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: const Text('Start Date'),
+                      ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _endDate ?? DateTime.now(),
-                      firstDate: _startDate ?? DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _endDate = date;
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today, size: 16),
-                  label: Text(_endDate == null
-                      ? 'End Date'
-                      : '${_endDate!.month}/${_endDate!.day}/${_endDate!.year}'),
-                ),
+                child: _endDate != null
+                    ? FilledButton.icon(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _endDate ?? DateTime.now(),
+                            firstDate: _startDate ?? DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              _endDate = date;
+                            });
+                            _loadHistory();
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                                '${_endDate!.month}/${_endDate!.day}/${_endDate!.year}'),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _endDate = null;
+                                });
+                                _loadHistory();
+                              },
+                              child: const Icon(Icons.close, size: 16),
+                            ),
+                          ],
+                        ),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: _startDate ?? DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              _endDate = date;
+                            });
+                            _loadHistory();
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: const Text('End Date'),
+                      ),
               ),
             ],
           ),

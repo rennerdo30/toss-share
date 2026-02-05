@@ -1384,16 +1384,40 @@ pub fn poll_event() -> Option<TossEvent> {
 /// Get clipboard history
 #[frb(sync)]
 pub fn get_clipboard_history(limit: Option<u32>) -> Vec<ClipboardItemDto> {
+    get_clipboard_history_filtered(limit, None, None)
+}
+
+/// Get clipboard history with optional date range filtering
+///
+/// # Arguments
+/// * `limit` - Optional maximum number of items to return
+/// * `start_date_millis` - Optional start date as Unix milliseconds (inclusive)
+/// * `end_date_millis` - Optional end date as Unix milliseconds (inclusive)
+#[frb(sync)]
+pub fn get_clipboard_history_filtered(
+    limit: Option<u32>,
+    start_date_millis: Option<u64>,
+    end_date_millis: Option<u64>,
+) -> Vec<ClipboardItemDto> {
     let guard = TOSS_INSTANCE.read();
     let core = match guard.as_ref() {
         Some(c) => c,
         None => return Vec::new(),
     };
 
-    let history_items = match core.storage.history().get_all_items(limit) {
-        Ok(items) => items,
-        Err(_) => return Vec::new(),
-    };
+    // Convert milliseconds to seconds for database query
+    let start_timestamp = start_date_millis.map(|ms| ms / 1000);
+    let end_timestamp = end_date_millis.map(|ms| ms / 1000);
+
+    let history_items =
+        match core
+            .storage
+            .history()
+            .get_items_by_date_range(start_timestamp, end_timestamp, limit)
+        {
+            Ok(items) => items,
+            Err(_) => return Vec::new(),
+        };
 
     history_items
         .into_iter()
