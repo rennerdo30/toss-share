@@ -7,7 +7,32 @@
 //! - Android: Android Keystore (requires JNI implementation)
 
 use crate::error::CryptoError;
+
+#[cfg(target_os = "linux")]
 use std::collections::HashMap;
+
+#[cfg(any(
+    test,
+    not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "android"
+    ))
+))]
+use std::collections::HashMap;
+
+#[cfg(any(
+    test,
+    not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "android"
+    ))
+))]
 use std::sync::Mutex;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -382,14 +407,6 @@ impl LinuxSecretStorage {
             service: service.to_string(),
         })
     }
-
-    #[allow(dead_code)]
-    fn make_attributes(&self, _key: &str) -> HashMap<&str, &str> {
-        let mut attrs = HashMap::new();
-        attrs.insert("application", "toss");
-        // Note: We can't return references to local Strings, so we use static key names
-        attrs
-    }
 }
 
 #[cfg(target_os = "linux")]
@@ -743,26 +760,61 @@ pub fn set_android_data_dir(dir: &str) {
     std::env::set_var("TOSS_DATA_DIR", dir);
 }
 
-// No-op implementations for non-Android platforms
+/// No-op implementation of `set_android_encryption_key` for non-Android platforms.
+///
+/// On Android, this function sets the encryption key used to protect secure storage.
+/// On other platforms, this function does nothing and always succeeds.
+/// This function exists to provide a consistent API across platforms for Flutter FFI.
 #[cfg(not(target_os = "android"))]
 #[allow(dead_code)]
 pub fn set_android_encryption_key(_key: [u8; 32]) -> Result<(), CryptoError> {
     Ok(())
 }
 
+/// No-op implementation of `set_android_data_dir` for non-Android platforms.
+///
+/// On Android, this function sets the directory for secure storage files.
+/// On other platforms, this function does nothing.
+/// This function exists to provide a consistent API across platforms for Flutter FFI.
 #[cfg(not(target_os = "android"))]
 #[allow(dead_code)]
 pub fn set_android_data_dir(_dir: &str) {
     // No-op on non-Android platforms
 }
 
-// Fallback in-memory storage for unsupported platforms or temporary use
-#[allow(dead_code)]
+/// Fallback in-memory storage for unsupported platforms or testing.
+///
+/// This implementation stores data in memory without persistence.
+/// It is used when:
+/// - The target platform doesn't have a native secure storage implementation
+/// - Running tests that don't require platform-specific storage
+///
+/// **Warning**: Data stored in MemoryStorage is not persisted across restarts
+/// and is not secured by hardware-backed encryption.
+#[cfg(any(
+    test,
+    not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "android"
+    ))
+))]
 struct MemoryStorage {
     data: Mutex<HashMap<String, Vec<u8>>>,
 }
 
-#[allow(dead_code)]
+#[cfg(any(
+    test,
+    not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "android"
+    ))
+))]
 impl MemoryStorage {
     fn new() -> Self {
         Self {
@@ -771,6 +823,16 @@ impl MemoryStorage {
     }
 }
 
+#[cfg(any(
+    test,
+    not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "android"
+    ))
+))]
 impl SecureStorage for MemoryStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
         let mut data = self
