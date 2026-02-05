@@ -377,63 +377,12 @@ class _DesktopLayout extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Send button row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (devices.isEmpty)
-                  Text(
-                    'No devices paired',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                    ),
-                  )
-                else
-                  Text(
-                    '${devices.where((d) => d.isOnline).length} of ${devices.length} devices online',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                    ),
-                  ),
-                const SizedBox(width: 16),
-                FilledButton.icon(
-                  onPressed: devices.isEmpty || tossState.isSyncing
-                      ? null
-                      : () async {
-                          try {
-                            await ref
-                                .read(tossProvider.notifier)
-                                .sendClipboard();
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('Clipboard sent successfully!')),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to send: $e')),
-                              );
-                            }
-                          }
-                        },
-                  icon: tossState.isSyncing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.send),
-                  label: Text(tossState.isSyncing
-                      ? 'Sending...'
-                      : 'Send to all devices'),
-                ),
-              ],
+            // Send button row with progress indicator for large transfers
+            _DesktopSendRow(
+              devices: devices,
+              tossState: tossState,
+              ref: ref,
+              theme: theme,
             ),
           ],
         ),
@@ -467,7 +416,113 @@ class _QuickActionButton extends StatelessWidget {
   }
 }
 
-/// Send button for mobile layout
+/// Desktop send button row with progress indicator for large transfers
+class _DesktopSendRow extends StatelessWidget {
+  final List<Device> devices;
+  final TossState tossState;
+  final WidgetRef ref;
+  final ThemeData theme;
+
+  const _DesktopSendRow({
+    required this.devices,
+    required this.tossState,
+    required this.ref,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = tossState.transferProgress;
+    final isChunkedTransfer = progress != null && progress.isChunked;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (devices.isEmpty)
+          Text(
+            'No devices paired',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+          )
+        else if (isChunkedTransfer)
+          // Show progress for chunked transfers
+          Row(
+            children: [
+              SizedBox(
+                width: 120,
+                child: LinearProgressIndicator(
+                  value: progress.progress,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                progress.bytesProgressString,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+            ],
+          )
+        else
+          Text(
+            '${devices.where((d) => d.isOnline).length} of ${devices.length} devices online',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+          ),
+        const SizedBox(width: 16),
+        FilledButton.icon(
+          onPressed: devices.isEmpty || tossState.isSyncing
+              ? null
+              : () async {
+                  try {
+                    await ref.read(tossProvider.notifier).sendClipboard();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Clipboard sent successfully!')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to send: $e')),
+                      );
+                    }
+                  }
+                },
+          icon: tossState.isSyncing
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: isChunkedTransfer
+                      ? CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                          value: progress.progress,
+                        )
+                      : const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                )
+              : const Icon(Icons.send),
+          label: Text(
+            tossState.isSyncing
+                ? (isChunkedTransfer
+                    ? 'Sending ${progress.progressPercent}'
+                    : 'Sending...')
+                : 'Send to all devices',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Send button for mobile layout with progress indicator for large transfers
 class _SendButton extends StatelessWidget {
   final List<Device> devices;
   final TossState tossState;
@@ -481,6 +536,9 @@ class _SendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = tossState.transferProgress;
+    final isChunkedTransfer = progress != null && progress.isChunked;
+
     return FloatingActionButton.extended(
       onPressed: devices.isEmpty || tossState.isSyncing
           ? null
@@ -502,16 +560,28 @@ class _SendButton extends StatelessWidget {
               }
             },
       icon: tossState.isSyncing
-          ? const SizedBox(
+          ? SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
+              child: isChunkedTransfer
+                  ? CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                      value: progress.progress,
+                    )
+                  : const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
             )
           : const Icon(Icons.send),
-      label: Text(tossState.isSyncing ? 'Sending...' : 'Send'),
+      label: Text(
+        tossState.isSyncing
+            ? (isChunkedTransfer
+                ? 'Sending ${progress.progressPercent}'
+                : 'Sending...')
+            : 'Send',
+      ),
     );
   }
 }

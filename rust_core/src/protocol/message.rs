@@ -16,6 +16,11 @@ pub enum MessageType {
     ClipboardUpdate = 0x10,
     ClipboardAck = 0x11,
     ClipboardRequest = 0x12,
+    // Chunked transfer message types (0x13-0x17)
+    ChunkedTransferInit = 0x13,
+    ChunkedTransferData = 0x14,
+    ChunkedTransferAck = 0x15,
+    ChunkedTransferComplete = 0x16,
     DeviceInfo = 0x20,
     KeyRotation = 0x30,
     Error = 0xFF,
@@ -31,6 +36,10 @@ impl TryFrom<u8> for MessageType {
             0x10 => Ok(MessageType::ClipboardUpdate),
             0x11 => Ok(MessageType::ClipboardAck),
             0x12 => Ok(MessageType::ClipboardRequest),
+            0x13 => Ok(MessageType::ChunkedTransferInit),
+            0x14 => Ok(MessageType::ChunkedTransferData),
+            0x15 => Ok(MessageType::ChunkedTransferAck),
+            0x16 => Ok(MessageType::ChunkedTransferComplete),
             0x20 => Ok(MessageType::DeviceInfo),
             0x30 => Ok(MessageType::KeyRotation),
             0xFF => Ok(MessageType::Error),
@@ -258,6 +267,11 @@ pub enum Message {
     ClipboardUpdate(ClipboardUpdate),
     ClipboardAck(ClipboardAck),
     ClipboardRequest(ClipboardRequest),
+    // Chunked transfer messages for large content (> 1MB)
+    ChunkedTransferInit(super::streaming::ChunkedTransferInit),
+    ChunkedTransferData(super::streaming::ChunkedTransferData),
+    ChunkedTransferAck(super::streaming::ChunkedTransferAck),
+    ChunkedTransferComplete(super::streaming::ChunkedTransferComplete),
     DeviceInfo(DeviceInfo),
     KeyRotation(KeyRotation),
     Error(ErrorMessage),
@@ -272,6 +286,10 @@ impl Message {
             Message::ClipboardUpdate(_) => MessageType::ClipboardUpdate,
             Message::ClipboardAck(_) => MessageType::ClipboardAck,
             Message::ClipboardRequest(_) => MessageType::ClipboardRequest,
+            Message::ChunkedTransferInit(_) => MessageType::ChunkedTransferInit,
+            Message::ChunkedTransferData(_) => MessageType::ChunkedTransferData,
+            Message::ChunkedTransferAck(_) => MessageType::ChunkedTransferAck,
+            Message::ChunkedTransferComplete(_) => MessageType::ChunkedTransferComplete,
             Message::DeviceInfo(_) => MessageType::DeviceInfo,
             Message::KeyRotation(_) => MessageType::KeyRotation,
             Message::Error(_) => MessageType::Error,
@@ -459,6 +477,23 @@ mod tests {
         assert_eq!(
             MessageType::try_from(0x10).unwrap(),
             MessageType::ClipboardUpdate
+        );
+        // Test chunked transfer message types
+        assert_eq!(
+            MessageType::try_from(0x13).unwrap(),
+            MessageType::ChunkedTransferInit
+        );
+        assert_eq!(
+            MessageType::try_from(0x14).unwrap(),
+            MessageType::ChunkedTransferData
+        );
+        assert_eq!(
+            MessageType::try_from(0x15).unwrap(),
+            MessageType::ChunkedTransferAck
+        );
+        assert_eq!(
+            MessageType::try_from(0x16).unwrap(),
+            MessageType::ChunkedTransferComplete
         );
         assert!(MessageType::try_from(0x99).is_err());
     }

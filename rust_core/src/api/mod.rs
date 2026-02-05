@@ -77,6 +77,11 @@ pub struct TossSettings {
     pub history_enabled: bool,
     pub history_days: u32,
     pub relay_url: Option<String>,
+    /// Chunk size for streaming large content (bytes)
+    /// Default: 1 MB (1048576), Min: 64 KB, Max: 4 MB
+    pub streaming_chunk_size: u32,
+    /// Enable chunked streaming for large content (> 1 MB)
+    pub streaming_enabled: bool,
 }
 
 impl Default for TossSettings {
@@ -91,6 +96,8 @@ impl Default for TossSettings {
             history_enabled: true,
             history_days: 7,
             relay_url: None,
+            streaming_chunk_size: crate::protocol::DEFAULT_CHUNK_SIZE as u32,
+            streaming_enabled: true,
         }
     }
 }
@@ -830,6 +837,7 @@ pub fn get_current_clipboard() -> Option<ClipboardItemDto> {
 }
 
 /// Send current clipboard to all devices
+/// For large content (> 1MB when streaming enabled), uses chunked transfer protocol
 #[frb]
 pub async fn send_clipboard() -> Result<(), String> {
     // Rate limiting: prevent rapid-fire syncs (minimum 100ms between syncs)
@@ -852,7 +860,9 @@ pub async fn send_clipboard() -> Result<(), String> {
 
     // Read all needed data while holding the lock, then drop it before await
     let (
-        message_clone,
+        content_for_send,
+        use_chunked,
+        chunk_size,
         has_network,
         history_item,
         content_data_for_encryption,
@@ -894,6 +904,11 @@ pub async fn send_clipboard() -> Result<(), String> {
             ));
         }
 
+        // Determine if we should use chunked transfer
+        let use_chunked = settings.streaming_enabled
+            && content.data.len() > crate::protocol::CHUNKED_TRANSFER_THRESHOLD;
+        let chunk_size = settings.streaming_chunk_size as usize;
+
         // Prepare history item if enabled (we'll save it after dropping the guard)
         // Note: Encryption will happen when saving, not here, to avoid holding lock during crypto ops
         let (history_item, content_data_for_encryption, identity_for_encryption) =
@@ -929,16 +944,12 @@ pub async fn send_clipboard() -> Result<(), String> {
                 (None, None, None)
             };
 
-        // Broadcast to connected devices
-        let update = ClipboardUpdate::new(content);
-        let message = Message::ClipboardUpdate(update);
-
-        // Clone message and check if network exists before dropping guard
-        let message_clone = message.clone();
         let has_network = core.network.is_some();
 
         (
-            message_clone,
+            content,
+            use_chunked,
+            chunk_size,
             has_network,
             history_item,
             content_data_for_encryption,
@@ -996,10 +1007,70 @@ pub async fn send_clipboard() -> Result<(), String> {
             // 4. The network will remain valid as long as TOSS_INSTANCE exists
             // 5. broadcast() only reads from network, so concurrent access is safe
             let network = unsafe { &*ptr };
-            network
-                .broadcast(&message_clone)
-                .await
-                .map_err(|e| format!("Failed to broadcast message: {}", e))?;
+
+            if use_chunked {
+                // Use chunked transfer for large content
+                tracing::info!(
+                    "Using chunked transfer for {} bytes content (chunk size: {})",
+                    content_for_send.data.len(),
+                    chunk_size
+                );
+
+                // Create transfer init and chunks
+                let init = crate::protocol::ChunkedTransferInit::new(&content_for_send, chunk_size);
+                let total_chunks = init.total_chunks;
+                let transfer_id = init.transfer_id;
+
+                // Send init message
+                let init_message = Message::ChunkedTransferInit(init);
+                network
+                    .broadcast(&init_message)
+                    .await
+                    .map_err(|e| format!("Failed to broadcast chunked transfer init: {}", e))?;
+
+                // Send chunks
+                for (i, chunk_data) in content_for_send.data.chunks(chunk_size).enumerate() {
+                    let chunk = crate::protocol::ChunkedTransferData::new(
+                        transfer_id,
+                        i as u32,
+                        chunk_data,
+                    );
+                    let chunk_message = Message::ChunkedTransferData(chunk);
+
+                    network.broadcast(&chunk_message).await.map_err(|e| {
+                        format!(
+                            "Failed to broadcast chunk {}/{}: {}",
+                            i + 1,
+                            total_chunks,
+                            e
+                        )
+                    })?;
+
+                    tracing::debug!("Sent chunk {}/{}", i + 1, total_chunks);
+                }
+
+                // Send completion message
+                let complete = crate::protocol::ChunkedTransferComplete {
+                    transfer_id,
+                    state: crate::protocol::TransferState::Completed,
+                    error: None,
+                };
+                let complete_message = Message::ChunkedTransferComplete(complete);
+                network
+                    .broadcast(&complete_message)
+                    .await
+                    .map_err(|e| format!("Failed to broadcast transfer complete: {}", e))?;
+
+                tracing::info!("Chunked transfer {} completed successfully", transfer_id);
+            } else {
+                // Use regular single-message transfer for small content
+                let update = ClipboardUpdate::new(content_for_send);
+                let message = Message::ClipboardUpdate(update);
+                network
+                    .broadcast(&message)
+                    .await
+                    .map_err(|e| format!("Failed to broadcast message: {}", e))?;
+            }
         }
     }
 
@@ -1632,6 +1703,150 @@ pub struct ClipboardContentDto {
     pub data: Vec<u8>,
 }
 
+// ============================================================================
+// Streaming / Chunked Transfer API
+// ============================================================================
+
+/// Progress information for clipboard transfers
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TransferProgressDto {
+    /// Unique transfer identifier
+    pub transfer_id: u64,
+    /// Total number of chunks
+    pub total_chunks: u32,
+    /// Number of chunks completed
+    pub chunks_completed: u32,
+    /// Bytes transferred
+    pub bytes_transferred: u64,
+    /// Total bytes
+    pub total_bytes: u64,
+    /// Progress percentage (0.0 - 1.0)
+    pub progress: f64,
+    /// Transfer state: "initiated", "in_progress", "completed", "failed", "cancelled"
+    pub state: String,
+}
+
+impl From<crate::protocol::TransferProgress> for TransferProgressDto {
+    fn from(p: crate::protocol::TransferProgress) -> Self {
+        let state = match p.state {
+            crate::protocol::TransferState::Initiated => "initiated",
+            crate::protocol::TransferState::InProgress => "in_progress",
+            crate::protocol::TransferState::Completed => "completed",
+            crate::protocol::TransferState::Failed => "failed",
+            crate::protocol::TransferState::Cancelled => "cancelled",
+        };
+        Self {
+            transfer_id: p.transfer_id,
+            total_chunks: p.total_chunks,
+            chunks_completed: p.chunks_completed,
+            bytes_transferred: p.bytes_transferred,
+            total_bytes: p.total_bytes,
+            progress: p.percentage(),
+            state: state.to_string(),
+        }
+    }
+}
+
+/// Streaming configuration DTO for Flutter
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct StreamingConfigDto {
+    /// Chunk size in bytes (default: 1 MB)
+    pub chunk_size: u32,
+    /// Threshold for using chunked transfer (default: 1 MB)
+    pub chunked_threshold: u32,
+    /// Enable streaming for large content
+    pub enabled: bool,
+}
+
+impl Default for StreamingConfigDto {
+    fn default() -> Self {
+        Self {
+            chunk_size: crate::protocol::DEFAULT_CHUNK_SIZE as u32,
+            chunked_threshold: crate::protocol::CHUNKED_TRANSFER_THRESHOLD as u32,
+            enabled: true,
+        }
+    }
+}
+
+/// Get current streaming configuration
+#[frb(sync)]
+pub fn get_streaming_config() -> StreamingConfigDto {
+    TOSS_INSTANCE
+        .read()
+        .as_ref()
+        .map(|core| StreamingConfigDto {
+            chunk_size: core.settings.streaming_chunk_size,
+            chunked_threshold: crate::protocol::CHUNKED_TRANSFER_THRESHOLD as u32,
+            enabled: core.settings.streaming_enabled,
+        })
+        .unwrap_or_default()
+}
+
+/// Update streaming configuration
+#[frb(sync)]
+pub fn update_streaming_config(config: StreamingConfigDto) -> Result<(), String> {
+    // Validate chunk size
+    let chunk_size = config.chunk_size as usize;
+    if chunk_size < crate::protocol::MIN_CHUNK_SIZE {
+        return Err(format!(
+            "Chunk size too small (min: {} bytes)",
+            crate::protocol::MIN_CHUNK_SIZE
+        ));
+    }
+    if chunk_size > crate::protocol::MAX_CHUNK_SIZE {
+        return Err(format!(
+            "Chunk size too large (max: {} bytes)",
+            crate::protocol::MAX_CHUNK_SIZE
+        ));
+    }
+
+    if let Some(ref mut core) = *TOSS_INSTANCE.write() {
+        core.settings.streaming_chunk_size = config.chunk_size;
+        core.settings.streaming_enabled = config.enabled;
+
+        // Save settings to database for persistence
+        core.storage
+            .save_settings(&core.settings)
+            .map_err(|e| format!("Failed to save settings: {}", e))?;
+
+        Ok(())
+    } else {
+        Err("Toss not initialized".to_string())
+    }
+}
+
+/// Check if content should use chunked transfer based on size
+#[frb(sync)]
+pub fn should_use_chunked_transfer(content_size_bytes: u64) -> bool {
+    let guard = TOSS_INSTANCE.read();
+    if let Some(core) = guard.as_ref() {
+        core.settings.streaming_enabled
+            && content_size_bytes > crate::protocol::CHUNKED_TRANSFER_THRESHOLD as u64
+    } else {
+        false
+    }
+}
+
+/// Get the current chunk size setting in bytes
+#[frb(sync)]
+pub fn get_chunk_size() -> u32 {
+    TOSS_INSTANCE
+        .read()
+        .as_ref()
+        .map(|core| core.settings.streaming_chunk_size)
+        .unwrap_or(crate::protocol::DEFAULT_CHUNK_SIZE as u32)
+}
+
+/// Calculate the number of chunks needed for a given content size
+#[frb(sync)]
+pub fn calculate_chunk_count(content_size_bytes: u64) -> u32 {
+    let chunk_size = get_chunk_size() as u64;
+    if chunk_size == 0 {
+        return 1;
+    }
+    content_size_bytes.div_ceil(chunk_size) as u32
+}
+
 /// Get decrypted clipboard content from history item
 #[frb(sync)]
 pub fn get_clipboard_history_content(item_id: String) -> Result<ClipboardContentDto, String> {
@@ -1692,6 +1907,44 @@ mod tests {
         assert!(settings.sync_text);
         assert!(settings.sync_images);
         assert_eq!(settings.max_file_size_mb, 50);
+        // Streaming settings
+        assert!(settings.streaming_enabled);
+        assert_eq!(
+            settings.streaming_chunk_size,
+            crate::protocol::DEFAULT_CHUNK_SIZE as u32
+        );
+    }
+
+    #[test]
+    fn test_streaming_config_dto_default() {
+        let config = StreamingConfigDto::default();
+        assert!(config.enabled);
+        assert_eq!(
+            config.chunk_size,
+            crate::protocol::DEFAULT_CHUNK_SIZE as u32
+        );
+        assert_eq!(
+            config.chunked_threshold,
+            crate::protocol::CHUNKED_TRANSFER_THRESHOLD as u32
+        );
+    }
+
+    #[test]
+    fn test_calculate_chunk_count() {
+        // Using default chunk size of 1 MB
+        let chunk_size = crate::protocol::DEFAULT_CHUNK_SIZE as u64;
+
+        // Exact multiple
+        assert_eq!(((2 * chunk_size + chunk_size - 1) / chunk_size) as u32, 2);
+
+        // With remainder
+        assert_eq!(
+            ((2 * chunk_size + 100 + chunk_size - 1) / chunk_size) as u32,
+            3
+        );
+
+        // Less than one chunk
+        assert_eq!(((1000 + chunk_size - 1) / chunk_size) as u32, 1);
     }
 
     #[test]

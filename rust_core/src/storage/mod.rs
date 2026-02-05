@@ -179,6 +179,14 @@ impl Storage {
             settings_storage.delete_setting("relay_url")?;
         }
 
+        // Streaming settings
+        settings_storage.save_setting(
+            "streaming_chunk_size",
+            &settings.streaming_chunk_size.to_string(),
+        )?;
+        settings_storage
+            .save_setting("streaming_enabled", &settings.streaming_enabled.to_string())?;
+
         Ok(())
     }
 
@@ -230,6 +238,16 @@ impl Storage {
 
         let relay_url = settings_storage.load_setting("relay_url")?;
 
+        let streaming_chunk_size = settings_storage
+            .load_setting("streaming_chunk_size")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(defaults.streaming_chunk_size);
+
+        let streaming_enabled = settings_storage
+            .load_setting("streaming_enabled")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(defaults.streaming_enabled);
+
         Ok(crate::api::TossSettings {
             auto_sync,
             sync_text,
@@ -240,6 +258,8 @@ impl Storage {
             history_enabled,
             history_days,
             relay_url,
+            streaming_chunk_size,
+            streaming_enabled,
         })
     }
 }
@@ -296,6 +316,8 @@ mod tests {
             history_enabled: false,
             history_days: 14,
             relay_url: Some("https://relay.example.com".to_string()),
+            streaming_chunk_size: 2 * 1024 * 1024, // 2 MB
+            streaming_enabled: false,
         };
 
         storage.save_settings(&settings).unwrap();
@@ -310,6 +332,8 @@ mod tests {
         assert_eq!(loaded.history_enabled, settings.history_enabled);
         assert_eq!(loaded.history_days, settings.history_days);
         assert_eq!(loaded.relay_url, settings.relay_url);
+        assert_eq!(loaded.streaming_chunk_size, settings.streaming_chunk_size);
+        assert_eq!(loaded.streaming_enabled, settings.streaming_enabled);
     }
 
     #[test]
@@ -331,6 +355,8 @@ mod tests {
         assert_eq!(loaded.history_enabled, defaults.history_enabled);
         assert_eq!(loaded.history_days, defaults.history_days);
         assert_eq!(loaded.relay_url, defaults.relay_url);
+        assert_eq!(loaded.streaming_chunk_size, defaults.streaming_chunk_size);
+        assert_eq!(loaded.streaming_enabled, defaults.streaming_enabled);
     }
 
     #[test]
@@ -350,6 +376,8 @@ mod tests {
             history_enabled: true,
             history_days: 7,
             relay_url: None,
+            streaming_chunk_size: 1024 * 1024,
+            streaming_enabled: true,
         };
         storage.save_settings(&settings1).unwrap();
 
@@ -364,6 +392,8 @@ mod tests {
             history_enabled: false,
             history_days: 30,
             relay_url: Some("https://relay.test.com".to_string()),
+            streaming_chunk_size: 2 * 1024 * 1024,
+            streaming_enabled: false,
         };
         storage.save_settings(&settings2).unwrap();
 
@@ -392,6 +422,8 @@ mod tests {
                 history_enabled: true,
                 history_days: 21,
                 relay_url: Some("https://persistent.example.com".to_string()),
+                streaming_chunk_size: 512 * 1024,
+                streaming_enabled: true,
             };
             storage.save_settings(&settings).unwrap();
         }

@@ -118,6 +118,37 @@ pub enum ProtocolError {
 
     #[error("Invalid content type")]
     InvalidContentType,
+
+    // Chunked transfer errors
+    #[error("Invalid transfer ID")]
+    InvalidTransferId,
+
+    #[error("Unknown transfer ID: {0}")]
+    UnknownTransferId(u64),
+
+    #[error("Duplicate transfer ID: {0}")]
+    DuplicateTransferId(u64),
+
+    #[error("Invalid chunk index: {0}")]
+    InvalidChunkIndex(u32),
+
+    #[error("Chunk hash mismatch")]
+    ChunkHashMismatch,
+
+    #[error("Content hash mismatch")]
+    ContentHashMismatch,
+
+    #[error("Missing chunk: {0}")]
+    MissingChunk(u32),
+
+    #[error("Incomplete transfer, missing chunks: {0:?}")]
+    IncompleteTransfer(Vec<u32>),
+
+    #[error("Transfer timed out")]
+    TransferTimedOut,
+
+    #[error("Too many concurrent transfers")]
+    TooManyConcurrentTransfers,
 }
 
 /// Clipboard operation errors
