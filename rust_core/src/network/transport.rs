@@ -156,6 +156,18 @@ impl SessionTracker {
     }
 }
 
+/// Connection type for tracking how the peer is connected
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PeerConnectionType {
+    /// Direct P2P connection on local network
+    #[default]
+    Direct,
+    /// Connection via STUN (server reflexive - NAT hole punching)
+    StunReflexive,
+    /// Connection via TURN relay
+    TurnRelay,
+}
+
 /// Connection to a peer
 pub struct PeerConnection {
     connection: Connection,
@@ -165,11 +177,22 @@ pub struct PeerConnection {
     peer_name: Mutex<Option<String>>,
     is_local: bool,
     session_tracker: Mutex<SessionTracker>,
+    connection_type: PeerConnectionType,
 }
 
 impl PeerConnection {
     /// Create a new peer connection
     pub fn new(connection: Connection, addresses: Vec<SocketAddr>, is_local: bool) -> Self {
+        Self::with_connection_type(connection, addresses, is_local, PeerConnectionType::Direct)
+    }
+
+    /// Create a new peer connection with a specific connection type
+    pub fn with_connection_type(
+        connection: Connection,
+        addresses: Vec<SocketAddr>,
+        is_local: bool,
+        connection_type: PeerConnectionType,
+    ) -> Self {
         Self {
             connection,
             addresses,
@@ -178,7 +201,13 @@ impl PeerConnection {
             peer_name: Mutex::new(None),
             is_local,
             session_tracker: Mutex::new(SessionTracker::new()),
+            connection_type,
         }
+    }
+
+    /// Get the connection type
+    pub fn connection_type(&self) -> PeerConnectionType {
+        self.connection_type
     }
 
     /// Check if connection is still active
@@ -344,6 +373,11 @@ impl PeerConnection {
     /// Close the connection
     pub fn close(&self) {
         self.connection.close(VarInt::from_u32(0), b"closing");
+    }
+
+    /// Consume the PeerConnection and return the inner QUIC Connection
+    pub fn into_inner(self) -> Connection {
+        self.connection
     }
 }
 
