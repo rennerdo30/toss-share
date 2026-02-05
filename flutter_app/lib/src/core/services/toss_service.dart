@@ -600,8 +600,25 @@ class TossService {
   static Future<void> clearClipboardHistory() async {
     try {
       api.clearClipboardHistory();
+      LoggingService.info('Clipboard history cleared');
     } catch (e) {
       LoggingService.warn(' Failed to clear clipboard history: $e');
+    }
+  }
+
+  /// Cleanup old clipboard history based on retention period (history_days setting)
+  /// Returns the number of items cleaned up
+  static Future<int> cleanupOldHistory() async {
+    if (!_ffiAvailable) return 0;
+    try {
+      final deletedCount = api.cleanupOldHistory();
+      if (deletedCount > 0) {
+        LoggingService.info('Cleaned up $deletedCount old clipboard history entries');
+      }
+      return deletedCount;
+    } catch (e) {
+      LoggingService.warn(' Failed to cleanup old history: $e');
+      return 0;
     }
   }
 

@@ -131,6 +131,32 @@ impl Storage {
         SettingsStorage::new(&self.conn)
     }
 
+    /// Cleanup old clipboard history based on retention period
+    /// Returns the number of items cleaned up
+    pub fn cleanup_old_history(&self, retention_days: u32) -> rusqlite::Result<usize> {
+        // Calculate cutoff timestamp (current time - retention days)
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        // Calculate cutoff: retention_days in seconds
+        let retention_seconds = (retention_days as u64) * 24 * 60 * 60;
+        let cutoff_timestamp = now.saturating_sub(retention_seconds);
+
+        let deleted_count = self.history().prune_old_items(cutoff_timestamp)?;
+
+        if deleted_count > 0 {
+            tracing::info!(
+                "Cleaned up {} old clipboard history entries (older than {} days)",
+                deleted_count,
+                retention_days
+            );
+        }
+
+        Ok(deleted_count)
+    }
+
     /// Save TossSettings to the database
     /// Settings are stored as individual key-value pairs for flexibility
     pub fn save_settings(&self, settings: &crate::api::TossSettings) -> SqliteResult<()> {
@@ -420,5 +446,101 @@ mod tests {
         // Verify relay_url is removed
         let loaded = storage.load_settings().unwrap();
         assert_eq!(loaded.relay_url, None);
+    }
+
+    #[test]
+    fn test_cleanup_old_history() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("test.db");
+        let storage = Storage::new(&db_path).unwrap();
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // Add items with different ages
+        // Recent item (1 hour ago)
+        let recent_item = crate::storage::StoredHistoryItem {
+            id: "recent".to_string(),
+            content_type: 0,
+            content_hash: "hash1".to_string(),
+            encrypted_content: vec![1, 2, 3],
+            preview: "Recent".to_string(),
+            source_device: None,
+            created_at: now - 3600, // 1 hour ago
+        };
+        storage.history().store_item(&recent_item).unwrap();
+
+        // Old item (10 days ago)
+        let old_item = crate::storage::StoredHistoryItem {
+            id: "old".to_string(),
+            content_type: 0,
+            content_hash: "hash2".to_string(),
+            encrypted_content: vec![4, 5, 6],
+            preview: "Old".to_string(),
+            source_device: None,
+            created_at: now - (10 * 24 * 60 * 60), // 10 days ago
+        };
+        storage.history().store_item(&old_item).unwrap();
+
+        // Very old item (30 days ago)
+        let very_old_item = crate::storage::StoredHistoryItem {
+            id: "very_old".to_string(),
+            content_type: 0,
+            content_hash: "hash3".to_string(),
+            encrypted_content: vec![7, 8, 9],
+            preview: "Very Old".to_string(),
+            source_device: None,
+            created_at: now - (30 * 24 * 60 * 60), // 30 days ago
+        };
+        storage.history().store_item(&very_old_item).unwrap();
+
+        // Verify all 3 items exist
+        let all_items = storage.history().get_all_items(None).unwrap();
+        assert_eq!(all_items.len(), 3);
+
+        // Cleanup with 7 day retention - should remove 2 items (10 days and 30 days old)
+        let deleted = storage.cleanup_old_history(7).unwrap();
+        assert_eq!(deleted, 2);
+
+        // Verify only recent item remains
+        let remaining_items = storage.history().get_all_items(None).unwrap();
+        assert_eq!(remaining_items.len(), 1);
+        assert_eq!(remaining_items[0].id, "recent");
+    }
+
+    #[test]
+    fn test_cleanup_old_history_no_items_to_delete() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("test.db");
+        let storage = Storage::new(&db_path).unwrap();
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // Add only recent items
+        for i in 0..3 {
+            let item = crate::storage::StoredHistoryItem {
+                id: format!("item_{}", i),
+                content_type: 0,
+                content_hash: format!("hash{}", i),
+                encrypted_content: vec![],
+                preview: format!("Item {}", i),
+                source_device: None,
+                created_at: now - (i as u64 * 3600), // 0, 1, 2 hours ago
+            };
+            storage.history().store_item(&item).unwrap();
+        }
+
+        // Cleanup with 7 day retention - should remove nothing
+        let deleted = storage.cleanup_old_history(7).unwrap();
+        assert_eq!(deleted, 0);
+
+        // Verify all items remain
+        let remaining_items = storage.history().get_all_items(None).unwrap();
+        assert_eq!(remaining_items.len(), 3);
     }
 }

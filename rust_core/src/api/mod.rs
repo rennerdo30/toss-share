@@ -204,6 +204,24 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
         TossSettings::default()
     });
 
+    // Run cleanup on startup if history is enabled
+    if settings.history_enabled {
+        match storage.cleanup_old_history(settings.history_days) {
+            Ok(deleted) => {
+                if deleted > 0 {
+                    tracing::info!(
+                        "Startup cleanup: removed {} old history entries (retention: {} days)",
+                        deleted,
+                        settings.history_days
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Startup cleanup failed: {}", e);
+            }
+        }
+    }
+
     let core = TossCore {
         identity: Arc::new(identity),
         device_name,
@@ -1418,7 +1436,24 @@ pub fn clear_clipboard_history() -> Result<(), String> {
         .clear_history()
         .map_err(|e| format!("Failed to clear history: {}", e))?;
 
+    tracing::info!("Clipboard history cleared manually");
     Ok(())
+}
+
+/// Cleanup old clipboard history based on retention period (history_days setting)
+/// Returns the number of items cleaned up
+#[frb(sync)]
+pub fn cleanup_old_history() -> Result<u32, String> {
+    let guard = TOSS_INSTANCE.read();
+    let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+    let retention_days = core.settings.history_days;
+    let deleted_count = core
+        .storage
+        .cleanup_old_history(retention_days)
+        .map_err(|e| format!("Failed to cleanup old history: {}", e))?;
+
+    Ok(deleted_count as u32)
 }
 
 /// Get connected devices
