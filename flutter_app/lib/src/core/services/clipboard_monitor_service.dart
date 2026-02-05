@@ -14,6 +14,7 @@ import '../providers/settings_provider.dart'
     show settingsProvider, ConflictResolutionMode;
 import '../providers/devices_provider.dart';
 import '../providers/clipboard_provider.dart';
+import '../providers/toss_provider.dart';
 import '../models/clipboard_item.dart';
 
 /// Service for monitoring clipboard changes and auto-syncing
@@ -33,10 +34,14 @@ class ClipboardMonitorService {
   bool _pendingSync = false;
   Timer? _rateLimitTimer;
 
+  // Reference to WidgetRef for accessing providers during sync
+  WidgetRef? _ref;
+
   /// Start monitoring clipboard changes
   void startMonitoring(WidgetRef ref) {
     if (_isMonitoring) return;
     _isMonitoring = true;
+    _ref = ref;
 
     // Poll for clipboard changes every 250ms
     _monitorTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
@@ -71,6 +76,7 @@ class ClipboardMonitorService {
     _rateLimitTimer?.cancel();
     _rateLimitTimer = null;
     _pendingSync = false;
+    _ref = null;
   }
 
   /// Schedule a clipboard sync with rate limiting
@@ -99,17 +105,45 @@ class ClipboardMonitorService {
   }
 
   /// Perform the actual clipboard sync
-  void _performSync() {
+  void _performSync() async {
     _lastSyncTime = DateTime.now();
     _pendingSync = false;
 
-    TossService.sendClipboard().catchError((e) {
+    final ref = _ref;
+    if (ref == null) return;
+
+    // Check if there are any online devices to sync with
+    final devices = ref.read(devicesProvider);
+    final onlineDevices = devices.where((d) => d.isOnline && d.syncEnabled);
+    if (onlineDevices.isEmpty) {
+      debugPrint('Auto-sync: No online devices with sync enabled');
+      return;
+    }
+
+    // Set syncing state for UI feedback
+    ref.read(tossProvider.notifier).setSyncing(true);
+
+    try {
+      await TossService.sendClipboard();
+
+      // Show notification if enabled
+      final settings = ref.read(settingsProvider);
+      if (settings.showNotifications && settings.notifyOnClipboard) {
+        NotificationService().showAutoSyncSent(onlineDevices.length);
+      }
+
+      debugPrint(
+          'Auto-sync: Sent clipboard to ${onlineDevices.length} device(s)');
+    } catch (e) {
       // Only log non-critical errors (like sync disabled for content type)
       if (!e.toString().contains('sync disabled') &&
           !e.toString().contains('too large')) {
         debugPrint('Warning: Failed to auto-sync clipboard: $e');
       }
-    });
+    } finally {
+      // Clear syncing state
+      ref.read(tossProvider.notifier).setSyncing(false);
+    }
   }
 
   /// Handle network events
