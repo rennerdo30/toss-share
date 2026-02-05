@@ -81,14 +81,45 @@ impl<'conn> HistoryStorage<'conn> {
 
     /// Get all history items, ordered by creation time (newest first)
     pub fn get_all_items(&self, limit: Option<u32>) -> SqliteResult<Vec<StoredHistoryItem>> {
-        let query = if let Some(limit) = limit {
-            format!(
-                "SELECT id, content_type, content_hash, encrypted_content, preview, source_device, created_at FROM clipboard_history ORDER BY created_at DESC LIMIT {}",
-                limit
-            )
+        self.get_items_by_date_range(None, None, limit)
+    }
+
+    /// Get history items filtered by date range, ordered by creation time (newest first)
+    ///
+    /// # Arguments
+    /// * `start_timestamp` - Optional start timestamp (Unix seconds, inclusive)
+    /// * `end_timestamp` - Optional end timestamp (Unix seconds, inclusive)
+    /// * `limit` - Optional maximum number of items to return
+    pub fn get_items_by_date_range(
+        &self,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        limit: Option<u32>,
+    ) -> SqliteResult<Vec<StoredHistoryItem>> {
+        let base_query = "SELECT id, content_type, content_hash, encrypted_content, preview, source_device, created_at FROM clipboard_history";
+
+        // Build WHERE clause based on date range
+        let mut conditions = Vec::new();
+        if start_timestamp.is_some() {
+            conditions.push("created_at >= ?");
+        }
+        if end_timestamp.is_some() {
+            conditions.push("created_at <= ?");
+        }
+
+        let where_clause = if conditions.is_empty() {
+            String::new()
         } else {
-            "SELECT id, content_type, content_hash, encrypted_content, preview, source_device, created_at FROM clipboard_history ORDER BY created_at DESC".to_string()
+            format!(" WHERE {}", conditions.join(" AND "))
         };
+
+        let order_clause = " ORDER BY created_at DESC";
+        let limit_clause = limit.map(|l| format!(" LIMIT {}", l)).unwrap_or_default();
+
+        let query = format!(
+            "{}{}{}{}",
+            base_query, where_clause, order_clause, limit_clause
+        );
 
         let conn = self
             .conn
@@ -96,8 +127,14 @@ impl<'conn> HistoryStorage<'conn> {
             .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare(&query)?;
 
+        // Build parameter list based on which filters are present
+        let params: Vec<u64> = [start_timestamp, end_timestamp]
+            .into_iter()
+            .flatten()
+            .collect();
+
         let items = stmt
-            .query_map([], |row| {
+            .query_map(rusqlite::params_from_iter(params), |row| {
                 Ok(StoredHistoryItem {
                     id: row.get(0)?,
                     content_type: row.get(1)?,
@@ -240,5 +277,93 @@ mod tests {
 
         let all = history_storage.get_all_items(None).unwrap();
         assert_eq!(all.len(), 5);
+    }
+
+    #[test]
+    fn test_get_items_by_date_range() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("test.db");
+        let storage = Storage::new(&db_path).unwrap();
+        let history_storage = storage.history();
+
+        // Add items with different timestamps
+        for i in 0..10 {
+            let item = StoredHistoryItem {
+                id: format!("item-{}", i),
+                content_type: 0,
+                content_hash: format!("hash-{}", i),
+                encrypted_content: vec![],
+                preview: format!("Item {}", i),
+                source_device: None,
+                created_at: 1000 + i as u64, // timestamps: 1000, 1001, ..., 1009
+            };
+            history_storage.store_item(&item).unwrap();
+        }
+
+        // Test with no filters (should return all)
+        let all = history_storage
+            .get_items_by_date_range(None, None, None)
+            .unwrap();
+        assert_eq!(all.len(), 10);
+
+        // Test with start filter only (items >= 1005)
+        let filtered = history_storage
+            .get_items_by_date_range(Some(1005), None, None)
+            .unwrap();
+        assert_eq!(filtered.len(), 5);
+        assert!(filtered.iter().all(|item| item.created_at >= 1005));
+
+        // Test with end filter only (items <= 1003)
+        let filtered = history_storage
+            .get_items_by_date_range(None, Some(1003), None)
+            .unwrap();
+        assert_eq!(filtered.len(), 4);
+        assert!(filtered.iter().all(|item| item.created_at <= 1003));
+
+        // Test with both start and end (items between 1003 and 1006 inclusive)
+        let filtered = history_storage
+            .get_items_by_date_range(Some(1003), Some(1006), None)
+            .unwrap();
+        assert_eq!(filtered.len(), 4);
+        assert!(filtered
+            .iter()
+            .all(|item| item.created_at >= 1003 && item.created_at <= 1006));
+
+        // Test with limit
+        let filtered = history_storage
+            .get_items_by_date_range(Some(1003), Some(1006), Some(2))
+            .unwrap();
+        assert_eq!(filtered.len(), 2);
+        // Should return newest first (1006, 1005)
+        assert_eq!(filtered[0].created_at, 1006);
+        assert_eq!(filtered[1].created_at, 1005);
+    }
+
+    #[test]
+    fn test_get_items_by_date_range_empty_result() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("test.db");
+        let storage = Storage::new(&db_path).unwrap();
+        let history_storage = storage.history();
+
+        // Add items with timestamps 1000-1009
+        for i in 0..10 {
+            let item = StoredHistoryItem {
+                id: format!("item-{}", i),
+                content_type: 0,
+                content_hash: format!("hash-{}", i),
+                encrypted_content: vec![],
+                preview: format!("Item {}", i),
+                source_device: None,
+                created_at: 1000 + i as u64,
+            };
+            history_storage.store_item(&item).unwrap();
+        }
+
+        // Test range with no matching items
+        let filtered = history_storage
+            .get_items_by_date_range(Some(2000), Some(3000), None)
+            .unwrap();
+        assert_eq!(filtered.len(), 0);
     }
 }

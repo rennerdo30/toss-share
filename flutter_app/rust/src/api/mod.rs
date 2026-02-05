@@ -434,6 +434,24 @@ pub fn get_clipboard_history(limit: Option<u32>) -> Vec<ClipboardItemDto> {
         .collect()
 }
 
+/// Get clipboard history with optional date range filtering
+///
+/// # Arguments
+/// * `limit` - Optional maximum number of items to return
+/// * `start_date_millis` - Optional start date as Unix milliseconds (inclusive)
+/// * `end_date_millis` - Optional end date as Unix milliseconds (inclusive)
+#[frb(sync)]
+pub fn get_clipboard_history_filtered(
+    limit: Option<u32>,
+    start_date_millis: Option<u64>,
+    end_date_millis: Option<u64>,
+) -> Vec<ClipboardItemDto> {
+    toss_core::api::get_clipboard_history_filtered(limit, start_date_millis, end_date_millis)
+        .into_iter()
+        .map(|c| c.into())
+        .collect()
+}
+
 /// Remove clipboard history item
 #[frb(sync)]
 pub fn remove_history_item(item_id: String) -> Result<(), String> {

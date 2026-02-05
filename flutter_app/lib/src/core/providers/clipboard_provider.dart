@@ -86,8 +86,18 @@ class ClipboardHistory extends _$ClipboardHistory {
     state = [];
   }
 
-  Future<void> loadHistory() async {
-    final items = await TossService.getClipboardHistory();
+  /// Load clipboard history with optional date range filtering
+  ///
+  /// [startDate] - Optional start date (inclusive)
+  /// [endDate] - Optional end date (inclusive)
+  Future<void> loadHistory({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final items = await TossService.getClipboardHistoryFiltered(
+      startDate: startDate,
+      endDate: endDate,
+    );
     state = items.map((info) => _convertToClipboardItem(info)).toList();
   }
 

@@ -114,7 +114,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Check for clear button
-      expect(find.text('Clear'), findsOneWidget);
+      expect(find.text('Clear Filters'), findsOneWidget);
     });
 
     testWidgets('filter panel has date range buttons', (tester) async {

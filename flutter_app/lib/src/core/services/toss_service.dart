@@ -568,9 +568,38 @@ class TossService {
   /// Get clipboard history
   static Future<List<ClipboardItemInfo>> getClipboardHistory(
       {int? limit}) async {
+    return getClipboardHistoryFiltered(limit: limit);
+  }
+
+  /// Get clipboard history with optional date range filtering
+  ///
+  /// [limit] - Optional maximum number of items to return
+  /// [startDate] - Optional start date (inclusive)
+  /// [endDate] - Optional end date (inclusive)
+  static Future<List<ClipboardItemInfo>> getClipboardHistoryFiltered({
+    int? limit,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     if (!_ffiAvailable) return [];
     try {
-      final items = api.getClipboardHistory(limit: limit);
+      // Convert DateTime to milliseconds for the Rust API
+      // For startDate, use start of day (00:00:00)
+      // For endDate, use end of day (23:59:59.999)
+      final startMillis = startDate != null
+          ? DateTime(startDate.year, startDate.month, startDate.day)
+              .millisecondsSinceEpoch
+          : null;
+      final endMillis = endDate != null
+          ? DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999)
+              .millisecondsSinceEpoch
+          : null;
+
+      final items = api.getClipboardHistoryFiltered(
+        limit: limit,
+        startDateMillis: startMillis != null ? BigInt.from(startMillis) : null,
+        endDateMillis: endMillis != null ? BigInt.from(endMillis) : null,
+      );
       return items
           .map((item) => ClipboardItemInfo(
                 id: item.id,
