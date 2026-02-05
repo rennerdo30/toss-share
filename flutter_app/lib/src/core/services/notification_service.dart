@@ -247,6 +247,41 @@ class NotificationService {
     );
   }
 
+  /// Show notification for auto-sync sent
+  Future<void> showAutoSyncSent(int deviceCount) async {
+    if (!_initialized) return;
+
+    const androidDetails = AndroidNotificationDetails(
+      'clipboard',
+      'Clipboard Updates',
+      channelDescription: 'Notifications when clipboard is synced to other devices',
+      importance: Importance.low,
+      priority: Priority.low,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: false,
+      presentBadge: false,
+      presentSound: false,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    final message = deviceCount == 1
+        ? 'Clipboard sent to 1 device'
+        : 'Clipboard sent to $deviceCount devices';
+
+    await _notifications.show(
+      6,
+      'Auto-Sync',
+      message,
+      details,
+    );
+  }
+
   /// Cancel all notifications
   Future<void> cancelAll() async {
     await _notifications.cancelAll();
