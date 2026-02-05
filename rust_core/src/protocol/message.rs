@@ -23,6 +23,8 @@ pub enum MessageType {
     ChunkedTransferComplete = 0x16,
     DeviceInfo = 0x20,
     KeyRotation = 0x30,
+    // Sync preferences (0x40-0x4F)
+    SyncPreferenceUpdate = 0x40,
     Error = 0xFF,
 }
 
@@ -42,6 +44,7 @@ impl TryFrom<u8> for MessageType {
             0x16 => Ok(MessageType::ChunkedTransferComplete),
             0x20 => Ok(MessageType::DeviceInfo),
             0x30 => Ok(MessageType::KeyRotation),
+            0x40 => Ok(MessageType::SyncPreferenceUpdate),
             0xFF => Ok(MessageType::Error),
             _ => Err(ProtocolError::UnknownMessageType(value)),
         }
@@ -259,6 +262,21 @@ pub struct ErrorMessage {
     pub related_message_id: Option<u64>,
 }
 
+/// Sync preference update message (meta-sync)
+///
+/// This message is used to synchronize per-device sync preferences
+/// across all devices. When a user changes sync settings for a device,
+/// this change is broadcast to all other devices.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncPreferenceUpdate {
+    /// Device ID that the preference applies to
+    pub target_device_id: String,
+    /// Whether sync is enabled for the target device
+    pub sync_enabled: bool,
+    /// Timestamp when the preference was changed (for conflict resolution)
+    pub changed_at: u64,
+}
+
 /// Union of all message types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Message {
@@ -274,6 +292,8 @@ pub enum Message {
     ChunkedTransferComplete(super::streaming::ChunkedTransferComplete),
     DeviceInfo(DeviceInfo),
     KeyRotation(KeyRotation),
+    // Sync preferences (meta-sync)
+    SyncPreferenceUpdate(SyncPreferenceUpdate),
     Error(ErrorMessage),
 }
 
@@ -292,6 +312,7 @@ impl Message {
             Message::ChunkedTransferComplete(_) => MessageType::ChunkedTransferComplete,
             Message::DeviceInfo(_) => MessageType::DeviceInfo,
             Message::KeyRotation(_) => MessageType::KeyRotation,
+            Message::SyncPreferenceUpdate(_) => MessageType::SyncPreferenceUpdate,
             Message::Error(_) => MessageType::Error,
         };
         MessageHeader::new(message_type)

@@ -13,6 +13,7 @@ pub use frame::Frame;
 pub use message::{
     ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage, KeyRotation,
     KeyRotationReason, Message, MessageHeader, MessageType, Ping, Platform, Pong,
+    SyncPreferenceUpdate,
 };
 pub use streaming::{
     ChunkAssembler, ChunkedTransferAck, ChunkedTransferComplete, ChunkedTransferData,

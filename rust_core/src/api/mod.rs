@@ -111,6 +111,7 @@ pub struct DeviceInfoDto {
     pub last_seen: u64,
     pub platform: String, // Platform name: "macos", "windows", "linux", "ios", "android", "unknown"
     pub connection_type: String, // Connection type: "direct", "stun_reflexive", "turn_relay", "websocket_relay", "unknown"
+    pub sync_enabled: bool,      // Whether sync is enabled for this device
 }
 
 /// Clipboard item for display
@@ -127,11 +128,27 @@ pub struct ClipboardItemDto {
 /// Event types for Flutter
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TossEvent {
-    ClipboardReceived { item: ClipboardItemDto },
-    DeviceConnected { device: DeviceInfoDto },
-    DeviceDisconnected { device_id: String },
-    PairingRequest { device: DeviceInfoDto },
-    Error { message: String },
+    ClipboardReceived {
+        item: ClipboardItemDto,
+    },
+    DeviceConnected {
+        device: DeviceInfoDto,
+    },
+    DeviceDisconnected {
+        device_id: String,
+    },
+    PairingRequest {
+        device: DeviceInfoDto,
+    },
+    /// Sync preference update received from another device (meta-sync)
+    SyncPreferenceReceived {
+        target_device_id: String,
+        sync_enabled: bool,
+        from_device_id: String,
+    },
+    Error {
+        message: String,
+    },
 }
 
 /// Event stream for Flutter (simplified - full stream support requires flutter_rust_bridge stream support)
@@ -429,6 +446,7 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
         created_at: current_unix_timestamp_secs(),
         is_active: true,
         platform: Some(format!("{:?}", crate::protocol::Platform::current()).to_lowercase()),
+        sync_enabled: true, // Enable sync by default for new devices
     };
 
     core.storage
@@ -443,6 +461,7 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
         last_seen: 0,
         platform: format!("{:?}", crate::protocol::Platform::current()).to_lowercase(),
         connection_type: "unknown".to_string(),
+        sync_enabled: true,
     })
 }
 
@@ -507,6 +526,7 @@ pub fn complete_pairing_code(
         created_at: current_unix_timestamp_secs(),
         is_active: true,
         platform: Some(format!("{:?}", crate::protocol::Platform::current()).to_lowercase()),
+        sync_enabled: true, // Enable sync by default for new devices
     };
 
     core.storage
@@ -521,6 +541,7 @@ pub fn complete_pairing_code(
         last_seen: 0,
         platform: format!("{:?}", crate::protocol::Platform::current()).to_lowercase(),
         connection_type: "unknown".to_string(),
+        sync_enabled: true,
     })
 }
 
@@ -664,6 +685,7 @@ pub fn complete_manual_pairing(
         created_at: current_unix_timestamp_secs(),
         is_active: true,
         platform: Some("unknown".to_string()), // Platform not available from pairing info
+        sync_enabled: true,                    // Enable sync by default for new devices
     };
 
     core.storage
@@ -678,6 +700,7 @@ pub fn complete_manual_pairing(
         last_seen: 0,
         platform: "unknown".to_string(),
         connection_type: "unknown".to_string(),
+        sync_enabled: true,
     })
 }
 
@@ -767,6 +790,7 @@ pub fn get_paired_devices() -> Vec<DeviceInfoDto> {
             last_seen: d.last_seen.unwrap_or(0),
             platform: d.platform.unwrap_or_else(|| "unknown".to_string()),
             connection_type: "unknown".to_string(), // Connection type not stored
+            sync_enabled: d.sync_enabled,
         })
         .collect()
 }
@@ -804,6 +828,108 @@ pub fn rename_device(device_id: String, new_name: String) -> Result<(), String> 
         .devices()
         .update_device_name(&device_id, new_name)
         .map_err(|e| format!("Failed to rename device: {}", e))?;
+
+    Ok(())
+}
+
+/// Set device sync enabled/disabled
+#[frb(sync)]
+pub fn set_device_sync_enabled(device_id: String, enabled: bool) -> Result<(), String> {
+    let guard = TOSS_INSTANCE.read();
+    let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+    core.storage
+        .devices()
+        .set_device_sync_enabled(&device_id, enabled)
+        .map_err(|e| format!("Failed to set device sync enabled: {}", e))?;
+
+    Ok(())
+}
+
+/// Get device sync enabled status
+#[frb(sync)]
+pub fn get_device_sync_enabled(device_id: String) -> Result<bool, String> {
+    let guard = TOSS_INSTANCE.read();
+    let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+    core.storage
+        .devices()
+        .get_device_sync_enabled(&device_id)
+        .map_err(|e| format!("Failed to get device sync enabled: {}", e))
+}
+
+/// Get list of device IDs with sync enabled
+#[frb(sync)]
+pub fn get_sync_enabled_device_ids() -> Vec<String> {
+    let guard = TOSS_INSTANCE.read();
+    let core = match guard.as_ref() {
+        Some(c) => c,
+        None => return Vec::new(),
+    };
+
+    core.storage
+        .devices()
+        .get_sync_enabled_device_ids()
+        .unwrap_or_default()
+}
+
+/// Enable sync for all devices (Sync to All)
+#[frb(sync)]
+pub fn enable_sync_all_devices() -> Result<u32, String> {
+    let guard = TOSS_INSTANCE.read();
+    let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+    let count = core
+        .storage
+        .devices()
+        .enable_sync_all_devices()
+        .map_err(|e| format!("Failed to enable sync for all devices: {}", e))?;
+
+    Ok(count as u32)
+}
+
+/// Broadcast sync preference update to all devices (meta-sync)
+///
+/// This function broadcasts a sync preference change to all connected devices,
+/// allowing sync preferences to be synchronized across the device network.
+#[frb]
+pub async fn broadcast_sync_preference(
+    target_device_id: String,
+    sync_enabled: bool,
+) -> Result<(), String> {
+    let has_network = {
+        let guard = TOSS_INSTANCE.read();
+        let core = guard.as_ref().ok_or("Toss not initialized")?;
+        core.network.is_some()
+    };
+
+    if !has_network {
+        return Ok(()); // No network, skip broadcast
+    }
+
+    let network_ptr: Option<*const NetworkManager> = {
+        let guard = TOSS_INSTANCE.read();
+        guard
+            .as_ref()
+            .and_then(|c| c.network.as_ref())
+            .map(|n| n as *const NetworkManager)
+    };
+
+    if let Some(ptr) = network_ptr {
+        let network = unsafe { &*ptr };
+
+        let update = crate::protocol::SyncPreferenceUpdate {
+            target_device_id,
+            sync_enabled,
+            changed_at: current_unix_timestamp_millis(),
+        };
+
+        let message = Message::SyncPreferenceUpdate(update);
+        network
+            .broadcast(&message)
+            .await
+            .map_err(|e| format!("Failed to broadcast sync preference: {}", e))?;
+    }
 
     Ok(())
 }
@@ -1077,6 +1203,192 @@ pub async fn send_clipboard() -> Result<(), String> {
     Ok(())
 }
 
+/// Send current clipboard to specific devices only (for selective sync)
+///
+/// This function sends clipboard content only to the specified devices,
+/// allowing for per-device sync control.
+///
+/// # Arguments
+/// * `device_ids` - List of device IDs to send clipboard to
+#[frb]
+pub async fn send_clipboard_to_devices(device_ids: Vec<String>) -> Result<(), String> {
+    if device_ids.is_empty() {
+        return Err("No target devices specified".to_string());
+    }
+
+    // Rate limiting: prevent rapid-fire syncs (minimum 100ms between syncs)
+    {
+        let guard = TOSS_INSTANCE.read();
+        if let Some(core) = guard.as_ref() {
+            let last_sync = core
+                .last_sync_time
+                .lock()
+                .expect("last_sync_time mutex poisoned - this is a bug");
+            let elapsed = last_sync.elapsed();
+            if elapsed.as_millis() < 100 {
+                return Err(format!(
+                    "Rate limit: please wait {}ms",
+                    100 - elapsed.as_millis()
+                ));
+            }
+        }
+    }
+
+    // Read all needed data while holding the lock, then drop it before await
+    let (content_for_send, use_chunked, chunk_size, has_network) = {
+        let guard = TOSS_INSTANCE.read();
+        let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+        let content = core
+            .clipboard
+            .read()
+            .map_err(|e| format!("Clipboard read failed: {}", e))?
+            .ok_or("Clipboard is empty")?;
+
+        // Check settings
+        let settings = &core.settings;
+        match content.content_type {
+            ContentType::PlainText | ContentType::Url if !settings.sync_text => {
+                return Err("Text sync disabled".to_string());
+            }
+            ContentType::RichText if !settings.sync_rich_text => {
+                return Err("Rich text sync disabled".to_string());
+            }
+            ContentType::Image if !settings.sync_images => {
+                return Err("Image sync disabled".to_string());
+            }
+            ContentType::File if !settings.sync_files => {
+                return Err("File sync disabled".to_string());
+            }
+            _ => {}
+        }
+
+        // Check size limit
+        let max_bytes = (settings.max_file_size_mb as u64) * 1024 * 1024;
+        if content.metadata.size_bytes > max_bytes {
+            return Err(format!(
+                "Content too large (max {} MB)",
+                settings.max_file_size_mb
+            ));
+        }
+
+        // Determine if we should use chunked transfer
+        let use_chunked = settings.streaming_enabled
+            && content.data.len() > crate::protocol::CHUNKED_TRANSFER_THRESHOLD;
+        let chunk_size = settings.streaming_chunk_size as usize;
+
+        let has_network = core.network.is_some();
+
+        (content, use_chunked, chunk_size, has_network)
+    };
+
+    // Send to specific devices
+    if has_network {
+        let network_ptr: Option<*const NetworkManager> = {
+            let guard = TOSS_INSTANCE.read();
+            guard
+                .as_ref()
+                .and_then(|c| c.network.as_ref())
+                .map(|n| n as *const NetworkManager)
+        };
+
+        if let Some(ptr) = network_ptr {
+            // SAFETY: Same safety guarantees as broadcast
+            let network = unsafe { &*ptr };
+
+            // Convert device IDs to byte arrays
+            let target_device_ids: Vec<[u8; 32]> = device_ids
+                .iter()
+                .filter_map(|id| {
+                    let bytes = hex::decode(id).ok()?;
+                    if bytes.len() == 32 {
+                        let mut arr = [0u8; 32];
+                        arr.copy_from_slice(&bytes);
+                        Some(arr)
+                    } else {
+                        tracing::warn!("Invalid device ID length: {}", id);
+                        None
+                    }
+                })
+                .collect();
+
+            if target_device_ids.is_empty() {
+                return Err("No valid target device IDs".to_string());
+            }
+
+            if use_chunked {
+                tracing::info!(
+                    "Using chunked transfer for {} bytes content to {} devices",
+                    content_for_send.data.len(),
+                    target_device_ids.len()
+                );
+
+                let init = crate::protocol::ChunkedTransferInit::new(&content_for_send, chunk_size);
+                let transfer_id = init.transfer_id;
+
+                // Send init message to each device
+                let init_message = Message::ChunkedTransferInit(init);
+                for device_id in &target_device_ids {
+                    let _ = network.send_to_peer(device_id, &init_message).await;
+                }
+
+                // Send chunks
+                for (i, chunk_data) in content_for_send.data.chunks(chunk_size).enumerate() {
+                    let chunk = crate::protocol::ChunkedTransferData::new(
+                        transfer_id,
+                        i as u32,
+                        chunk_data,
+                    );
+                    let chunk_message = Message::ChunkedTransferData(chunk);
+
+                    for device_id in &target_device_ids {
+                        let _ = network.send_to_peer(device_id, &chunk_message).await;
+                    }
+                }
+
+                // Send completion message
+                let complete = crate::protocol::ChunkedTransferComplete {
+                    transfer_id,
+                    state: crate::protocol::TransferState::Completed,
+                    error: None,
+                };
+                let complete_message = Message::ChunkedTransferComplete(complete);
+                for device_id in &target_device_ids {
+                    let _ = network.send_to_peer(device_id, &complete_message).await;
+                }
+
+                tracing::info!(
+                    "Chunked transfer {} to {} devices completed",
+                    transfer_id,
+                    target_device_ids.len()
+                );
+            } else {
+                let update = ClipboardUpdate::new(content_for_send);
+                let message = Message::ClipboardUpdate(update);
+
+                let mut success_count = 0;
+                for device_id in &target_device_ids {
+                    if network.send_to_peer(device_id, &message).await.is_ok() {
+                        success_count += 1;
+                    }
+                }
+
+                if success_count == 0 {
+                    return Err("Failed to send to any target devices".to_string());
+                }
+
+                tracing::info!(
+                    "Sent clipboard to {}/{} target devices",
+                    success_count,
+                    target_device_ids.len()
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Send text to all devices
 #[frb]
 pub async fn send_text(text: String) -> Result<(), String> {
@@ -1280,6 +1592,7 @@ pub fn poll_event() -> Option<TossEvent> {
                         last_seen: 0,
                         platform: "unknown".to_string(), // Platform info not available in event yet
                         connection_type: conn_type_str.to_string(),
+                        sync_enabled: true, // Default to true for connected events
                     },
                 })
             }
@@ -1484,6 +1797,39 @@ pub fn poll_event() -> Option<TossEvent> {
                             source_device: Some(hex::encode(from_device_id)),
                         },
                     })
+                } else if let crate::protocol::Message::SyncPreferenceUpdate(pref_update) = message
+                {
+                    // Handle sync preference update (meta-sync)
+                    let from_device_id_hex = hex::encode(from_device_id);
+                    tracing::info!(
+                        "Received sync preference update from {}: device {} sync_enabled={}",
+                        from_device_id_hex,
+                        pref_update.target_device_id,
+                        pref_update.sync_enabled
+                    );
+
+                    // Update local storage
+                    {
+                        let guard = TOSS_INSTANCE.read();
+                        if let Some(core) = guard.as_ref() {
+                            if let Err(e) = core.storage.devices().set_device_sync_enabled(
+                                &pref_update.target_device_id,
+                                pref_update.sync_enabled,
+                            ) {
+                                tracing::warn!(
+                                    "Failed to update sync preference from meta-sync: {}",
+                                    e
+                                );
+                            }
+                        }
+                    }
+
+                    // Return event to Flutter for UI update
+                    Some(TossEvent::SyncPreferenceReceived {
+                        target_device_id: pref_update.target_device_id,
+                        sync_enabled: pref_update.sync_enabled,
+                        from_device_id: from_device_id_hex,
+                    })
                 } else {
                     None
                 }
@@ -1623,6 +1969,7 @@ pub fn get_connected_devices() -> Vec<DeviceInfoDto> {
                         last_seen: 0,
                         platform: "unknown".to_string(), // Platform info not available in PeerInfo yet
                         connection_type: conn_type_str.to_string(),
+                        sync_enabled: true, // Default to true for connected peers
                     }
                 })
                 .collect();

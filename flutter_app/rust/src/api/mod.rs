@@ -23,6 +23,8 @@ pub struct TossSettings {
     pub history_enabled: bool,
     pub history_days: u32,
     pub relay_url: Option<String>,
+    pub streaming_chunk_size: u32,
+    pub streaming_enabled: bool,
 }
 
 impl From<toss_core::api::TossSettings> for TossSettings {
@@ -37,6 +39,8 @@ impl From<toss_core::api::TossSettings> for TossSettings {
             history_enabled: s.history_enabled,
             history_days: s.history_days,
             relay_url: s.relay_url,
+            streaming_chunk_size: s.streaming_chunk_size,
+            streaming_enabled: s.streaming_enabled,
         }
     }
 }
@@ -53,6 +57,8 @@ impl From<TossSettings> for toss_core::api::TossSettings {
             history_enabled: s.history_enabled,
             history_days: s.history_days,
             relay_url: s.relay_url,
+            streaming_chunk_size: s.streaming_chunk_size,
+            streaming_enabled: s.streaming_enabled,
         }
     }
 }
@@ -66,6 +72,7 @@ pub struct DeviceInfoDto {
     pub is_online: bool,
     pub last_seen: u64,
     pub platform: String,
+    pub sync_enabled: bool,
 }
 
 impl From<toss_core::api::DeviceInfoDto> for DeviceInfoDto {
@@ -76,6 +83,7 @@ impl From<toss_core::api::DeviceInfoDto> for DeviceInfoDto {
             is_online: d.is_online,
             last_seen: d.last_seen,
             platform: d.platform,
+            sync_enabled: d.sync_enabled,
         }
     }
 }
@@ -198,6 +206,11 @@ pub enum TossEvent {
     DeviceDisconnected { device_id: String },
     PairingRequest { device: DeviceInfoDto },
     Error { message: String },
+    SyncPreferenceReceived {
+        target_device_id: String,
+        sync_enabled: bool,
+        from_device_id: String,
+    },
 }
 
 impl From<toss_core::api::TossEvent> for TossEvent {
@@ -216,6 +229,15 @@ impl From<toss_core::api::TossEvent> for TossEvent {
                 device: device.into(),
             },
             toss_core::api::TossEvent::Error { message } => TossEvent::Error { message },
+            toss_core::api::TossEvent::SyncPreferenceReceived {
+                target_device_id,
+                sync_enabled,
+                from_device_id,
+            } => TossEvent::SyncPreferenceReceived {
+                target_device_id,
+                sync_enabled,
+                from_device_id,
+            },
         }
     }
 }
@@ -340,6 +362,46 @@ pub fn rename_device(device_id: String, new_name: String) -> Result<(), String> 
     toss_core::api::rename_device(device_id, new_name)
 }
 
+/// Set sync enabled/disabled for a specific device
+#[frb(sync)]
+pub fn set_device_sync_enabled(device_id: String, enabled: bool) -> Result<(), String> {
+    toss_core::api::set_device_sync_enabled(device_id, enabled)
+}
+
+/// Get sync enabled status for a specific device
+#[frb(sync)]
+pub fn get_device_sync_enabled(device_id: String) -> Result<bool, String> {
+    toss_core::api::get_device_sync_enabled(device_id)
+}
+
+/// Get list of device IDs that have sync enabled
+#[frb(sync)]
+pub fn get_sync_enabled_device_ids() -> Vec<String> {
+    toss_core::api::get_sync_enabled_device_ids()
+}
+
+/// Enable sync for all devices
+/// Returns the number of devices updated
+#[frb(sync)]
+pub fn enable_sync_all_devices() -> Result<u32, String> {
+    toss_core::api::enable_sync_all_devices()
+}
+
+/// Send current clipboard to specific devices only
+#[frb]
+pub async fn send_clipboard_to_devices(device_ids: Vec<String>) -> Result<(), String> {
+    toss_core::api::send_clipboard_to_devices(device_ids).await
+}
+
+/// Broadcast sync preference change to all connected devices
+#[frb]
+pub async fn broadcast_sync_preference(
+    target_device_id: String,
+    sync_enabled: bool,
+) -> Result<(), String> {
+    toss_core::api::broadcast_sync_preference(target_device_id, sync_enabled).await
+}
+
 // ============================================================================
 // Clipboard Operations
 // ============================================================================
@@ -400,10 +462,11 @@ pub async fn stop_network() {
     toss_core::api::stop_network().await
 }
 
-/// Start listening to network events
+/// Start listening to network events (no-op, kept for API compatibility)
 #[frb]
 pub async fn start_event_listener() -> Result<(), String> {
-    toss_core::api::start_event_listener().await
+    // No-op - event polling is used instead
+    Ok(())
 }
 
 /// Poll for network events (polling-based approach until streams are available)

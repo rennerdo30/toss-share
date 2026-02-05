@@ -67,7 +67,8 @@ impl Storage {
                 last_seen INTEGER,
                 created_at INTEGER NOT NULL,
                 is_active INTEGER DEFAULT 1,
-                platform TEXT
+                platform TEXT,
+                sync_enabled INTEGER DEFAULT 1
             )
             "#,
             [],
@@ -75,6 +76,12 @@ impl Storage {
 
         // Add platform column if it doesn't exist (migration for existing databases)
         let _ = conn.execute("ALTER TABLE devices ADD COLUMN platform TEXT", []);
+
+        // Add sync_enabled column if it doesn't exist (migration for existing databases)
+        let _ = conn.execute(
+            "ALTER TABLE devices ADD COLUMN sync_enabled INTEGER DEFAULT 1",
+            [],
+        );
 
         // Create clipboard history table
         conn.execute(

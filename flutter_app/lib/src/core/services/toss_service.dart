@@ -69,6 +69,7 @@ class DeviceInfo {
   final bool isOnline;
   final int lastSeen;
   final String platform;
+  final bool syncEnabled;
 
   const DeviceInfo({
     required this.id,
@@ -76,6 +77,7 @@ class DeviceInfo {
     this.isOnline = false,
     this.lastSeen = 0,
     this.platform = 'unknown',
+    this.syncEnabled = true,
   });
 }
 
@@ -161,6 +163,15 @@ class TossEvent {
             lastSeen: device.lastSeen.toInt(),
             platform: device.platform,
           ),
+        },
+      ),
+      syncPreferenceReceived: (targetDeviceId, syncEnabled, fromDeviceId) =>
+          TossEvent(
+        type: 'sync_preference_received',
+        data: {
+          'target_device_id': targetDeviceId,
+          'sync_enabled': syncEnabled,
+          'from_device_id': fromDeviceId,
         },
       ),
       error: (message) => TossEvent(
@@ -450,6 +461,7 @@ class TossService {
                 isOnline: d.isOnline,
                 lastSeen: d.lastSeen.toInt(),
                 platform: d.platform,
+                syncEnabled: d.syncEnabled,
               ))
           .toList();
     } catch (e) {
@@ -494,6 +506,72 @@ class TossService {
     } catch (e) {
       LoggingService.warn(' Failed to rename device: $e');
       rethrow;
+    }
+  }
+
+  /// Set device sync enabled/disabled
+  static Future<void> setDeviceSyncEnabled(
+      String deviceId, bool enabled) async {
+    try {
+      api.setDeviceSyncEnabled(deviceId: deviceId, enabled: enabled);
+    } catch (e) {
+      LoggingService.warn(' Failed to set device sync enabled: $e');
+      rethrow;
+    }
+  }
+
+  /// Get device sync enabled status
+  static Future<bool> getDeviceSyncEnabled(String deviceId) async {
+    try {
+      return api.getDeviceSyncEnabled(deviceId: deviceId);
+    } catch (e) {
+      LoggingService.warn(' Failed to get device sync enabled: $e');
+      return true; // Default to enabled on error
+    }
+  }
+
+  /// Get list of device IDs with sync enabled
+  static List<String> getSyncEnabledDeviceIds() {
+    if (!_ffiAvailable) return [];
+    try {
+      return api.getSyncEnabledDeviceIds();
+    } catch (e) {
+      LoggingService.warn(' Failed to get sync enabled device IDs: $e');
+      return [];
+    }
+  }
+
+  /// Enable sync for all devices (Sync to All action)
+  static Future<int> enableSyncAllDevices() async {
+    try {
+      return api.enableSyncAllDevices();
+    } catch (e) {
+      LoggingService.warn(' Failed to enable sync for all devices: $e');
+      return 0;
+    }
+  }
+
+  /// Send clipboard to specific devices only
+  static Future<void> sendClipboardToDevices(List<String> deviceIds,
+      {int maxRetries = 3}) async {
+    await _retryOperation(
+      () => api.sendClipboardToDevices(deviceIds: deviceIds),
+      'send clipboard to devices',
+      maxRetries: maxRetries,
+    );
+  }
+
+  /// Broadcast sync preference update to all devices (meta-sync)
+  static Future<void> broadcastSyncPreference(
+      String targetDeviceId, bool syncEnabled) async {
+    try {
+      await api.broadcastSyncPreference(
+        targetDeviceId: targetDeviceId,
+        syncEnabled: syncEnabled,
+      );
+    } catch (e) {
+      LoggingService.warn(' Failed to broadcast sync preference: $e');
+      // Don't throw - meta-sync failure shouldn't block local changes
     }
   }
 

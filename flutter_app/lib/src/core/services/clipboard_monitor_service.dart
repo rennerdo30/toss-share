@@ -283,6 +283,30 @@ class ClipboardMonitorService {
           }
         }
         break;
+      case 'sync_preference_received':
+        // Update local device state from meta-sync
+        final targetDeviceId = event.data?['target_device_id'] as String?;
+        final syncEnabled = event.data?['sync_enabled'] as bool?;
+        final fromDeviceId = event.data?['from_device_id'] as String?;
+        if (targetDeviceId != null && syncEnabled != null) {
+          debugPrint(
+              'Meta-sync: Device $targetDeviceId sync_enabled=$syncEnabled (from $fromDeviceId)');
+          // Update local state without broadcasting again (to avoid loops)
+          final devices = ref.read(devicesProvider);
+          final updatedDevices = devices.map((d) {
+            if (d.id == targetDeviceId) {
+              return d.copyWith(syncEnabled: syncEnabled);
+            }
+            return d;
+          }).toList();
+          // Directly update state through internal provider API
+          // The toggleDeviceSync method broadcasts, so we avoid it here
+          ref.read(devicesProvider.notifier).updateFromMetaSync(
+                targetDeviceId,
+                syncEnabled,
+              );
+        }
+        break;
     }
   }
 

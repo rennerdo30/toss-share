@@ -31,6 +31,28 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Devices'),
+        actions: [
+          // Sync to All action
+          if (devices.isNotEmpty)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                if (value == 'sync_all') {
+                  _enableSyncAll(context, ref);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'sync_all',
+                  child: ListTile(
+                    leading: Icon(Icons.sync),
+                    title: Text('Sync to All'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: devices.isEmpty
           ? _EmptyState()
@@ -47,10 +69,43 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                   onRename: () {
                     _showRenameDialog(context, ref, device);
                   },
+                  onToggleSync: (enabled) {
+                    _toggleDeviceSync(context, ref, device, enabled);
+                  },
                 );
               },
             ),
     );
+  }
+
+  void _enableSyncAll(BuildContext context, WidgetRef ref) async {
+    await ref.read(devicesProvider.notifier).enableSyncAllDevices();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync enabled for all devices')),
+      );
+    }
+  }
+
+  void _toggleDeviceSync(
+      BuildContext context, WidgetRef ref, Device device, bool enabled) async {
+    try {
+      await ref.read(devicesProvider.notifier).toggleDeviceSync(device.id, enabled);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Sync ${enabled ? "enabled" : "disabled"} for ${device.name}'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update sync setting: $e')),
+        );
+      }
+    }
   }
 
   void _showRenameDialog(BuildContext context, WidgetRef ref, Device device) {
@@ -141,11 +196,13 @@ class _DeviceListItem extends ConsumerWidget {
   final Device device;
   final VoidCallback onRemove;
   final VoidCallback onRename;
+  final ValueChanged<bool> onToggleSync;
 
   const _DeviceListItem({
     required this.device,
     required this.onRemove,
     required this.onRename,
+    required this.onToggleSync,
   });
 
   @override
@@ -178,16 +235,41 @@ class _DeviceListItem extends ConsumerWidget {
             ),
           ],
         ),
-        title: Text(device.name),
+        title: Row(
+          children: [
+            Expanded(child: Text(device.name)),
+            // Sync status indicator
+            Tooltip(
+              message: device.syncEnabled ? 'Sync enabled' : 'Sync disabled',
+              child: Icon(
+                device.syncEnabled ? Icons.sync : Icons.sync_disabled,
+                size: 18,
+                color: device.syncEnabled
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey,
+              ),
+            ),
+          ],
+        ),
         subtitle: Text(
           device.isOnline
-              ? 'Online'
+              ? 'Online${device.syncEnabled ? "" : " - Sync disabled"}'
               : device.lastSeen != null
                   ? 'Last seen ${formatLastSeen(device.lastSeen!)}'
                   : 'Offline',
         ),
         trailing: PopupMenuButton(
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'toggle_sync',
+              child: ListTile(
+                leading: Icon(
+                  device.syncEnabled ? Icons.sync_disabled : Icons.sync,
+                ),
+                title: Text(device.syncEnabled ? 'Disable Sync' : 'Enable Sync'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
             const PopupMenuItem(
               value: 'rename',
               child: ListTile(
@@ -206,7 +288,9 @@ class _DeviceListItem extends ConsumerWidget {
             ),
           ],
           onSelected: (value) {
-            if (value == 'rename') {
+            if (value == 'toggle_sync') {
+              onToggleSync(!device.syncEnabled);
+            } else if (value == 'rename') {
               onRename();
             } else if (value == 'remove') {
               onRemove();
@@ -216,7 +300,6 @@ class _DeviceListItem extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class _EmptyState extends StatelessWidget {

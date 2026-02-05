@@ -29,6 +29,7 @@ class Devices extends _$Devices {
 
   Future<void> refresh() async {
     // Call Rust FFI to get paired devices
+    // The syncEnabled field now comes directly from the Rust backend
     final devices = await TossService.getPairedDevices();
     state = devices
         .map((d) => Device(
@@ -39,7 +40,7 @@ class Devices extends _$Devices {
                   ? DateTime.fromMillisecondsSinceEpoch(d.lastSeen)
                   : null,
               platform: _parsePlatform(d.platform),
-              syncEnabled: _getDeviceSyncEnabled(d.id),
+              syncEnabled: d.syncEnabled, // Use value from Rust backend
             ))
         .toList();
   }
@@ -200,11 +201,52 @@ class Devices extends _$Devices {
   }
 
   /// Toggle sync enabled for a device
-  void toggleDeviceSync(String deviceId, bool enabled) {
+  Future<void> toggleDeviceSync(String deviceId, bool enabled) async {
+    // Update in Rust backend for persistence
+    await TossService.setDeviceSyncEnabled(deviceId, enabled);
+    // Also update local storage for backward compatibility
     _setDeviceSyncEnabled(deviceId, enabled);
+    // Update local state
     state = state.map((d) {
       if (d.id == deviceId) {
         return d.copyWith(syncEnabled: enabled);
+      }
+      return d;
+    }).toList();
+    // Broadcast sync preference to other devices (meta-sync)
+    await TossService.broadcastSyncPreference(deviceId, enabled);
+  }
+
+  /// Enable sync for all devices (Sync to All action)
+  Future<void> enableSyncAllDevices() async {
+    // Update in Rust backend
+    await TossService.enableSyncAllDevices();
+    // Update local state
+    state = state.map((d) => d.copyWith(syncEnabled: true)).toList();
+    // Update local storage
+    for (final device in state) {
+      _setDeviceSyncEnabled(device.id, true);
+    }
+  }
+
+  /// Get list of sync-enabled device IDs
+  List<String> getSyncEnabledDeviceIds() {
+    return state.where((d) => d.syncEnabled).map((d) => d.id).toList();
+  }
+
+  /// Get list of online devices with sync enabled
+  List<Device> getOnlineSyncEnabledDevices() {
+    return state.where((d) => d.isOnline && d.syncEnabled).toList();
+  }
+
+  /// Update device sync status from meta-sync (without re-broadcasting)
+  void updateFromMetaSync(String deviceId, bool syncEnabled) {
+    // Update local storage without broadcasting
+    _setDeviceSyncEnabled(deviceId, syncEnabled);
+    // Update local state
+    state = state.map((d) {
+      if (d.id == deviceId) {
+        return d.copyWith(syncEnabled: syncEnabled);
       }
       return d;
     }).toList();
