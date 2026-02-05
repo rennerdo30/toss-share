@@ -19,6 +19,12 @@ pub struct Config {
     pub rate_limit_messages: u32,
     /// Rate limit for registration (per hour)
     pub rate_limit_register: u32,
+    /// Admin username for dashboard
+    pub admin_username: Option<String>,
+    /// Admin password hash (bcrypt) for dashboard
+    pub admin_password_hash: Option<String>,
+    /// Session secret for admin cookies
+    pub session_secret: String,
 }
 
 impl Config {
@@ -48,7 +54,15 @@ impl Config {
                 .ok()
                 .and_then(|r| r.parse().ok())
                 .unwrap_or(10),
+            admin_username: env::var("ADMIN_USERNAME").ok(),
+            admin_password_hash: env::var("ADMIN_PASSWORD_HASH").ok(),
+            session_secret: env::var("SESSION_SECRET").unwrap_or_else(|_| generate_random_secret()),
         })
+    }
+
+    /// Check if admin dashboard is enabled (has credentials configured)
+    pub fn admin_enabled(&self) -> bool {
+        self.admin_username.is_some() && self.admin_password_hash.is_some()
     }
 }
 
@@ -70,6 +84,9 @@ impl Default for Config {
             jwt_expiration: 86400,
             rate_limit_messages: 100,
             rate_limit_register: 10,
+            admin_username: None,
+            admin_password_hash: None,
+            session_secret: generate_random_secret(),
         }
     }
 }

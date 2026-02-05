@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/models/clipboard_item.dart';
+import '../../../shared/utils/content_type_utils.dart';
 
 class ClipboardPreviewCard extends StatelessWidget {
   final ClipboardItem? item;
@@ -28,7 +29,7 @@ class ClipboardPreviewCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  _getContentTypeIcon(item!.contentType),
+                  getContentTypeIcon(item!.contentType),
                   size: 20,
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -50,6 +51,7 @@ class ClipboardPreviewCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.refresh, size: 18),
+                    tooltip: 'Refresh clipboard',
                     onPressed: onRefresh,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -131,20 +133,6 @@ class ClipboardPreviewCard extends StatelessWidget {
     }
   }
 
-  IconData _getContentTypeIcon(ClipboardContentType type) {
-    switch (type) {
-      case ClipboardContentType.text:
-        return Icons.text_fields;
-      case ClipboardContentType.richText:
-        return Icons.format_paint;
-      case ClipboardContentType.image:
-        return Icons.image;
-      case ClipboardContentType.file:
-        return Icons.attach_file;
-      case ClipboardContentType.url:
-        return Icons.link;
-    }
-  }
 }
 
 class _EmptyClipboard extends StatelessWidget {

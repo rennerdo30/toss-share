@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/models/device.dart';
+import '../../../shared/utils/platform_utils.dart';
+import '../../../shared/constants/layout_constants.dart';
 
 class DeviceList extends StatelessWidget {
   final List<Device> devices;
@@ -14,8 +16,12 @@ class DeviceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return SizedBox(
-      height: 100,
+      height: isLandscape
+          ? LayoutConstants.deviceListHeightLandscape
+          : LayoutConstants.deviceListHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: devices.length,
@@ -67,8 +73,8 @@ class DeviceCard extends StatelessWidget {
             Stack(
               children: [
                 Icon(
-                  _getPlatformIcon(device.platform),
-                  size: 32,
+                  getPlatformIcon(device.platform),
+                  size: LayoutConstants.largeIconSize,
                   color: device.isOnline
                       ? colorScheme.primary
                       : colorScheme.outline,
@@ -77,15 +83,18 @@ class DeviceCard extends StatelessWidget {
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: device.isOnline ? Colors.green : Colors.grey,
-                      border: Border.all(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        width: 2,
+                  child: Semantics(
+                    label: device.isOnline ? 'Online' : 'Offline',
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: device.isOnline ? Colors.green : Colors.grey,
+                        border: Border.all(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -108,20 +117,4 @@ class DeviceCard extends StatelessWidget {
     );
   }
 
-  IconData _getPlatformIcon(DevicePlatform platform) {
-    switch (platform) {
-      case DevicePlatform.macos:
-        return Icons.laptop_mac;
-      case DevicePlatform.windows:
-        return Icons.laptop_windows;
-      case DevicePlatform.linux:
-        return Icons.computer;
-      case DevicePlatform.ios:
-        return Icons.phone_iphone;
-      case DevicePlatform.android:
-        return Icons.phone_android;
-      case DevicePlatform.unknown:
-        return Icons.devices_other;
-    }
-  }
 }

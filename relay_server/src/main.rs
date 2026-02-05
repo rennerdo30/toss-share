@@ -5,6 +5,7 @@
 
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Instant;
 
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -38,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
         config: Arc::new(config.clone()),
         db: Arc::new(database),
         relay: Arc::new(RelayState::new()),
+        started_at: Instant::now(),
     };
 
     // Build router

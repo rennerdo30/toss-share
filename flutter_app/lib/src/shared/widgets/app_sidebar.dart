@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/models/device.dart';
+import '../utils/platform_utils.dart';
 import 'responsive_layout.dart';
 
 /// Navigation item for the sidebar
@@ -326,12 +327,17 @@ class _ConnectionStatusHeader extends StatelessWidget {
           message: isConnected
               ? '$onlineCount device${onlineCount != 1 ? 's' : ''} online'
               : 'No devices online',
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
+          child: Semantics(
+            label: isConnected
+                ? '$onlineCount device${onlineCount != 1 ? 's' : ''} online'
+                : 'No devices online',
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: statusColor,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         ),
@@ -342,12 +348,15 @@ class _ConnectionStatusHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
+          Semantics(
+            label: isConnected ? 'Connected' : 'Offline',
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: statusColor,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -448,23 +457,6 @@ class _DeviceListTile extends StatelessWidget {
     required this.onTap,
   });
 
-  IconData _getPlatformIcon() {
-    switch (device.platform) {
-      case DevicePlatform.macos:
-        return Icons.laptop_mac;
-      case DevicePlatform.windows:
-        return Icons.laptop_windows;
-      case DevicePlatform.linux:
-        return Icons.computer;
-      case DevicePlatform.ios:
-        return Icons.phone_iphone;
-      case DevicePlatform.android:
-        return Icons.phone_android;
-      default:
-        return Icons.devices;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -473,7 +465,7 @@ class _DeviceListTile extends StatelessWidget {
       leading: Stack(
         children: [
           Icon(
-            _getPlatformIcon(),
+            getPlatformIcon(device.platform),
             size: 20,
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -481,15 +473,18 @@ class _DeviceListTile extends StatelessWidget {
             Positioned(
               right: 0,
               bottom: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.colorScheme.surface,
-                    width: 1.5,
+              child: Semantics(
+                label: 'Online',
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.colorScheme.surface,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -628,29 +623,32 @@ class _CollapseToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onToggle,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment:
-              isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.end,
-          children: [
-            Icon(
-              isCollapsed ? Icons.chevron_right : Icons.chevron_left,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            if (!isCollapsed) ...[
-              const SizedBox(width: 4),
-              Text(
-                'Collapse',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+    return Tooltip(
+      message: isCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
+      child: InkWell(
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            mainAxisAlignment:
+                isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.end,
+            children: [
+              Icon(
+                isCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
+              if (!isCollapsed) ...[
+                const SizedBox(width: 4),
+                Text(
+                  'Collapse',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
