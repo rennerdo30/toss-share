@@ -17,7 +17,8 @@ class TeamService {
       id: result.id,
       name: result.name,
       description: result.description,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
       broadcastEnabled: result.broadcastEnabled,
       maxMembers: result.maxMembers,
       memberCount: result.memberCount,
@@ -28,16 +29,19 @@ class TeamService {
   /// Get all teams the current device belongs to
   static List<Team> getMyTeams() {
     final results = api.getMyTeams();
-    return results.map((dto) => Team(
-      id: dto.id,
-      name: dto.name,
-      description: dto.description,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(dto.createdAt.toInt() * 1000),
-      broadcastEnabled: dto.broadcastEnabled,
-      maxMembers: dto.maxMembers,
-      memberCount: dto.memberCount,
-      isAdmin: dto.isAdmin,
-    )).toList();
+    return results
+        .map((dto) => Team(
+              id: dto.id,
+              name: dto.name,
+              description: dto.description,
+              createdAt: DateTime.fromMillisecondsSinceEpoch(
+                  dto.createdAt.toInt() * 1000),
+              broadcastEnabled: dto.broadcastEnabled,
+              maxMembers: dto.maxMembers,
+              memberCount: dto.memberCount,
+              isAdmin: dto.isAdmin,
+            ))
+        .toList();
   }
 
   /// Get team details by ID
@@ -48,7 +52,8 @@ class TeamService {
       id: result.id,
       name: result.name,
       description: result.description,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
       broadcastEnabled: result.broadcastEnabled,
       maxMembers: result.maxMembers,
       memberCount: result.memberCount,
@@ -90,14 +95,17 @@ class TeamService {
   /// Get all members of a team
   static List<TeamMember> getTeamMembers(String teamId) {
     final results = api.getTeamMembers(teamId: teamId);
-    return results.map((dto) => TeamMember(
-      deviceId: dto.deviceId,
-      displayName: dto.displayName,
-      role: TeamMemberRole.fromString(dto.role),
-      joinedAt: DateTime.fromMillisecondsSinceEpoch(dto.joinedAt.toInt() * 1000),
-      isOnline: dto.isOnline,
-      platform: dto.platform,
-    )).toList();
+    return results
+        .map((dto) => TeamMember(
+              deviceId: dto.deviceId,
+              displayName: dto.displayName,
+              role: TeamMemberRole.fromString(dto.role),
+              joinedAt: DateTime.fromMillisecondsSinceEpoch(
+                  dto.joinedAt.toInt() * 1000),
+              isOnline: dto.isOnline,
+              platform: dto.platform,
+            ))
+        .toList();
   }
 
   /// Update a member's role (admin only)
@@ -148,8 +156,10 @@ class TeamService {
       code: result.code,
       role: TeamMemberRole.fromString(result.role),
       createdBy: result.createdBy,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
-      expiresAt: DateTime.fromMillisecondsSinceEpoch(result.expiresAt.toInt() * 1000),
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
+      expiresAt:
+          DateTime.fromMillisecondsSinceEpoch(result.expiresAt.toInt() * 1000),
       status: InvitationStatus.fromString(result.status),
       maxUses: result.maxUses,
       useCount: result.useCount,
@@ -159,19 +169,23 @@ class TeamService {
   /// Get invitations for a team (admin only)
   static List<TeamInvitation> getTeamInvitations(String teamId) {
     final results = api.getTeamInvitations(teamId: teamId);
-    return results.map((dto) => TeamInvitation(
-      id: dto.id,
-      teamId: dto.teamId,
-      teamName: dto.teamName,
-      code: dto.code,
-      role: TeamMemberRole.fromString(dto.role),
-      createdBy: dto.createdBy,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(dto.createdAt.toInt() * 1000),
-      expiresAt: DateTime.fromMillisecondsSinceEpoch(dto.expiresAt.toInt() * 1000),
-      status: InvitationStatus.fromString(dto.status),
-      maxUses: dto.maxUses,
-      useCount: dto.useCount,
-    )).toList();
+    return results
+        .map((dto) => TeamInvitation(
+              id: dto.id,
+              teamId: dto.teamId,
+              teamName: dto.teamName,
+              code: dto.code,
+              role: TeamMemberRole.fromString(dto.role),
+              createdBy: dto.createdBy,
+              createdAt: DateTime.fromMillisecondsSinceEpoch(
+                  dto.createdAt.toInt() * 1000),
+              expiresAt: DateTime.fromMillisecondsSinceEpoch(
+                  dto.expiresAt.toInt() * 1000),
+              status: InvitationStatus.fromString(dto.status),
+              maxUses: dto.maxUses,
+              useCount: dto.useCount,
+            ))
+        .toList();
   }
 
   /// Revoke an invitation (admin only)
@@ -196,8 +210,10 @@ class TeamService {
       code: result.code,
       role: TeamMemberRole.fromString(result.role),
       createdBy: result.createdBy,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
-      expiresAt: DateTime.fromMillisecondsSinceEpoch(result.expiresAt.toInt() * 1000),
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
+      expiresAt:
+          DateTime.fromMillisecondsSinceEpoch(result.expiresAt.toInt() * 1000),
       status: InvitationStatus.fromString(result.status),
       maxUses: result.maxUses,
       useCount: result.useCount,
@@ -211,7 +227,8 @@ class TeamService {
       id: result.id,
       name: result.name,
       description: result.description,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(result.createdAt.toInt() * 1000),
       broadcastEnabled: result.broadcastEnabled,
       maxMembers: result.maxMembers,
       memberCount: result.memberCount,
@@ -237,16 +254,19 @@ class TeamService {
       teamId: teamId,
       limit: limit,
     );
-    return results.map((dto) => AuditEntry(
-      id: dto.id,
-      action: dto.action,
-      actorDeviceId: dto.actorDeviceId,
-      actorDisplayName: dto.actorDisplayName,
-      targetDeviceId: dto.targetDeviceId,
-      targetDisplayName: dto.targetDisplayName,
-      details: dto.details,
-      timestamp: DateTime.fromMillisecondsSinceEpoch(dto.timestamp.toInt() * 1000),
-    )).toList();
+    return results
+        .map((dto) => AuditEntry(
+              id: dto.id,
+              action: dto.action,
+              actorDeviceId: dto.actorDeviceId,
+              actorDisplayName: dto.actorDisplayName,
+              targetDeviceId: dto.targetDeviceId,
+              targetDisplayName: dto.targetDisplayName,
+              details: dto.details,
+              timestamp: DateTime.fromMillisecondsSinceEpoch(
+                  dto.timestamp.toInt() * 1000),
+            ))
+        .toList();
   }
 
   // ============================================================================
@@ -261,16 +281,19 @@ class TeamService {
   /// Get teams that have broadcast enabled
   static List<Team> getBroadcastEnabledTeams() {
     final results = api.getBroadcastEnabledTeams();
-    return results.map((dto) => Team(
-      id: dto.id,
-      name: dto.name,
-      description: dto.description,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(dto.createdAt.toInt() * 1000),
-      broadcastEnabled: dto.broadcastEnabled,
-      maxMembers: dto.maxMembers,
-      memberCount: dto.memberCount,
-      isAdmin: dto.isAdmin,
-    )).toList();
+    return results
+        .map((dto) => Team(
+              id: dto.id,
+              name: dto.name,
+              description: dto.description,
+              createdAt: DateTime.fromMillisecondsSinceEpoch(
+                  dto.createdAt.toInt() * 1000),
+              broadcastEnabled: dto.broadcastEnabled,
+              maxMembers: dto.maxMembers,
+              memberCount: dto.memberCount,
+              isAdmin: dto.isAdmin,
+            ))
+        .toList();
   }
 
   /// Get all device IDs in a team for broadcast

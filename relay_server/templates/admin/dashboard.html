@@ -129,6 +129,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <form action="/admin/cleanup/messages" method="POST" onsubmit="return confirm('Delete old queued messages?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">
                 Cleanup Old Messages
             </button>
@@ -136,6 +137,7 @@
         </form>
 
         <form action="/admin/cleanup/pairings" method="POST" onsubmit="return confirm('Delete expired pairing sessions?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">
                 Cleanup Expired Pairings
             </button>
@@ -143,6 +145,7 @@
         </form>
 
         <form action="/admin/cleanup/devices" method="POST" onsubmit="return confirm('Delete devices not seen in 30 days?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
                 Cleanup Stale Devices
             </button>

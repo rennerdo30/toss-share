@@ -63,6 +63,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
   void _showCreateTeamDialog(BuildContext context) {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
+    final parentContext = context;
 
     showDialog(
       context: context,
@@ -113,9 +114,11 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                       description: description.isEmpty ? null : description,
                     );
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Team created successfully')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(content: Text('Team created successfully')),
+                  );
+                }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Failed to create team: $e')),
@@ -126,11 +129,15 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      nameController.dispose();
+      descriptionController.dispose();
+    });
   }
 
   void _showJoinTeamDialog(BuildContext context) {
     final codeController = TextEditingController();
+    final parentContext = context;
 
     showDialog(
       context: context,
@@ -194,7 +201,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                 }
 
                 Navigator.pop(context);
-                _showConfirmJoinDialog(context, invitation);
+                _showConfirmJoinDialog(parentContext, invitation);
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error: $e')),
@@ -205,7 +212,9 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      codeController.dispose();
+    });
   }
 
   void _showConfirmJoinDialog(BuildContext context, TeamInvitation invitation) {
@@ -239,17 +248,23 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
           TextButton(
             onPressed: () {
               try {
-                ref.read(teamsProvider.notifier).acceptInvitation(invitation.code);
+                ref
+                    .read(teamsProvider.notifier)
+                    .acceptInvitation(invitation.code);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Joined ${invitation.teamName}'),
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Joined ${invitation.teamName}'),
+                    ),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
               }
             },
             child: const Text('Join'),
@@ -278,7 +293,9 @@ class _TeamCard extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          child: Text(team.name[0].toUpperCase()),
+          child: Text(
+            team.name.isNotEmpty ? team.name[0].toUpperCase() : '?',
+          ),
         ),
         title: Row(
           children: [

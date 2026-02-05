@@ -117,7 +117,8 @@ impl Database {
                 role TEXT NOT NULL DEFAULT 'member',
                 joined_at INTEGER NOT NULL,
                 PRIMARY KEY (team_id, device_id),
-                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+                FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
             )
             "#,
         )
@@ -584,9 +585,25 @@ impl Database {
         description: Option<&str>,
         broadcast_enabled: bool,
     ) -> Result<(), ApiError> {
+        if name.is_empty() {
+            return Err(ApiError::Internal("Team name cannot be empty".to_string()));
+        }
+        if name.len() > 100 {
+            return Err(ApiError::Internal(
+                "Team name too long (max 100 characters)".to_string(),
+            ));
+        }
+        if let Some(desc) = description {
+            if desc.len() > 500 {
+                return Err(ApiError::Internal(
+                    "Description too long (max 500 characters)".to_string(),
+                ));
+            }
+        }
+
         let now = Utc::now().timestamp();
 
-        sqlx::query(
+        let result = sqlx::query(
             r#"
             UPDATE teams
             SET name = ?, description = ?, broadcast_enabled = ?, updated_at = ?
@@ -600,6 +617,10 @@ impl Database {
         .bind(id)
         .execute(&self.pool)
         .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(ApiError::Internal("Team not found".to_string()));
+        }
 
         Ok(())
     }
@@ -623,29 +644,41 @@ impl Database {
         Ok(count.0)
     }
 
-    /// Add a member to a team
+    /// Add a member to a team (with transactional limit check)
     pub async fn add_team_member(
         &self,
         team_id: &str,
         device_id: &str,
         role: TeamRole,
     ) -> Result<(), ApiError> {
-        // Check max_members limit
-        let team = self
-            .get_team(team_id)
-            .await?
-            .ok_or_else(|| ApiError::Internal("Team not found".to_string()))?;
+        let now = Utc::now().timestamp();
+
+        let mut tx = self.pool.begin().await?;
+
+        // Check max_members limit within transaction
+        let team = sqlx::query_as::<_, Team>(
+            r#"
+            SELECT id, name, description, created_at, updated_at, broadcast_enabled, max_members
+            FROM teams WHERE id = ?
+            "#,
+        )
+        .bind(team_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| ApiError::Internal("Team not found".to_string()))?;
 
         if team.max_members > 0 {
-            let member_count = self.count_team_members(team_id).await?;
-            if member_count >= team.max_members {
+            let count: (i64,) =
+                sqlx::query_as("SELECT COUNT(*) FROM team_members WHERE team_id = ?")
+                    .bind(team_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            if count.0 >= team.max_members {
                 return Err(ApiError::Internal(
                     "Team has reached maximum member limit".to_string(),
                 ));
             }
         }
-
-        let now = Utc::now().timestamp();
 
         sqlx::query(
             r#"
@@ -657,8 +690,10 @@ impl Database {
         .bind(device_id)
         .bind(role.as_str())
         .bind(now)
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -780,5 +815,17 @@ impl Database {
         .await?;
 
         Ok(())
+    }
+
+    /// Cleanup old audit log entries older than the specified number of days
+    pub async fn cleanup_old_audit_entries(&self, days: i64) -> Result<u64, ApiError> {
+        let cutoff = Utc::now().timestamp() - (days * 24 * 60 * 60);
+
+        let result = sqlx::query("DELETE FROM team_audit_log WHERE created_at < ?")
+            .bind(cutoff)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected())
     }
 }

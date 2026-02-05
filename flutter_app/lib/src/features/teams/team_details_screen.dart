@@ -26,6 +26,7 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
   List<TeamInvitation> _invitations = [];
   List<AuditEntry> _auditLog = [];
   bool _isLoading = true;
+  bool _isLoadingInProgress = false;
 
   @override
   void initState() {
@@ -48,6 +49,8 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
   }
 
   void _loadData() {
+    if (_isLoadingInProgress) return;
+    _isLoadingInProgress = true;
     setState(() => _isLoading = true);
     try {
       final team = TeamService.getTeam(widget.teamId);
@@ -83,6 +86,8 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
           SnackBar(content: Text('Error loading team: $e')),
         );
       }
+    } finally {
+      _isLoadingInProgress = false;
     }
   }
 
@@ -234,10 +239,18 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
             ),
             TextButton(
               onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Team name cannot be empty')),
+                  );
+                  return;
+                }
                 try {
                   ref.read(teamsProvider.notifier).updateTeam(
                         teamId: widget.teamId,
-                        name: nameController.text.trim(),
+                        name: name,
                         description: descriptionController.text.trim().isEmpty
                             ? null
                             : descriptionController.text.trim(),
@@ -256,10 +269,14 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
           ],
         ),
       ),
-    );
+    ).then((_) {
+      nameController.dispose();
+      descriptionController.dispose();
+    });
   }
 
   void _showDeleteTeamDialog() {
+    final parentContext = context;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -278,11 +295,15 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
               try {
                 ref.read(teamsProvider.notifier).deleteTeam(widget.teamId);
                 Navigator.pop(context);
-                context.pop();
+                if (mounted) {
+                  parentContext.pop();
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -294,6 +315,7 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
   }
 
   void _showLeaveTeamDialog() {
+    final parentContext = context;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -309,11 +331,15 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
               try {
                 ref.read(teamsProvider.notifier).leaveTeam(widget.teamId);
                 Navigator.pop(context);
-                context.pop();
+                if (mounted) {
+                  parentContext.pop();
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
               }
             },
             child: const Text('Leave'),
@@ -531,30 +557,38 @@ class _MembersTab extends StatelessWidget {
             trailing: team.isAdmin
                 ? PopupMenuButton<String>(
                     onSelected: (value) async {
-                      switch (value) {
-                        case 'promote':
-                          TeamService.updateMemberRole(
-                            team.id,
-                            member.deviceId,
-                            TeamMemberRole.admin,
+                      try {
+                        switch (value) {
+                          case 'promote':
+                            TeamService.updateMemberRole(
+                              team.id,
+                              member.deviceId,
+                              TeamMemberRole.admin,
+                            );
+                            onRefresh();
+                            break;
+                          case 'demote':
+                            TeamService.updateMemberRole(
+                              team.id,
+                              member.deviceId,
+                              TeamMemberRole.member,
+                            );
+                            onRefresh();
+                            break;
+                          case 'remove':
+                            TeamService.removeTeamMember(
+                              team.id,
+                              member.deviceId,
+                            );
+                            onRefresh();
+                            break;
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
                           );
-                          onRefresh();
-                          break;
-                        case 'demote':
-                          TeamService.updateMemberRole(
-                            team.id,
-                            member.deviceId,
-                            TeamMemberRole.member,
-                          );
-                          onRefresh();
-                          break;
-                        case 'remove':
-                          TeamService.removeTeamMember(
-                            team.id,
-                            member.deviceId,
-                          );
-                          onRefresh();
-                          break;
+                        }
                       }
                     },
                     itemBuilder: (context) => [
@@ -626,7 +660,9 @@ class _InvitationsTab extends StatelessWidget {
                   ? Theme.of(context).colorScheme.primaryContainer
                   : Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Text(
-                invitation.code.substring(0, 2),
+                invitation.code.length >= 2
+                    ? invitation.code.substring(0, 2)
+                    : invitation.code,
                 style: TextStyle(
                   color: invitation.isValid
                       ? Theme.of(context).colorScheme.onPrimaryContainer
@@ -654,11 +690,19 @@ class _InvitationsTab extends StatelessWidget {
                     icon: const Icon(Icons.cancel),
                     tooltip: 'Revoke',
                     onPressed: () {
-                      TeamService.revokeTeamInvitation(
-                        teamId,
-                        invitation.id,
-                      );
-                      onRefresh();
+                      try {
+                        TeamService.revokeTeamInvitation(
+                          teamId,
+                          invitation.id,
+                        );
+                        onRefresh();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
                     },
                   )
                 : null,

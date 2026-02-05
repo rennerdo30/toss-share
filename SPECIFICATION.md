@@ -601,10 +601,135 @@ Sender                                      Receiver
 
 ---
 
-## 13. Future Considerations
+## 13. Team/Organization Support
+
+### 13.1 Overview
+
+Teams allow groups of devices to share clipboards collaboratively. Teams support role-based access control, invitation-based onboarding, and full audit logging.
+
+### 13.2 Team Schema
+
+```sql
+-- Teams
+CREATE TABLE teams (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    broadcast_enabled INTEGER DEFAULT 0,
+    max_members INTEGER DEFAULT 0  -- 0 = unlimited
+);
+
+-- Team members (composite PK)
+CREATE TABLE team_members (
+    team_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    role INTEGER NOT NULL DEFAULT 1,  -- 0=Admin, 1=Member
+    joined_at INTEGER NOT NULL,
+    invited_by TEXT,
+    PRIMARY KEY (team_id, device_id),
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
+-- Invitation codes
+CREATE TABLE team_invitations (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    max_uses INTEGER DEFAULT 0,  -- 0 = unlimited
+    use_count INTEGER DEFAULT 0,
+    status INTEGER DEFAULT 0,    -- 0=Pending, 1=Accepted, 2=Expired, 3=Revoked
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+);
+
+-- Audit log
+CREATE TABLE team_audit_log (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    actor_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    details TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+);
+```
+
+### 13.3 Roles
+
+| Role | Code | Permissions |
+|------|------|-------------|
+| Admin | 0 | Create/delete team, manage members, create invitations, update settings |
+| Member | 1 | View team, leave team |
+
+### 13.4 Invitation Codes
+
+- Format: 6-character alphanumeric (A-Z, 2-9), ~1 billion combinations
+- Configurable expiration (hours) and max uses
+- Statuses: Pending, Accepted, Expired, Revoked
+- Atomic acceptance with race condition protection via transactions
+
+### 13.5 Audit Actions
+
+All team mutations are recorded in the audit log:
+- `team_created`, `team_updated`, `team_deleted`
+- `member_added`, `member_removed`, `member_role_changed`, `member_left`
+- `invitation_created`, `invitation_accepted`, `invitation_revoked`
+
+### 13.6 Admin Dashboard
+
+The relay server admin dashboard provides team management:
+- View all teams with member counts
+- Team details with members, invitations, and audit logs
+- Delete teams and remove members
+- All POST actions protected by CSRF tokens
+
+---
+
+## 14. Compression
+
+### 14.1 Overview
+
+Clipboard content is compressed before encryption to reduce transfer sizes. Uses zstd compression with configurable thresholds.
+
+### 14.2 Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `compression_enabled` | true | Enable/disable compression |
+| `compression_threshold` | 1 KB | Minimum size to compress |
+| `compression_level` | 3 | zstd compression level (1-22) |
+
+### 14.3 Behavior
+
+- Content below the threshold is sent uncompressed
+- Incompressible data (already compressed images, encrypted data) is detected and sent raw
+- A compression flag in the frame header indicates whether the payload is compressed
+- Decompression is transparent to the receiver
+
+---
+
+## 15. Browser Extension
+
+### 15.1 Overview
+
+Browser extension for Chrome/Firefox that integrates with the Toss relay server for clipboard sync directly from the browser.
+
+### 15.2 Features
+
+- Copy text from browser to all paired devices
+- Receive clipboard content from devices into browser
+- Secure communication via relay server WebSocket
+- Works across Chrome and Firefox
+
+---
+
+## 16. Future Considerations
 
 - Selective sync (choose devices)
-- Team/Organization support
-- Browser extension
 - Conflict resolution
-- Compression for large content

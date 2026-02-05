@@ -156,7 +156,8 @@ impl Storage {
                 joined_at INTEGER NOT NULL,
                 invited_by TEXT,
                 PRIMARY KEY (team_id, device_id),
-                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+                FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
             )
             "#,
             [],
@@ -196,6 +197,15 @@ impl Storage {
             r#"
             CREATE INDEX IF NOT EXISTS idx_team_invitations_code
             ON team_invitations(code)
+            "#,
+            [],
+        )?;
+
+        // Create index on team_invitations for cleanup queries
+        conn.execute(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_team_invitations_cleanup
+            ON team_invitations(status, expires_at)
             "#,
             [],
         )?;

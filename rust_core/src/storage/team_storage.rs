@@ -325,8 +325,7 @@ impl<'a> TeamStorage<'a> {
                     max_members: row.get(6)?,
                 })
             })?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(teams)
     }
@@ -420,6 +419,18 @@ impl<'a> TeamStorage<'a> {
         member: &StoredTeamMember,
     ) -> SqliteResult<()> {
         self.with_transaction(|conn| {
+            // Check if already a member within transaction to prevent TOCTOU
+            let already_member: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM team_members WHERE team_id = ? AND device_id = ?",
+                [team_id, &member.device_id],
+                |row| row.get(0),
+            )?;
+            if already_member > 0 {
+                return Err(rusqlite::Error::InvalidParameterName(
+                    "Already a member".to_string(),
+                ));
+            }
+
             // Re-check member count within transaction
             if max_members > 0 {
                 let count: i64 = conn.query_row(
@@ -428,7 +439,9 @@ impl<'a> TeamStorage<'a> {
                     |row| row.get(0),
                 )?;
                 if count as u32 >= max_members {
-                    return Err(rusqlite::Error::QueryReturnedNoRows); // Signal limit exceeded
+                    return Err(rusqlite::Error::InvalidParameterName(
+                        "Member limit exceeded".to_string(),
+                    ));
                 }
             }
 
@@ -440,7 +453,9 @@ impl<'a> TeamStorage<'a> {
                     |row| row.get(0),
                 )?;
                 if use_count as u32 >= max_uses {
-                    return Err(rusqlite::Error::QueryReturnedNoRows); // Signal limit exceeded
+                    return Err(rusqlite::Error::InvalidParameterName(
+                        "Invitation use limit exceeded".to_string(),
+                    ));
                 }
             }
 
@@ -615,8 +630,7 @@ impl<'a> TeamStorage<'a> {
                     invited_by: row.get(5)?,
                 })
             })?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(members)
     }
@@ -816,8 +830,7 @@ impl<'a> TeamStorage<'a> {
                     use_count: row.get(9)?,
                 })
             })?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(invitations)
     }
@@ -937,8 +950,7 @@ impl<'a> TeamStorage<'a> {
                     timestamp: row.get::<_, i64>(6)? as u64,
                 })
             })?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(entries)
     }
@@ -961,6 +973,7 @@ impl<'a> TeamStorage<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::storage::device_storage::StoredDevice;
     use crate::storage::Storage;
     use tempfile::TempDir;
 
@@ -976,6 +989,24 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs()
+    }
+
+    /// Create a test device record to satisfy FK constraints on team_members.device_id
+    fn create_test_device(storage: &Storage, device_id: &str) {
+        storage
+            .devices()
+            .store_device(&StoredDevice {
+                id: device_id.to_string(),
+                name: device_id.to_string(),
+                public_key: vec![0u8; 32],
+                session_key: None,
+                last_seen: None,
+                created_at: current_timestamp(),
+                is_active: true,
+                platform: Some("test".to_string()),
+                sync_enabled: true,
+            })
+            .unwrap();
     }
 
     #[test]
@@ -1006,6 +1037,10 @@ mod tests {
     fn test_team_membership() {
         let (_temp_dir, storage) = setup_storage();
         let teams = storage.teams();
+
+        // Create test devices to satisfy FK constraints
+        create_test_device(&storage, "device-admin");
+        create_test_device(&storage, "device-member");
 
         // Create team
         let team = StoredTeam {
@@ -1158,6 +1193,9 @@ mod tests {
         let (_temp_dir, storage) = setup_storage();
         let teams = storage.teams();
 
+        // Create test device to satisfy FK constraints
+        create_test_device(&storage, "device-1");
+
         // Create teams
         for i in 1..=3 {
             let team = StoredTeam {
@@ -1190,6 +1228,9 @@ mod tests {
     fn test_delete_team_cascade() {
         let (_temp_dir, storage) = setup_storage();
         let teams = storage.teams();
+
+        // Create test device to satisfy FK constraints
+        create_test_device(&storage, "device-1");
 
         // Create team with members, invitations, and audit log
         let team = StoredTeam {
@@ -1245,5 +1286,302 @@ mod tests {
         assert_eq!(teams.get_team_members("team-delete").unwrap().len(), 0);
         assert_eq!(teams.get_team_invitations("team-delete").unwrap().len(), 0);
         assert_eq!(teams.get_audit_log("team-delete", None).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_full_team_workflow() {
+        let (_temp_dir, storage) = setup_storage();
+        let teams = storage.teams();
+
+        // Create test devices
+        create_test_device(&storage, "creator");
+        create_test_device(&storage, "joiner");
+
+        // Step 1: Create team
+        let team = StoredTeam {
+            id: "wf-team".to_string(),
+            name: "Workflow Test".to_string(),
+            description: Some("Integration test".to_string()),
+            created_at: current_timestamp(),
+            updated_at: current_timestamp(),
+            broadcast_enabled: false,
+            max_members: 5,
+        };
+        teams.create_team(&team).unwrap();
+        assert!(teams.get_team("wf-team").unwrap().is_some());
+
+        // Step 2: Add creator as admin
+        let admin = StoredTeamMember {
+            team_id: "wf-team".to_string(),
+            device_id: "creator".to_string(),
+            display_name: "Creator".to_string(),
+            role: TeamRole::Admin,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        teams.add_member(&admin).unwrap();
+        assert!(teams.is_admin("wf-team", "creator").unwrap());
+        assert_eq!(teams.count_members("wf-team").unwrap(), 1);
+
+        // Step 3: Create invitation
+        let invitation = StoredTeamInvitation {
+            id: "wf-inv".to_string(),
+            team_id: "wf-team".to_string(),
+            code: "WFTEST".to_string(),
+            role: TeamRole::Member,
+            created_by: "creator".to_string(),
+            created_at: current_timestamp(),
+            expires_at: current_timestamp() + 86400,
+            status: InvitationStatus::Pending,
+            max_uses: 1,
+            use_count: 0,
+        };
+        teams.create_invitation(&invitation).unwrap();
+
+        // Step 4: Accept invitation (atomic)
+        let new_member = StoredTeamMember {
+            team_id: "wf-team".to_string(),
+            device_id: "joiner".to_string(),
+            display_name: "Joiner".to_string(),
+            role: TeamRole::Member,
+            joined_at: current_timestamp(),
+            invited_by: Some("creator".to_string()),
+        };
+        teams
+            .accept_invitation_atomic("wf-inv", "wf-team", 5, 1, &new_member)
+            .unwrap();
+
+        // Verify member was added
+        assert_eq!(teams.count_members("wf-team").unwrap(), 2);
+        assert!(!teams.is_admin("wf-team", "joiner").unwrap());
+
+        // Verify invitation was accepted
+        let inv = teams.get_invitation_by_code("WFTEST").unwrap().unwrap();
+        assert_eq!(inv.status, InvitationStatus::Accepted);
+        assert_eq!(inv.use_count, 1);
+
+        // Step 5: Remove member
+        teams.remove_member("wf-team", "joiner").unwrap();
+        assert_eq!(teams.count_members("wf-team").unwrap(), 1);
+
+        // Step 6: Delete team
+        teams.delete_team("wf-team").unwrap();
+        assert!(teams.get_team("wf-team").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_accept_invitation_already_member() {
+        let (_temp_dir, storage) = setup_storage();
+        let teams = storage.teams();
+
+        create_test_device(&storage, "dev-1");
+
+        let team = StoredTeam {
+            id: "dup-team".to_string(),
+            name: "Dup Test".to_string(),
+            description: None,
+            created_at: current_timestamp(),
+            updated_at: current_timestamp(),
+            broadcast_enabled: false,
+            max_members: 0,
+        };
+        teams.create_team(&team).unwrap();
+
+        let member = StoredTeamMember {
+            team_id: "dup-team".to_string(),
+            device_id: "dev-1".to_string(),
+            display_name: "Device 1".to_string(),
+            role: TeamRole::Admin,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        teams.add_member(&member).unwrap();
+
+        let invitation = StoredTeamInvitation {
+            id: "dup-inv".to_string(),
+            team_id: "dup-team".to_string(),
+            code: "DUP123".to_string(),
+            role: TeamRole::Member,
+            created_by: "dev-1".to_string(),
+            created_at: current_timestamp(),
+            expires_at: current_timestamp() + 86400,
+            status: InvitationStatus::Pending,
+            max_uses: 1,
+            use_count: 0,
+        };
+        teams.create_invitation(&invitation).unwrap();
+
+        // Try to accept as already-member — should fail
+        let dup_member = StoredTeamMember {
+            team_id: "dup-team".to_string(),
+            device_id: "dev-1".to_string(),
+            display_name: "Device 1".to_string(),
+            role: TeamRole::Member,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        let result = teams.accept_invitation_atomic("dup-inv", "dup-team", 0, 1, &dup_member);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_accept_invitation_max_members_exceeded() {
+        let (_temp_dir, storage) = setup_storage();
+        let teams = storage.teams();
+
+        create_test_device(&storage, "admin-dev");
+        create_test_device(&storage, "extra-dev");
+
+        let team = StoredTeam {
+            id: "max-team".to_string(),
+            name: "Max Test".to_string(),
+            description: None,
+            created_at: current_timestamp(),
+            updated_at: current_timestamp(),
+            broadcast_enabled: false,
+            max_members: 1,
+        };
+        teams.create_team(&team).unwrap();
+
+        let admin = StoredTeamMember {
+            team_id: "max-team".to_string(),
+            device_id: "admin-dev".to_string(),
+            display_name: "Admin".to_string(),
+            role: TeamRole::Admin,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        teams.add_member(&admin).unwrap();
+
+        let invitation = StoredTeamInvitation {
+            id: "max-inv".to_string(),
+            team_id: "max-team".to_string(),
+            code: "MAX123".to_string(),
+            role: TeamRole::Member,
+            created_by: "admin-dev".to_string(),
+            created_at: current_timestamp(),
+            expires_at: current_timestamp() + 86400,
+            status: InvitationStatus::Pending,
+            max_uses: 1,
+            use_count: 0,
+        };
+        teams.create_invitation(&invitation).unwrap();
+
+        // Team has 1 member and max_members is 1 — should fail
+        let new_member = StoredTeamMember {
+            team_id: "max-team".to_string(),
+            device_id: "extra-dev".to_string(),
+            display_name: "Extra".to_string(),
+            role: TeamRole::Member,
+            joined_at: current_timestamp(),
+            invited_by: Some("admin-dev".to_string()),
+        };
+        let result = teams.accept_invitation_atomic("max-inv", "max-team", 1, 1, &new_member);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_accept_invitation_max_uses_exceeded() {
+        let (_temp_dir, storage) = setup_storage();
+        let teams = storage.teams();
+
+        create_test_device(&storage, "use-admin");
+        create_test_device(&storage, "use-dev");
+
+        let team = StoredTeam {
+            id: "use-team".to_string(),
+            name: "Uses Test".to_string(),
+            description: None,
+            created_at: current_timestamp(),
+            updated_at: current_timestamp(),
+            broadcast_enabled: false,
+            max_members: 0,
+        };
+        teams.create_team(&team).unwrap();
+
+        let admin = StoredTeamMember {
+            team_id: "use-team".to_string(),
+            device_id: "use-admin".to_string(),
+            display_name: "Admin".to_string(),
+            role: TeamRole::Admin,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        teams.add_member(&admin).unwrap();
+
+        // Create invitation with use_count already at max
+        let invitation = StoredTeamInvitation {
+            id: "use-inv".to_string(),
+            team_id: "use-team".to_string(),
+            code: "USE123".to_string(),
+            role: TeamRole::Member,
+            created_by: "use-admin".to_string(),
+            created_at: current_timestamp(),
+            expires_at: current_timestamp() + 86400,
+            status: InvitationStatus::Pending,
+            max_uses: 1,
+            use_count: 1, // Already used
+        };
+        teams.create_invitation(&invitation).unwrap();
+
+        let new_member = StoredTeamMember {
+            team_id: "use-team".to_string(),
+            device_id: "use-dev".to_string(),
+            display_name: "New Dev".to_string(),
+            role: TeamRole::Member,
+            joined_at: current_timestamp(),
+            invited_by: Some("use-admin".to_string()),
+        };
+        let result = teams.accept_invitation_atomic("use-inv", "use-team", 0, 1, &new_member);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_device_deletion_cascades_to_team_members() {
+        let (_temp_dir, storage) = setup_storage();
+        let teams = storage.teams();
+
+        create_test_device(&storage, "cascade-admin");
+        create_test_device(&storage, "cascade-member");
+
+        let team = StoredTeam {
+            id: "cascade-team".to_string(),
+            name: "Cascade Test".to_string(),
+            description: None,
+            created_at: current_timestamp(),
+            updated_at: current_timestamp(),
+            broadcast_enabled: false,
+            max_members: 0,
+        };
+        teams.create_team(&team).unwrap();
+
+        let admin = StoredTeamMember {
+            team_id: "cascade-team".to_string(),
+            device_id: "cascade-admin".to_string(),
+            display_name: "Admin".to_string(),
+            role: TeamRole::Admin,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        teams.add_member(&admin).unwrap();
+
+        let member = StoredTeamMember {
+            team_id: "cascade-team".to_string(),
+            device_id: "cascade-member".to_string(),
+            display_name: "Member".to_string(),
+            role: TeamRole::Member,
+            joined_at: current_timestamp(),
+            invited_by: None,
+        };
+        teams.add_member(&member).unwrap();
+
+        assert_eq!(teams.count_members("cascade-team").unwrap(), 2);
+
+        // Hard-delete the member device — FK CASCADE should remove team membership
+        // Note: remove_device() is a soft delete (sets is_active=0), which won't trigger CASCADE.
+        // delete_device() does a real DELETE, which triggers ON DELETE CASCADE.
+        storage.devices().delete_device("cascade-member").unwrap();
+
+        assert_eq!(teams.count_members("cascade-team").unwrap(), 1);
     }
 }
