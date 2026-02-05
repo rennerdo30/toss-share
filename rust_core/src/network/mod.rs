@@ -32,7 +32,9 @@ pub use nat_traversal::{
     gather_candidates, IceCandidate, StunClient, StunConfig, TurnClient, TurnConfig,
 };
 pub use relay_client::RelayClient;
-pub use transport::{PeerConnection, QuicTransport};
+pub use transport::{
+    PeerConnection, QuicTransport, RotationReason, ROTATION_MAX_AGE_SECS, ROTATION_MAX_MESSAGES,
+};
 pub use websocket_transport::{WebSocketPeerConnection, WebSocketTransport};
 
 /// Network configuration
@@ -255,8 +257,12 @@ impl NetworkManager {
             .collect()
     }
 
-    /// Rotate session key for a peer
-    async fn rotate_session_key(&self, device_id: &[u8; 32]) -> Result<(), NetworkError> {
+    /// Rotate session key for a peer with a specified reason
+    async fn rotate_session_key_with_reason(
+        &self,
+        device_id: &[u8; 32],
+        reason: KeyRotationReason,
+    ) -> Result<(), NetworkError> {
         // Generate new ephemeral key pair
         let new_ephemeral = EphemeralKeyPair::generate();
         let new_public_key = *new_ephemeral.public_key_bytes();
@@ -285,19 +291,20 @@ impl NetworkManager {
         // Sign the new public key with identity key
         let signature = self.identity.sign(&new_public_key);
 
-        // Create KeyRotation message
+        // Create KeyRotation message with the specified reason
         let rotation = KeyRotation {
             new_public_key,
             signature,
-            reason: KeyRotationReason::Scheduled,
+            reason,
         };
 
-        // Send rotation message
+        // Send rotation message (uses OLD session key - rotation message is encrypted with current key)
+        // This ensures the receiving side can decrypt it before both sides switch to new key
         let rotation_message = Message::KeyRotation(rotation);
         self.send_to_peer_internal(device_id, &rotation_message)
             .await?;
 
-        // Update session key in connection
+        // Update session key in connection AFTER sending rotation message
         // Get connection pointer first, then drop the lock before await
         let conn_ptr: Option<*const PeerConnection> = {
             let peers = self.peers.read();
@@ -327,11 +334,14 @@ impl NetworkManager {
             );
         }
 
-        // Store the ephemeral secret for this rotation
-        // Note: In a full implementation, we'd store this securely
-        // For now, we regenerate when handling incoming rotations
-
         Ok(())
+    }
+
+    /// Rotate session key for a peer (uses Scheduled reason by default)
+    #[allow(dead_code)]
+    async fn rotate_session_key(&self, device_id: &[u8; 32]) -> Result<(), NetworkError> {
+        self.rotate_session_key_with_reason(device_id, KeyRotationReason::Scheduled)
+            .await
     }
 
     /// Handle incoming KeyRotation message
@@ -471,18 +481,31 @@ impl NetworkManager {
                 .map(|conn| conn as *const PeerConnection)
         };
 
-        let needs_rotation = if let Some(ptr) = conn_ptr {
+        let rotation_reason = if let Some(ptr) = conn_ptr {
             // SAFETY: We're only reading from the connection, not modifying it
             // The connection is owned by the peers HashMap which is behind a RwLock
             let conn = unsafe { &*ptr };
-            conn.should_rotate_key().await
+            conn.rotation_reason().await
         } else {
-            false
+            RotationReason::None
         };
 
-        if needs_rotation {
-            // Rotate key first
-            if let Err(e) = self.rotate_session_key(device_id).await {
+        if rotation_reason != RotationReason::None {
+            // Rotate key first, with appropriate reason
+            let protocol_reason = match rotation_reason {
+                RotationReason::MessageCount => KeyRotationReason::MessageCountExceeded,
+                RotationReason::TimeElapsed => KeyRotationReason::Scheduled,
+                RotationReason::None => unreachable!(),
+            };
+            tracing::info!(
+                "Rotating session key for device {}: {:?}",
+                hex::encode(device_id),
+                rotation_reason
+            );
+            if let Err(e) = self
+                .rotate_session_key_with_reason(device_id, protocol_reason)
+                .await
+            {
                 tracing::warn!("Failed to rotate key: {}, continuing with old key", e);
             }
         }

@@ -85,6 +85,21 @@ impl QuicTransport {
     }
 }
 
+/// Constants for session key rotation thresholds
+pub const ROTATION_MAX_MESSAGES: u64 = 1000;
+pub const ROTATION_MAX_AGE_SECS: u64 = 24 * 60 * 60; // 24 hours
+
+/// Reason why rotation is needed
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RotationReason {
+    /// No rotation needed
+    None,
+    /// Message count threshold exceeded
+    MessageCount,
+    /// Time threshold exceeded
+    TimeElapsed,
+}
+
 /// Session tracking for key rotation
 struct SessionTracker {
     created_at: SystemTime,
@@ -104,25 +119,40 @@ impl SessionTracker {
     }
 
     fn should_rotate(&self) -> bool {
-        const MAX_MESSAGES: u64 = 1000;
-        const MAX_AGE_SECS: u64 = 24 * 60 * 60; // 24 hours
+        self.rotation_reason() != RotationReason::None
+    }
 
-        if self.message_count >= MAX_MESSAGES {
-            return true;
+    /// Returns the reason rotation is needed, or None if not needed
+    fn rotation_reason(&self) -> RotationReason {
+        if self.message_count >= ROTATION_MAX_MESSAGES {
+            return RotationReason::MessageCount;
         }
 
         if let Ok(age) = SystemTime::now().duration_since(self.created_at) {
-            if age.as_secs() >= MAX_AGE_SECS {
-                return true;
+            if age.as_secs() >= ROTATION_MAX_AGE_SECS {
+                return RotationReason::TimeElapsed;
             }
         }
 
-        false
+        RotationReason::None
     }
 
     fn reset(&mut self) {
         self.created_at = SystemTime::now();
         self.message_count = 0;
+    }
+
+    /// Get current message count (for testing/monitoring)
+    fn message_count(&self) -> u64 {
+        self.message_count
+    }
+
+    /// Get session age in seconds (for testing/monitoring)
+    fn age_secs(&self) -> u64 {
+        SystemTime::now()
+            .duration_since(self.created_at)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
     }
 }
 
@@ -262,6 +292,24 @@ impl PeerConnection {
         tracker.should_rotate()
     }
 
+    /// Get the reason for rotation (if any)
+    pub async fn rotation_reason(&self) -> RotationReason {
+        let tracker = self.session_tracker.lock().await;
+        tracker.rotation_reason()
+    }
+
+    /// Get current session message count (for monitoring/testing)
+    pub async fn session_message_count(&self) -> u64 {
+        let tracker = self.session_tracker.lock().await;
+        tracker.message_count()
+    }
+
+    /// Get session age in seconds (for monitoring/testing)
+    pub async fn session_age_secs(&self) -> u64 {
+        let tracker = self.session_tracker.lock().await;
+        tracker.age_secs()
+    }
+
     /// Reset session tracker after rotation
     pub async fn reset_session_tracker(&self) {
         let mut tracker = self.session_tracker.lock().await;
@@ -281,7 +329,16 @@ impl PeerConnection {
             .decrypt(key)
             .map_err(|e| NetworkError::Transport(e.to_string()))?;
 
-        Message::deserialize(&header, &payload).map_err(|e| NetworkError::Transport(e.to_string()))
+        let message = Message::deserialize(&header, &payload)
+            .map_err(|e| NetworkError::Transport(e.to_string()))?;
+
+        // Increment message count for received messages (only for non-rotation messages)
+        if !matches!(message, Message::KeyRotation(_)) {
+            let mut tracker = self.session_tracker.lock().await;
+            tracker.increment_message_count();
+        }
+
+        Ok(message)
     }
 
     /// Close the connection
@@ -405,5 +462,151 @@ mod tests {
 
         let transport = transport.unwrap();
         assert_ne!(transport.local_addr().port(), 0);
+    }
+
+    // Session Tracker Tests
+
+    #[test]
+    fn test_session_tracker_new() {
+        let tracker = SessionTracker::new();
+        assert_eq!(tracker.message_count(), 0);
+        assert!(!tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::None);
+    }
+
+    #[test]
+    fn test_session_tracker_increment_message_count() {
+        let mut tracker = SessionTracker::new();
+        assert_eq!(tracker.message_count(), 0);
+
+        tracker.increment_message_count();
+        assert_eq!(tracker.message_count(), 1);
+
+        for _ in 0..99 {
+            tracker.increment_message_count();
+        }
+        assert_eq!(tracker.message_count(), 100);
+    }
+
+    #[test]
+    fn test_session_tracker_rotation_at_message_threshold() {
+        let mut tracker = SessionTracker::new();
+
+        // Should not rotate before threshold
+        for _ in 0..(ROTATION_MAX_MESSAGES - 1) {
+            tracker.increment_message_count();
+            assert!(!tracker.should_rotate());
+            assert_eq!(tracker.rotation_reason(), RotationReason::None);
+        }
+
+        // Should rotate at threshold
+        tracker.increment_message_count();
+        assert!(tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::MessageCount);
+        assert_eq!(tracker.message_count(), ROTATION_MAX_MESSAGES);
+    }
+
+    #[test]
+    fn test_session_tracker_rotation_above_message_threshold() {
+        let mut tracker = SessionTracker::new();
+
+        // Set message count above threshold
+        for _ in 0..(ROTATION_MAX_MESSAGES + 100) {
+            tracker.increment_message_count();
+        }
+
+        assert!(tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::MessageCount);
+    }
+
+    #[test]
+    fn test_session_tracker_reset() {
+        let mut tracker = SessionTracker::new();
+
+        // Add some messages
+        for _ in 0..500 {
+            tracker.increment_message_count();
+        }
+        assert_eq!(tracker.message_count(), 500);
+
+        // Reset the tracker
+        tracker.reset();
+        assert_eq!(tracker.message_count(), 0);
+        assert!(!tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::None);
+    }
+
+    #[test]
+    fn test_session_tracker_age_starts_at_zero() {
+        let tracker = SessionTracker::new();
+        // Age should be very close to 0 (within 1 second)
+        assert!(tracker.age_secs() < 2);
+    }
+
+    #[test]
+    fn test_rotation_reason_enum() {
+        // Test enum values for equality
+        assert_eq!(RotationReason::None, RotationReason::None);
+        assert_eq!(RotationReason::MessageCount, RotationReason::MessageCount);
+        assert_eq!(RotationReason::TimeElapsed, RotationReason::TimeElapsed);
+
+        assert_ne!(RotationReason::None, RotationReason::MessageCount);
+        assert_ne!(RotationReason::MessageCount, RotationReason::TimeElapsed);
+    }
+
+    #[test]
+    fn test_rotation_constants() {
+        // Verify constants match SPECIFICATION.md section 3.5
+        assert_eq!(ROTATION_MAX_MESSAGES, 1000);
+        assert_eq!(ROTATION_MAX_AGE_SECS, 24 * 60 * 60); // 86400 seconds = 24 hours
+    }
+
+    #[test]
+    fn test_session_tracker_time_rotation() {
+        // Create a tracker with a past timestamp to simulate time elapsed
+        let mut tracker = SessionTracker {
+            created_at: SystemTime::now()
+                .checked_sub(Duration::from_secs(ROTATION_MAX_AGE_SECS + 1))
+                .unwrap(),
+            message_count: 0,
+        };
+
+        assert!(tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::TimeElapsed);
+
+        // Reset should fix the time-based rotation
+        tracker.reset();
+        assert!(!tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::None);
+    }
+
+    #[test]
+    fn test_session_tracker_message_rotation_takes_precedence() {
+        // When both thresholds are exceeded, message count takes precedence
+        // (because it's checked first in rotation_reason())
+        let tracker = SessionTracker {
+            created_at: SystemTime::now()
+                .checked_sub(Duration::from_secs(ROTATION_MAX_AGE_SECS + 1))
+                .unwrap(),
+            message_count: ROTATION_MAX_MESSAGES,
+        };
+
+        assert!(tracker.should_rotate());
+        // Message count is checked first, so it takes precedence
+        assert_eq!(tracker.rotation_reason(), RotationReason::MessageCount);
+    }
+
+    #[test]
+    fn test_session_tracker_just_under_thresholds() {
+        // Test boundary conditions - just under thresholds should NOT trigger rotation
+        let tracker = SessionTracker {
+            created_at: SystemTime::now()
+                .checked_sub(Duration::from_secs(ROTATION_MAX_AGE_SECS - 1))
+                .unwrap(),
+            message_count: ROTATION_MAX_MESSAGES - 1,
+        };
+
+        assert!(!tracker.should_rotate());
+        assert_eq!(tracker.rotation_reason(), RotationReason::None);
     }
 }
