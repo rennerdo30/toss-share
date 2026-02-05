@@ -22,6 +22,30 @@ use crate::network::{
 use crate::protocol::{ClipboardContent, ClipboardUpdate, ContentType, Message};
 use crate::storage::{Storage, StoredDevice};
 
+/// Get current unix timestamp in seconds.
+/// Returns 0 if system time is before UNIX_EPOCH (should never happen on properly configured systems).
+fn current_unix_timestamp_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or_else(|e| {
+            tracing::error!("System time before UNIX_EPOCH: {}", e);
+            0
+        })
+}
+
+/// Get current unix timestamp in milliseconds.
+/// Returns 0 if system time is before UNIX_EPOCH (should never happen on properly configured systems).
+fn current_unix_timestamp_millis() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_else(|e| {
+            tracing::error!("System time before UNIX_EPOCH: {}", e);
+            0
+        })
+}
+
 /// Global Toss instance
 static TOSS_INSTANCE: RwLock<Option<TossCore>> = RwLock::new(None);
 
@@ -343,10 +367,7 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
         public_key,
         session_key: encrypted_session_key,
         last_seen: None,
-        created_at: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
+        created_at: current_unix_timestamp_secs(),
         is_active: true,
         platform: Some(format!("{:?}", crate::protocol::Platform::current()).to_lowercase()),
     };
@@ -413,10 +434,7 @@ pub fn complete_pairing_code(
         public_key: peer_key.to_vec(),
         session_key: encrypted_session_key,
         last_seen: None,
-        created_at: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
+        created_at: current_unix_timestamp_secs(),
         is_active: true,
         platform: Some(format!("{:?}", crate::protocol::Platform::current()).to_lowercase()),
     };
@@ -562,10 +580,7 @@ pub fn complete_manual_pairing(
         public_key: peer_key.to_vec(),
         session_key: encrypted_session_key,
         last_seen: None,
-        created_at: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
+        created_at: current_unix_timestamp_secs(),
         is_active: true,
         platform: Some("unknown".to_string()), // Platform not available from pairing info
     };
@@ -735,10 +750,7 @@ pub fn get_current_clipboard() -> Option<ClipboardItemDto> {
         },
         preview: content.as_text().unwrap_or_default(),
         size_bytes: content.metadata.size_bytes,
-        timestamp: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64,
+        timestamp: current_unix_timestamp_millis(),
         source_device: None,
     })
 }
@@ -750,7 +762,10 @@ pub async fn send_clipboard() -> Result<(), String> {
     {
         let guard = TOSS_INSTANCE.read();
         if let Some(core) = guard.as_ref() {
-            let last_sync = core.last_sync_time.lock().unwrap();
+            let last_sync = core
+                .last_sync_time
+                .lock()
+                .expect("last_sync_time mutex poisoned - this is a bug");
             let elapsed = last_sync.elapsed();
             if elapsed.as_millis() < 100 {
                 return Err(format!(
@@ -822,10 +837,7 @@ pub async fn send_clipboard() -> Result<(), String> {
                                 format!("{} bytes", content.metadata.size_bytes)
                             }),
                             source_device: None, // Local clipboard
-                            created_at: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs(),
+                            created_at: current_unix_timestamp_secs(),
                         };
                         (
                             Some(history_item),
@@ -1107,7 +1119,9 @@ pub fn poll_event() -> Option<TossEvent> {
 
     if let Some(ref receiver_arc) = core.event_receiver {
         // Try to receive an event (non-blocking)
-        let mut receiver = receiver_arc.lock().unwrap();
+        let mut receiver = receiver_arc
+            .lock()
+            .expect("event_receiver mutex poisoned - this is a bug");
         match receiver.try_recv() {
             Ok(NetworkEvent::PeerConnected {
                 device_id,
@@ -1263,11 +1277,7 @@ pub fn poll_event() -> Option<TossEvent> {
                                                         )
                                                     }),
                                                 size_bytes: update.content.metadata.size_bytes,
-                                                timestamp: std::time::SystemTime::now()
-                                                    .duration_since(std::time::UNIX_EPOCH)
-                                                    .unwrap()
-                                                    .as_millis()
-                                                    as u64,
+                                                timestamp: current_unix_timestamp_millis(),
                                                 source_device: Some(hex::encode(from_device_id)),
                                             },
                                         });
@@ -1302,10 +1312,7 @@ pub fn poll_event() -> Option<TossEvent> {
                                                     )
                                                 }),
                                             source_device: Some(hex::encode(from_device_id)),
-                                            created_at: std::time::SystemTime::now()
-                                                .duration_since(std::time::UNIX_EPOCH)
-                                                .unwrap()
-                                                .as_secs(),
+                                            created_at: current_unix_timestamp_secs(),
                                         };
                                         if let Err(e) =
                                             core.storage.history().store_item(&history_item)
@@ -1336,10 +1343,7 @@ pub fn poll_event() -> Option<TossEvent> {
                                 || format!("{} bytes", update.content.metadata.size_bytes),
                             ),
                             size_bytes: update.content.metadata.size_bytes,
-                            timestamp: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap()
-                                .as_millis() as u64,
+                            timestamp: current_unix_timestamp_millis(),
                             source_device: Some(hex::encode(from_device_id)),
                         },
                     })

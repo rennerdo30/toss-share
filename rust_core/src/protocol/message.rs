@@ -300,15 +300,24 @@ fn generate_message_id() -> u64 {
     // Use UUID v4 and take first 8 bytes as u64
     let uuid = Uuid::new_v4();
     let bytes = uuid.as_bytes();
-    u64::from_le_bytes(bytes[0..8].try_into().unwrap())
+    // UUID v4 always returns 16 bytes, so taking first 8 is always valid
+    u64::from_le_bytes(
+        bytes[0..8]
+            .try_into()
+            .expect("UUID always provides 16 bytes"),
+    )
 }
 
 /// Get current timestamp in milliseconds
+/// Returns 0 if system time is before UNIX_EPOCH (should never happen on properly configured systems)
 fn current_timestamp_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as u64
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_else(|e| {
+            tracing::error!("System time before UNIX_EPOCH: {}", e);
+            0
+        })
 }
 
 #[cfg(test)]

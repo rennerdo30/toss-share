@@ -411,7 +411,7 @@ impl SecureStorage for LinuxSecretStorage {
                     rt.block_on(async { self.store_async(key, value).await })
                 })
                 .join()
-                .unwrap()
+                .expect("storage thread panicked - this is a bug")
             })
         } else {
             // Create a new runtime for this operation
@@ -773,18 +773,27 @@ impl MemoryStorage {
 
 impl SecureStorage for MemoryStorage {
     fn store(&self, key: &str, value: &[u8]) -> Result<(), CryptoError> {
-        let mut data = self.data.lock().unwrap();
+        let mut data = self
+            .data
+            .lock()
+            .expect("memory storage mutex poisoned - this is a bug");
         data.insert(key.to_string(), value.to_vec());
         Ok(())
     }
 
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, CryptoError> {
-        let data = self.data.lock().unwrap();
+        let data = self
+            .data
+            .lock()
+            .expect("memory storage mutex poisoned - this is a bug");
         Ok(data.get(key).cloned())
     }
 
     fn delete(&self, key: &str) -> Result<(), CryptoError> {
-        let mut data = self.data.lock().unwrap();
+        let mut data = self
+            .data
+            .lock()
+            .expect("memory storage mutex poisoned - this is a bug");
         data.remove(key);
         Ok(())
     }

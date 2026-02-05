@@ -80,8 +80,11 @@ impl RelayClient {
     async fn authenticate(&self) -> Result<(), NetworkError> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .map(|d| d.as_secs())
+            .unwrap_or_else(|e| {
+                tracing::error!("System time before UNIX_EPOCH: {}", e);
+                0
+            });
 
         let device_id = self.identity.device_id_hex();
         let challenge = format!("auth:{}:{}", device_id, timestamp);
@@ -133,8 +136,11 @@ impl RelayClient {
             ),
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or_else(|e| {
+                    tracing::error!("System time before UNIX_EPOCH: {}", e);
+                    0
+                }),
         };
 
         let json = serde_json::to_string(&serde_json::json!({
@@ -154,9 +160,11 @@ impl RelayClient {
             .map_err(|e| NetworkError::Relay(format!("Invalid message: {}", e)))?;
 
         if envelope.get("type").and_then(|v| v.as_str()) == Some("relay") {
-            let msg: RelayMessage =
-                serde_json::from_value(envelope.get("message").cloned().unwrap_or_default())
-                    .map_err(|e| NetworkError::Relay(format!("Invalid relay message: {}", e)))?;
+            let message_value = envelope.get("message").cloned().ok_or_else(|| {
+                NetworkError::Relay("Missing 'message' field in relay envelope".to_string())
+            })?;
+            let msg: RelayMessage = serde_json::from_value(message_value)
+                .map_err(|e| NetworkError::Relay(format!("Invalid relay message: {}", e)))?;
             Ok(msg)
         } else {
             Err(NetworkError::Relay("Unexpected message type".to_string()))

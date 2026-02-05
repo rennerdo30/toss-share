@@ -74,9 +74,21 @@ impl Frame {
         let version = u16::from_le_bytes([bytes[0], bytes[1]]);
         let message_type = bytes[2].try_into()?;
         // bytes[3] is reserved
-        let message_id = u64::from_le_bytes(bytes[4..12].try_into().unwrap());
-        let timestamp = u64::from_le_bytes(bytes[12..20].try_into().unwrap());
-        let payload_len = u32::from_le_bytes(bytes[20..24].try_into().unwrap()) as usize;
+        let message_id = u64::from_le_bytes(
+            bytes[4..12]
+                .try_into()
+                .expect("slice length verified above"),
+        );
+        let timestamp = u64::from_le_bytes(
+            bytes[12..20]
+                .try_into()
+                .expect("slice length verified above"),
+        );
+        let payload_len = u32::from_le_bytes(
+            bytes[20..24]
+                .try_into()
+                .expect("slice length verified above"),
+        ) as usize;
 
         // Validate payload length
         if bytes.len() < HEADER_SIZE + payload_len {
@@ -129,8 +141,16 @@ impl Frame {
 
         let version = u16::from_le_bytes([bytes[0], bytes[1]]);
         let message_type = bytes[2].try_into()?;
-        let message_id = u64::from_le_bytes(bytes[4..12].try_into().unwrap());
-        let timestamp = u64::from_le_bytes(bytes[12..20].try_into().unwrap());
+        let message_id = u64::from_le_bytes(
+            bytes[4..12]
+                .try_into()
+                .expect("slice length verified above"),
+        );
+        let timestamp = u64::from_le_bytes(
+            bytes[12..20]
+                .try_into()
+                .expect("slice length verified above"),
+        );
 
         Ok(MessageHeader {
             version,

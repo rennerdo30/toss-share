@@ -27,7 +27,10 @@ impl<'conn> HistoryStorage<'conn> {
 
     /// Store a clipboard history item
     pub fn store_item(&self, item: &StoredHistoryItem) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             r#"
             INSERT OR REPLACE INTO clipboard_history 
@@ -49,7 +52,10 @@ impl<'conn> HistoryStorage<'conn> {
 
     /// Get a history item by ID
     pub fn get_item(&self, item_id: &str) -> SqliteResult<Option<StoredHistoryItem>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare(
             "SELECT id, content_type, content_hash, encrypted_content, preview, source_device, created_at FROM clipboard_history WHERE id = ?1"
         )?;
@@ -84,7 +90,10 @@ impl<'conn> HistoryStorage<'conn> {
             "SELECT id, content_type, content_hash, encrypted_content, preview, source_device, created_at FROM clipboard_history ORDER BY created_at DESC".to_string()
         };
 
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare(&query)?;
 
         let items = stmt
@@ -106,21 +115,30 @@ impl<'conn> HistoryStorage<'conn> {
 
     /// Remove a history item
     pub fn remove_item(&self, item_id: &str) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute("DELETE FROM clipboard_history WHERE id = ?1", [item_id])?;
         Ok(())
     }
 
     /// Clear all history
     pub fn clear_history(&self) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute("DELETE FROM clipboard_history", [])?;
         Ok(())
     }
 
     /// Prune old history items (keep only items newer than the given timestamp)
     pub fn prune_old_items(&self, before_timestamp: u64) -> SqliteResult<usize> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let count = conn.execute(
             "DELETE FROM clipboard_history WHERE created_at < ?1",
             [before_timestamp],
@@ -130,7 +148,10 @@ impl<'conn> HistoryStorage<'conn> {
 
     /// Prune history to keep only the most recent N items
     pub fn prune_to_limit(&self, max_items: u32) -> SqliteResult<usize> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         // Get count of items
         let count: i64 = conn.query_row("SELECT COUNT(*) FROM clipboard_history", [], |row| {
             row.get(0)
