@@ -2,15 +2,94 @@
 
 use askama::Template;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{header::COOKIE, HeaderMap, StatusCode},
     response::{Html, IntoResponse, Json, Redirect},
 };
 use chrono::{TimeZone, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
+use std::sync::RwLock;
 
 use super::admin_auth::require_auth;
 use crate::AppState;
+
+/// Maximum number of log entries to keep in memory
+const MAX_LOG_ENTRIES: usize = 1000;
+
+/// In-memory log storage for the admin dashboard
+pub struct LogBuffer {
+    entries: RwLock<VecDeque<LogEntry>>,
+}
+
+impl LogBuffer {
+    pub fn new() -> Self {
+        Self {
+            entries: RwLock::new(VecDeque::with_capacity(MAX_LOG_ENTRIES)),
+        }
+    }
+
+    /// Add a new log entry
+    pub fn push(&self, entry: LogEntry) {
+        let mut entries = self.entries.write().unwrap();
+        if entries.len() >= MAX_LOG_ENTRIES {
+            entries.pop_front();
+        }
+        entries.push_back(entry);
+    }
+
+    /// Get all log entries, optionally filtered by level
+    pub fn get_entries(&self, level_filter: Option<&str>) -> Vec<LogEntry> {
+        let entries = self.entries.read().unwrap();
+        entries
+            .iter()
+            .filter(|e| {
+                level_filter
+                    .map(|f| {
+                        if f == "all" {
+                            true
+                        } else {
+                            e.level.to_lowercase() == f.to_lowercase()
+                        }
+                    })
+                    .unwrap_or(true)
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Clear all log entries
+    pub fn clear(&self) {
+        let mut entries = self.entries.write().unwrap();
+        entries.clear();
+    }
+}
+
+impl Default for LogBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Global log buffer instance
+pub static LOG_BUFFER: std::sync::LazyLock<LogBuffer> = std::sync::LazyLock::new(LogBuffer::new);
+
+/// A single log entry
+#[derive(Clone)]
+pub struct LogEntry {
+    pub timestamp: String,
+    pub level: String,
+    pub target: String,
+    pub message: String,
+}
+
+/// Log entry view for templates
+struct LogEntryView {
+    timestamp: String,
+    level: String,
+    target: String,
+    message: String,
+}
 
 /// Device view for templates
 struct DeviceView {
@@ -19,6 +98,14 @@ struct DeviceView {
     is_online: bool,
     last_seen: Option<String>,
     created_at: String,
+}
+
+/// Session view for templates
+struct SessionView {
+    code: String,
+    device_name: String,
+    created_at: String,
+    expires_at: String,
 }
 
 /// Dashboard template
@@ -31,6 +118,8 @@ struct DashboardTemplate {
     uptime: String,
     active_connections: i64,
     connection_percent: i64,
+    memory_usage: String,
+    pairing_sessions: i64,
 }
 
 /// Devices list template
@@ -38,6 +127,27 @@ struct DashboardTemplate {
 #[template(path = "admin/devices.html")]
 struct DevicesTemplate {
     devices: Vec<DeviceView>,
+}
+
+/// Sessions list template
+#[derive(Template)]
+#[template(path = "admin/sessions.html")]
+struct SessionsTemplate {
+    sessions: Vec<SessionView>,
+}
+
+/// Logs template
+#[derive(Template)]
+#[template(path = "admin/logs.html")]
+struct LogsTemplate {
+    logs: Vec<LogEntryView>,
+    level: String,
+}
+
+/// Query parameters for logs page
+#[derive(Deserialize)]
+pub struct LogsQuery {
+    level: Option<String>,
 }
 
 /// Stats response for API
@@ -49,6 +159,7 @@ pub struct ServerStats {
     active_connections: usize,
     uptime_seconds: u64,
     pairing_sessions: i64,
+    memory_usage_bytes: u64,
 }
 
 /// Dashboard page handler
@@ -70,6 +181,7 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
         state.db.count_devices_by_status().await.unwrap_or((0, 0));
 
     let queued_messages = state.db.count_queued_messages().await.unwrap_or(0);
+    let pairing_sessions = state.db.count_pairing_sessions().await.unwrap_or(0);
     let active_connections = state.relay.connection_count() as i64;
     let uptime = format_uptime(state.started_at.elapsed().as_secs());
     let connection_percent = if total_devices > 0 {
@@ -77,6 +189,7 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
     } else {
         0
     };
+    let memory_usage = format_memory(get_memory_usage());
 
     let template = DashboardTemplate {
         online_devices,
@@ -85,6 +198,8 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
         uptime,
         active_connections,
         connection_percent,
+        memory_usage,
+        pairing_sessions,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
@@ -256,9 +371,71 @@ pub async fn get_stats(State(state): State<AppState>, headers: HeaderMap) -> imp
         active_connections,
         uptime_seconds,
         pairing_sessions,
+        memory_usage_bytes: get_memory_usage(),
     };
 
     Json(stats).into_response()
+}
+
+/// Get current memory usage in bytes (approximate using heap allocations tracking)
+fn get_memory_usage() -> u64 {
+    // On Unix systems, we can read from /proc/self/statm
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(statm) = std::fs::read_to_string("/proc/self/statm") {
+            let parts: Vec<&str> = statm.split_whitespace().collect();
+            if let Some(rss) = parts.get(1) {
+                if let Ok(pages) = rss.parse::<u64>() {
+                    // Page size is typically 4KB
+                    return pages * 4096;
+                }
+            }
+        }
+        0
+    }
+
+    // On macOS, use mach APIs via rusage
+    #[cfg(target_os = "macos")]
+    {
+        use std::mem::MaybeUninit;
+        let mut rusage = MaybeUninit::uninit();
+        // SAFETY: rusage is valid for writing, and RUSAGE_SELF is a valid who parameter
+        let result = unsafe { libc::getrusage(libc::RUSAGE_SELF, rusage.as_mut_ptr()) };
+        if result == 0 {
+            // SAFETY: getrusage succeeded, so rusage is initialized
+            let rusage = unsafe { rusage.assume_init() };
+            // On macOS, ru_maxrss is in bytes
+            return rusage.ru_maxrss as u64;
+        }
+        0
+    }
+
+    // On other platforms, return 0 as we can't easily get memory usage
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    {
+        0
+    }
+}
+
+/// Format memory size to human readable string
+fn format_memory(bytes: u64) -> String {
+    if bytes == 0 {
+        return "N/A".to_string();
+    }
+
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    if bytes >= GB {
+        format!("{:.1} GB", bytes as f64 / GB as f64)
+    } else if bytes >= MB {
+        format!("{:.1} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.1} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
 }
 
 /// Format uptime duration
@@ -282,4 +459,155 @@ fn format_timestamp(ts: i64) -> String {
         .single()
         .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
         .unwrap_or_else(|| "Unknown".to_string())
+}
+
+/// Sessions list page handler
+pub async fn sessions_list(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Get pairing sessions
+    let sessions = state
+        .db
+        .list_all_pairing_sessions()
+        .await
+        .unwrap_or_default();
+
+    let session_views: Vec<SessionView> = sessions
+        .into_iter()
+        .map(|s| SessionView {
+            code: s.code,
+            device_name: s.device_name,
+            created_at: format_timestamp(s.created_at),
+            expires_at: format_timestamp(s.expires_at),
+        })
+        .collect();
+
+    let template = SessionsTemplate {
+        sessions: session_views,
+    };
+
+    Html(template.render().unwrap_or_default()).into_response()
+}
+
+/// Cancel a pairing session
+pub async fn cancel_session(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(code): Path<String>,
+) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Cancel the pairing session
+    let _ = state.db.cancel_pairing(&code).await;
+
+    Redirect::to("/admin/sessions").into_response()
+}
+
+/// Disconnect a device (force offline)
+pub async fn disconnect_device(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(device_id): Path<String>,
+) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Disconnect the device from relay (this closes the WebSocket connection)
+    state.relay.unregister(&device_id);
+
+    // Update device status in database
+    let _ = state.db.update_device_status(&device_id, false).await;
+
+    tracing::info!("Admin disconnected device: {}", device_id);
+
+    Redirect::to("/admin/devices").into_response()
+}
+
+/// Logs page handler
+pub async fn logs_page(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Query(query): Query<LogsQuery>,
+) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    let level = query.level.unwrap_or_else(|| "all".to_string());
+    let entries = LOG_BUFFER.get_entries(Some(&level));
+
+    let log_views: Vec<LogEntryView> = entries
+        .into_iter()
+        .rev() // Most recent first
+        .map(|e| LogEntryView {
+            timestamp: e.timestamp,
+            level: e.level,
+            target: e.target,
+            message: e.message,
+        })
+        .collect();
+
+    let template = LogsTemplate {
+        logs: log_views,
+        level,
+    };
+
+    Html(template.render().unwrap_or_default()).into_response()
+}
+
+/// Clear logs handler
+pub async fn clear_logs(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    LOG_BUFFER.clear();
+    tracing::info!("Admin cleared server logs");
+
+    Redirect::to("/admin/logs").into_response()
 }

@@ -21,6 +21,8 @@
                 <div class="flex items-center space-x-4">
                     <a href="/admin" class="hover:text-indigo-200 {% block nav_dashboard %}{% endblock %}">Dashboard</a>
                     <a href="/admin/devices" class="hover:text-indigo-200 {% block nav_devices %}{% endblock %}">Devices</a>
+                    <a href="/admin/sessions" class="hover:text-indigo-200 {% block nav_sessions %}{% endblock %}">Sessions</a>
+                    <a href="/admin/logs" class="hover:text-indigo-200 {% block nav_logs %}{% endblock %}">Logs</a>
                     <form action="/admin/logout" method="POST" class="inline">
                         <button type="submit" class="hover:text-indigo-200">Logout</button>
                     </form>
