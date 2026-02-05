@@ -39,6 +39,9 @@ bincode.workspace = true
 serde_json.workspace = true
 base64.workspace = true
 
+# Compression
+zstd.workspace = true
+
 # Async utilities
 futures.workspace = true
 futures-util.workspace = true
