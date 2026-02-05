@@ -10,6 +10,7 @@ import '../../core/providers/settings_provider.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/providers/update_provider.dart';
 import '../../core/services/auto_start_service.dart';
+import '../../core/services/toss_service.dart';
 import '../../shared/widgets/responsive_layout.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -314,6 +315,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? () => _showHistoryDaysDialog(
                         context, ref, settings.historyDays)
                     : null,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Clear History'),
+                subtitle: const Text('Delete all clipboard history'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showClearHistoryDialog(context),
               ),
             ],
           ),
@@ -806,6 +815,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  void _showClearHistoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear History'),
+        content: const Text(
+          'Are you sure you want to delete all clipboard history? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await TossService.clearClipboardHistory();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Clipboard history cleared'),
+                  ),
+                );
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Clear'),
+          ),
+        ],
       ),
     );
   }

@@ -446,6 +446,13 @@ pub fn clear_clipboard_history() -> Result<(), String> {
     toss_core::api::clear_clipboard_history()
 }
 
+/// Cleanup old clipboard history based on retention period (history_days setting)
+/// Returns the number of items cleaned up
+#[frb(sync)]
+pub fn cleanup_old_history() -> Result<u32, String> {
+    toss_core::api::cleanup_old_history()
+}
+
 /// Get decrypted clipboard content from history item
 #[frb(sync)]
 pub fn get_clipboard_history_content(item_id: String) -> Result<ClipboardContentDto, String> {

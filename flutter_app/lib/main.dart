@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
+import 'dart:async';
 
 import 'src/app.dart';
 import 'src/core/services/toss_service.dart';
@@ -11,6 +12,9 @@ import 'src/core/services/tray_service.dart';
 import 'src/core/services/notification_service.dart';
 import 'src/core/services/logging_service.dart';
 import 'src/core/providers/update_provider.dart';
+
+/// Timer for periodic history cleanup
+Timer? _historyCleanupTimer;
 
 /// Write to a crash log file before Flutter is fully initialized
 /// This helps diagnose crashes that happen very early
@@ -143,6 +147,10 @@ Future<void> _initializeApp() async {
   try {
     await TossService.initialize();
     _writeEarlyCrashLog('Step 5: TossService OK (FFI available: ${TossService.isFfiAvailable})');
+
+    // Start periodic history cleanup (runs every 24 hours)
+    // Note: Cleanup also runs on startup in the Rust core
+    _startPeriodicHistoryCleanup();
   } catch (e, stack) {
     _writeEarlyCrashLog('Step 5 FAILED: TossService', e, stack);
     rethrow;
@@ -298,4 +306,26 @@ class _ErrorApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Start periodic history cleanup timer (runs every 24 hours)
+void _startPeriodicHistoryCleanup() {
+  // Cancel any existing timer
+  _historyCleanupTimer?.cancel();
+
+  // Run cleanup every 24 hours
+  const cleanupInterval = Duration(hours: 24);
+
+  _historyCleanupTimer = Timer.periodic(cleanupInterval, (_) async {
+    try {
+      final deletedCount = await TossService.cleanupOldHistory();
+      if (deletedCount > 0) {
+        LoggingService.info('Periodic cleanup: removed $deletedCount old history entries');
+      }
+    } catch (e) {
+      LoggingService.warn('Periodic history cleanup failed: $e');
+    }
+  });
+
+  LoggingService.debug('Periodic history cleanup timer started (interval: 24 hours)');
 }
