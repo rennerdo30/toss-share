@@ -3,13 +3,18 @@
 //! This module defines the message types and serialization format
 //! used for communication between Toss devices.
 
+pub mod compression;
 mod content;
 mod frame;
 mod message;
 pub mod streaming;
 
+pub use compression::{
+    compress_payload, decompress_payload, is_compressed, CompressionConfig, CompressionStats,
+    DEFAULT_COMPRESSION_THRESHOLD,
+};
 pub use content::{ClipboardContent, ContentMetadata, ContentType};
-pub use frame::Frame;
+pub use frame::{CompressedFrame, CompressedFrameResult, Frame, TransferStats};
 pub use message::{
     ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage, KeyRotation,
     KeyRotationReason, Message, MessageHeader, MessageType, Ping, Platform, Pong,

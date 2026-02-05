@@ -1,5 +1,8 @@
-//! Wire frame encoding with encryption
+//! Wire frame encoding with encryption and optional compression
 
+use super::compression::{
+    compress_payload, decompress_payload, CompressionConfig, CompressionStats,
+};
 use super::message::MessageHeader;
 use crate::crypto::{decrypt, encrypt, EncryptedMessage, KEY_SIZE, NONCE_SIZE, TAG_SIZE};
 use crate::error::{CryptoError, ProtocolError};
@@ -161,6 +164,159 @@ impl Frame {
     }
 }
 
+/// Result of a compressed frame operation, including statistics
+#[derive(Debug, Clone)]
+pub struct CompressedFrameResult {
+    /// The encrypted frame
+    pub frame: Frame,
+    /// Compression statistics
+    pub compression_stats: CompressionStats,
+}
+
+/// Wrapper for Frame that supports transparent compression
+///
+/// CompressedFrame provides the same interface as Frame but automatically
+/// compresses payloads above the configured threshold before encryption.
+/// This is fully backwards compatible - receivers can handle both compressed
+/// and uncompressed payloads transparently.
+#[derive(Debug, Clone)]
+pub struct CompressedFrame {
+    config: CompressionConfig,
+}
+
+impl Default for CompressedFrame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CompressedFrame {
+    /// Create a new CompressedFrame handler with default configuration
+    pub fn new() -> Self {
+        Self {
+            config: CompressionConfig::default(),
+        }
+    }
+
+    /// Create a new CompressedFrame handler with custom configuration
+    pub fn with_config(config: CompressionConfig) -> Self {
+        Self { config }
+    }
+
+    /// Get the current compression configuration
+    pub fn config(&self) -> &CompressionConfig {
+        &self.config
+    }
+
+    /// Create a frame by optionally compressing then encrypting the payload
+    ///
+    /// Compression is applied transparently if the payload exceeds the threshold.
+    /// The compression magic bytes are prepended to compressed payloads, allowing
+    /// the receiver to detect and decompress automatically.
+    pub fn encrypt(
+        &self,
+        header: &MessageHeader,
+        payload: &[u8],
+        key: &[u8; KEY_SIZE],
+    ) -> Result<CompressedFrameResult, ProtocolError> {
+        // Compress the payload if it exceeds threshold
+        let (compressed_payload, compression_stats) = compress_payload(payload, &self.config)?;
+
+        // Create the encrypted frame with the (possibly compressed) payload
+        let frame = Frame::encrypt(header, &compressed_payload, key)
+            .map_err(|e| ProtocolError::Serialization(format!("Encryption failed: {}", e)))?;
+
+        Ok(CompressedFrameResult {
+            frame,
+            compression_stats,
+        })
+    }
+
+    /// Decrypt and decompress a frame payload
+    ///
+    /// Automatically detects whether the payload was compressed and decompresses
+    /// if necessary. This maintains backwards compatibility with uncompressed payloads.
+    pub fn decrypt(
+        frame: &Frame,
+        key: &[u8; KEY_SIZE],
+    ) -> Result<(MessageHeader, Vec<u8>, CompressionStats), ProtocolError> {
+        // Decrypt the frame
+        let (header, encrypted_payload) = frame
+            .decrypt(key)
+            .map_err(|e| ProtocolError::Deserialization(format!("Decryption failed: {}", e)))?;
+
+        // Decompress if needed (auto-detected by magic bytes)
+        let (payload, compression_stats) = decompress_payload(&encrypted_payload)?;
+
+        Ok((header, payload, compression_stats))
+    }
+
+    /// Convenience method to encrypt without compression (for testing or small payloads)
+    pub fn encrypt_uncompressed(
+        header: &MessageHeader,
+        payload: &[u8],
+        key: &[u8; KEY_SIZE],
+    ) -> Result<Frame, CryptoError> {
+        Frame::encrypt(header, payload, key)
+    }
+}
+
+/// Transfer statistics including compression information
+#[derive(Debug, Clone, Default)]
+pub struct TransferStats {
+    /// Total bytes sent over the wire (after compression and encryption)
+    pub bytes_sent: usize,
+    /// Total bytes received over the wire
+    pub bytes_received: usize,
+    /// Original payload size before compression
+    pub original_payload_size: usize,
+    /// Compressed payload size (same as original if not compressed)
+    pub compressed_payload_size: usize,
+    /// Whether compression was used
+    pub was_compressed: bool,
+    /// Number of messages sent
+    pub messages_sent: u64,
+    /// Number of messages received
+    pub messages_received: u64,
+}
+
+impl TransferStats {
+    /// Update stats with compression information
+    pub fn record_send(
+        &mut self,
+        original_size: usize,
+        compressed_size: usize,
+        was_compressed: bool,
+    ) {
+        self.bytes_sent += compressed_size;
+        self.original_payload_size += original_size;
+        self.compressed_payload_size += compressed_size;
+        self.was_compressed = self.was_compressed || was_compressed;
+        self.messages_sent += 1;
+    }
+
+    /// Update stats for received data
+    pub fn record_receive(&mut self, size: usize) {
+        self.bytes_received += size;
+        self.messages_received += 1;
+    }
+
+    /// Calculate overall compression ratio
+    pub fn compression_ratio(&self) -> f64 {
+        if self.original_payload_size == 0 {
+            1.0
+        } else {
+            self.compressed_payload_size as f64 / self.original_payload_size as f64
+        }
+    }
+
+    /// Calculate bandwidth saved in bytes
+    pub fn bandwidth_saved(&self) -> usize {
+        self.original_payload_size
+            .saturating_sub(self.compressed_payload_size)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,5 +400,105 @@ mod tests {
     fn test_frame_too_short() {
         let result = Frame::from_bytes(&[0; 10]);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_compressed_frame_small_payload() {
+        let key = random_key();
+        let header = MessageHeader::new(MessageType::Ping);
+        let payload = b"Small payload"; // Below compression threshold
+
+        let compressed_frame = CompressedFrame::new();
+        let result = compressed_frame.encrypt(&header, payload, &key).unwrap();
+
+        // Small payload should not be compressed
+        assert!(!result.compression_stats.was_compressed);
+
+        // Decrypt and verify
+        let (parsed_header, decrypted, stats) =
+            CompressedFrame::decrypt(&result.frame, &key).unwrap();
+
+        assert_eq!(parsed_header.message_id, header.message_id);
+        assert_eq!(decrypted, payload);
+        assert!(!stats.was_compressed);
+    }
+
+    #[test]
+    fn test_compressed_frame_large_payload() {
+        let key = random_key();
+        let header = MessageHeader::new(MessageType::ClipboardUpdate);
+        // Create compressible payload above threshold
+        let payload = b"This is a test message that should be compressed! ".repeat(500);
+
+        let config = CompressionConfig::with_threshold(1024); // 1KB threshold
+        let compressed_frame = CompressedFrame::with_config(config);
+        let result = compressed_frame.encrypt(&header, &payload, &key).unwrap();
+
+        // Large payload should be compressed
+        assert!(result.compression_stats.was_compressed);
+        assert!(result.compression_stats.compressed_size < result.compression_stats.original_size);
+
+        // Decrypt and verify
+        let (parsed_header, decrypted, stats) =
+            CompressedFrame::decrypt(&result.frame, &key).unwrap();
+
+        assert_eq!(parsed_header.message_id, header.message_id);
+        assert_eq!(decrypted, payload);
+        assert!(stats.was_compressed);
+    }
+
+    #[test]
+    fn test_compressed_frame_backwards_compatibility() {
+        let key = random_key();
+        let header = MessageHeader::new(MessageType::ClipboardUpdate);
+        let payload = b"Uncompressed payload for backwards compatibility";
+
+        // Create frame without compression (simulating old client)
+        let frame = Frame::encrypt(&header, payload, &key).unwrap();
+
+        // New client should still be able to decrypt uncompressed frame
+        let (parsed_header, decrypted, stats) = CompressedFrame::decrypt(&frame, &key).unwrap();
+
+        assert_eq!(parsed_header.message_id, header.message_id);
+        assert_eq!(decrypted, payload);
+        assert!(!stats.was_compressed);
+    }
+
+    #[test]
+    fn test_compressed_frame_disabled_compression() {
+        let key = random_key();
+        let header = MessageHeader::new(MessageType::ClipboardUpdate);
+        let payload = b"Test payload ".repeat(1000); // Large payload
+
+        let config = CompressionConfig::disabled();
+        let compressed_frame = CompressedFrame::with_config(config);
+        let result = compressed_frame.encrypt(&header, &payload, &key).unwrap();
+
+        // Compression should be disabled
+        assert!(!result.compression_stats.was_compressed);
+
+        // Decrypt and verify
+        let (_, decrypted, _) = CompressedFrame::decrypt(&result.frame, &key).unwrap();
+        assert_eq!(decrypted, payload);
+    }
+
+    #[test]
+    fn test_transfer_stats() {
+        let mut stats = TransferStats::default();
+
+        stats.record_send(10000, 2500, true);
+        stats.record_send(5000, 5000, false);
+        stats.record_receive(2500);
+        stats.record_receive(5000);
+
+        assert_eq!(stats.bytes_sent, 7500);
+        assert_eq!(stats.bytes_received, 7500);
+        assert_eq!(stats.original_payload_size, 15000);
+        assert_eq!(stats.compressed_payload_size, 7500);
+        assert!(stats.was_compressed);
+        assert_eq!(stats.messages_sent, 2);
+        assert_eq!(stats.messages_received, 2);
+        assert!((stats.compression_ratio() - 0.5).abs() < 0.001);
+        assert_eq!(stats.bandwidth_saved(), 7500);
     }
 }

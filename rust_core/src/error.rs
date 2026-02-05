@@ -149,6 +149,13 @@ pub enum ProtocolError {
 
     #[error("Too many concurrent transfers")]
     TooManyConcurrentTransfers,
+
+    // Compression errors
+    #[error("Compression failed: {0}")]
+    CompressionFailed(String),
+
+    #[error("Decompression failed: {0}")]
+    DecompressionFailed(String),
 }
 
 /// Clipboard operation errors

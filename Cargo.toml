@@ -48,6 +48,9 @@ bincode = "1"
 serde_json = "1"
 base64 = "0.22"
 
+# Compression
+zstd = "0.13"
+
 # Async utilities
 futures = "0.3"
 futures-util = "0.3"
