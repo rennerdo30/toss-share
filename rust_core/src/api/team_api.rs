@@ -144,6 +144,30 @@ fn action_to_string(action: AuditAction) -> String {
 }
 
 // ============================================================================
+// Validation helpers
+// ============================================================================
+
+fn validate_team_name(name: &str) -> Result<(), String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Team name cannot be empty".to_string());
+    }
+    if trimmed.len() > 50 {
+        return Err("Team name cannot exceed 50 characters".to_string());
+    }
+    Ok(())
+}
+
+fn validate_team_description(description: &Option<String>) -> Result<(), String> {
+    if let Some(desc) = description {
+        if desc.len() > 500 {
+            return Err("Team description cannot exceed 500 characters".to_string());
+        }
+    }
+    Ok(())
+}
+
+// ============================================================================
 // Team CRUD Operations
 // ============================================================================
 
@@ -152,6 +176,9 @@ fn action_to_string(action: AuditAction) -> String {
 /// The current device becomes the team admin automatically.
 #[frb(sync)]
 pub fn create_team(name: String, description: Option<String>) -> Result<TeamDto, String> {
+    validate_team_name(&name)?;
+    validate_team_description(&description)?;
+
     let guard = TOSS_INSTANCE.read();
     let core = guard.as_ref().ok_or("Toss not initialized")?;
 
@@ -171,12 +198,7 @@ pub fn create_team(name: String, description: Option<String>) -> Result<TeamDto,
         max_members: 0, // unlimited
     };
 
-    core.storage
-        .teams()
-        .create_team(&team)
-        .map_err(|e| format!("Failed to create team: {}", e))?;
-
-    // Add current device as admin
+    // Add current device as admin atomically
     let member = StoredTeamMember {
         team_id: team_id.clone(),
         device_id: device_id.clone(),
@@ -188,8 +210,8 @@ pub fn create_team(name: String, description: Option<String>) -> Result<TeamDto,
 
     core.storage
         .teams()
-        .add_member(&member)
-        .map_err(|e| format!("Failed to add creator as admin: {}", e))?;
+        .create_team_with_admin(&team, &member)
+        .map_err(|e| format!("Failed to create team: {}", e))?;
 
     // Add audit log entry
     let audit_entry = StoredAuditEntry {
@@ -201,7 +223,9 @@ pub fn create_team(name: String, description: Option<String>) -> Result<TeamDto,
         details: Some(serde_json::json!({ "name": name }).to_string()),
         timestamp: now,
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log for team creation: {}", e);
+    }
 
     Ok(TeamDto {
         id: team_id,
@@ -300,6 +324,13 @@ pub fn update_team(
     broadcast_enabled: Option<bool>,
     max_members: Option<u32>,
 ) -> Result<(), String> {
+    if let Some(ref n) = name {
+        validate_team_name(n)?;
+    }
+    if description.is_some() {
+        validate_team_description(&description)?;
+    }
+
     let guard = TOSS_INSTANCE.read();
     let core = guard.as_ref().ok_or("Toss not initialized")?;
 
@@ -332,6 +363,15 @@ pub fn update_team(
         team.broadcast_enabled = b;
     }
     if let Some(m) = max_members {
+        if m > 0 {
+            let current_count = core.storage.teams().count_members(&team_id).unwrap_or(0);
+            if m < current_count {
+                return Err(format!(
+                    "Cannot set max_members to {} — team currently has {} members",
+                    m, current_count
+                ));
+            }
+        }
         team.max_members = m;
     }
     team.updated_at = current_unix_timestamp_secs();
@@ -351,7 +391,9 @@ pub fn update_team(
         details: None,
         timestamp: current_unix_timestamp_secs(),
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(())
 }
@@ -399,6 +441,13 @@ pub fn leave_team(team_id: String) -> Result<(), String> {
         .get_team_members(&team_id)
         .map_err(|e| format!("Failed to get members: {}", e))?;
 
+    // Check if this is the last member — suggest deletion instead
+    if members.len() == 1 {
+        return Err(
+            "Cannot leave team: you are the only member. Delete the team instead.".to_string(),
+        );
+    }
+
     let admin_count = members.iter().filter(|m| m.role == TeamRole::Admin).count();
     let is_admin = core
         .storage
@@ -428,7 +477,9 @@ pub fn leave_team(team_id: String) -> Result<(), String> {
         details: Some(r#"{"reason": "left"}"#.to_string()),
         timestamp: current_unix_timestamp_secs(),
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(())
 }
@@ -509,28 +560,16 @@ pub fn update_member_role(
 
     let new_role = string_to_role(&role);
 
-    // If demoting an admin, check that there's at least one other admin
-    if new_role == TeamRole::Member {
-        let members = core
-            .storage
-            .teams()
-            .get_team_members(&team_id)
-            .map_err(|e| format!("Failed to get members: {}", e))?;
-
-        let admin_count = members
-            .iter()
-            .filter(|m| m.role == TeamRole::Admin && m.device_id != target_device_id)
-            .count();
-
-        if admin_count == 0 {
-            return Err("Cannot demote: team must have at least one admin".to_string());
-        }
-    }
-
-    core.storage
+    // Use transactional check to prevent race condition with concurrent demotions
+    let success = core
+        .storage
         .teams()
-        .update_member_role(&team_id, &target_device_id, new_role)
+        .update_member_role_checked(&team_id, &target_device_id, new_role)
         .map_err(|e| format!("Failed to update role: {}", e))?;
+
+    if !success {
+        return Err("Cannot demote: team must have at least one admin".to_string());
+    }
 
     // Add audit log entry
     let audit_entry = StoredAuditEntry {
@@ -542,7 +581,9 @@ pub fn update_member_role(
         details: Some(serde_json::json!({ "new_role": role }).to_string()),
         timestamp: current_unix_timestamp_secs(),
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(())
 }
@@ -585,7 +626,9 @@ pub fn remove_team_member(team_id: String, target_device_id: String) -> Result<(
         details: Some(r#"{"reason": "removed"}"#.to_string()),
         timestamp: current_unix_timestamp_secs(),
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(())
 }
@@ -602,6 +645,14 @@ pub fn create_team_invitation(
     expires_in_hours: u32,
     max_uses: u32,
 ) -> Result<TeamInvitationDto, String> {
+    if expires_in_hours == 0 {
+        return Err("Expiration must be at least 1 hour".to_string());
+    }
+    if expires_in_hours > 720 {
+        // 30 days max
+        return Err("Expiration cannot exceed 30 days (720 hours)".to_string());
+    }
+
     let guard = TOSS_INSTANCE.read();
     let core = guard.as_ref().ok_or("Toss not initialized")?;
 
@@ -626,7 +677,25 @@ pub fn create_team_invitation(
 
     let now = current_unix_timestamp_secs();
     let expires_at = now + (expires_in_hours as u64 * 3600);
-    let code = generate_invitation_code();
+
+    // Generate invitation code with retry on collision
+    let code = {
+        let mut attempts = 0;
+        loop {
+            let candidate = generate_invitation_code();
+            let existing = core.storage.teams().get_invitation_by_code(&candidate);
+            match existing {
+                Ok(None) => break candidate,
+                Ok(Some(_)) => {
+                    attempts += 1;
+                    if attempts >= 10 {
+                        return Err("Failed to generate unique invitation code".to_string());
+                    }
+                }
+                Err(e) => return Err(format!("Failed to check code uniqueness: {}", e)),
+            }
+        }
+    };
 
     let invitation = StoredTeamInvitation {
         id: Uuid::new_v4().to_string(),
@@ -656,7 +725,9 @@ pub fn create_team_invitation(
         details: Some(serde_json::json!({ "code": code, "role": role }).to_string()),
         timestamp: now,
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(TeamInvitationDto {
         id: invitation.id,
@@ -757,7 +828,9 @@ pub fn revoke_team_invitation(team_id: String, invitation_id: String) -> Result<
         details: Some(serde_json::json!({ "invitation_id": invitation_id }).to_string()),
         timestamp: current_unix_timestamp_secs(),
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(())
 }
@@ -896,7 +969,7 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
         }
     }
 
-    // Add as member
+    // Add member and update invitation atomically to prevent race conditions
     let member = StoredTeamMember {
         team_id: invitation.team_id.clone(),
         device_id: device_id.clone(),
@@ -908,21 +981,20 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
 
     core.storage
         .teams()
-        .add_member(&member)
-        .map_err(|e| format!("Failed to join team: {}", e))?;
-
-    // Update invitation
-    core.storage
-        .teams()
-        .increment_invitation_use(&invitation.id)
-        .ok();
-
-    if invitation.max_uses == 1 {
-        core.storage
-            .teams()
-            .update_invitation_status(&invitation.id, InvitationStatus::Accepted)
-            .ok();
-    }
+        .accept_invitation_atomic(
+            &invitation.id,
+            &invitation.team_id,
+            team.max_members,
+            invitation.max_uses,
+            &member,
+        )
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => {
+                "Team has reached maximum member limit or invitation has reached maximum uses"
+                    .to_string()
+            }
+            other => format!("Failed to join team: {}", other),
+        })?;
 
     // Add audit log entry
     let audit_entry = StoredAuditEntry {
@@ -934,7 +1006,9 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
         details: Some(serde_json::json!({ "code": code }).to_string()),
         timestamp: now,
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     let member_count = core.storage.teams().count_members(&team.id).unwrap_or(0);
     let is_admin = invitation.role == TeamRole::Admin;
@@ -991,7 +1065,9 @@ pub fn decline_team_invitation(code: String) -> Result<(), String> {
         details: Some(serde_json::json!({ "code": code }).to_string()),
         timestamp: current_unix_timestamp_secs(),
     };
-    let _ = core.storage.teams().add_audit_entry(&audit_entry);
+    if let Err(e) = core.storage.teams().add_audit_entry(&audit_entry) {
+        tracing::error!("Failed to write audit log: {}", e);
+    }
 
     Ok(())
 }

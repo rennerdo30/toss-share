@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -21,7 +23,7 @@ class Teams extends _$Teams {
       final teams = TeamService.getMyTeams();
       state = teams;
     } catch (e) {
-      // Keep current state on error
+      developer.log('Failed to load teams: $e', name: 'TeamProvider', error: e);
     }
   }
 
@@ -57,14 +59,26 @@ class Teams extends _$Teams {
 
   /// Delete a team
   void deleteTeam(String teamId) {
-    TeamService.deleteTeam(teamId);
+    final previousState = state;
     state = state.where((t) => t.id != teamId).toList();
+    try {
+      TeamService.deleteTeam(teamId);
+    } catch (e) {
+      state = previousState; // Rollback on error
+      rethrow;
+    }
   }
 
   /// Leave a team
   void leaveTeam(String teamId) {
-    TeamService.leaveTeam(teamId);
+    final previousState = state;
     state = state.where((t) => t.id != teamId).toList();
+    try {
+      TeamService.leaveTeam(teamId);
+    } catch (e) {
+      state = previousState; // Rollback on error
+      rethrow;
+    }
   }
 
   /// Accept a team invitation
@@ -128,7 +142,8 @@ class TeamMemberNotifier extends Notifier<List<TeamMember>> {
       final members = TeamService.getTeamMembers(teamId);
       state = members;
     } catch (e) {
-      // Keep current state on error
+      developer.log('Failed to load members: $e',
+          name: 'TeamProvider', error: e);
     }
   }
 
@@ -167,7 +182,8 @@ class TeamInvitationNotifier extends Notifier<List<TeamInvitation>> {
       final invitations = TeamService.getTeamInvitations(teamId);
       state = invitations;
     } catch (e) {
-      // Keep current state on error
+      developer.log('Failed to load invitations: $e',
+          name: 'TeamProvider', error: e);
     }
   }
 

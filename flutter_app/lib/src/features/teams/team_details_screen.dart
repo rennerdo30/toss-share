@@ -20,7 +20,7 @@ class TeamDetailsScreen extends ConsumerStatefulWidget {
 
 class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   Team? _team;
   List<TeamMember> _members = [];
   List<TeamInvitation> _invitations = [];
@@ -30,13 +30,20 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadData();
+  }
+
+  void _initTabController(bool isAdmin) {
+    final length = isAdmin ? 3 : 1;
+    if (_tabController?.length != length) {
+      _tabController?.dispose();
+      _tabController = TabController(length: length, vsync: this);
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -56,6 +63,10 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
         } catch (e) {
           // Admin-only operations may fail for non-admins
         }
+      }
+
+      if (team != null) {
+        _initTabController(team.isAdmin);
       }
 
       setState(() {
@@ -91,6 +102,14 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
       );
     }
 
+    final tabController = _tabController;
+    if (tabController == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Team')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_team!.name),
@@ -120,7 +139,8 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
                   value: 'delete',
                   child: ListTile(
                     leading: Icon(Icons.delete, color: Colors.red),
-                    title: Text('Delete Team', style: TextStyle(color: Colors.red)),
+                    title: Text('Delete Team',
+                        style: TextStyle(color: Colors.red)),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
@@ -134,7 +154,7 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
             ),
         ],
         bottom: TabBar(
-          controller: _tabController,
+          controller: tabController,
           tabs: [
             const Tab(text: 'Members'),
             if (_team!.isAdmin) const Tab(text: 'Invitations'),
@@ -143,7 +163,7 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
         ),
       ),
       body: TabBarView(
-        controller: _tabController,
+        controller: tabController,
         children: [
           _MembersTab(
             members: _members,
@@ -156,8 +176,7 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
               teamId: widget.teamId,
               onRefresh: _loadData,
             ),
-          if (_team!.isAdmin)
-            _AuditLogTab(auditLog: _auditLog),
+          if (_team!.isAdmin) _AuditLogTab(auditLog: _auditLog),
         ].take(_team!.isAdmin ? 3 : 1).toList(),
       ),
       floatingActionButton: _team!.isAdmin
@@ -199,7 +218,8 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen>
               const SizedBox(height: 16),
               SwitchListTile(
                 title: const Text('Team Broadcast'),
-                subtitle: const Text('Allow members to broadcast clipboard to all'),
+                subtitle:
+                    const Text('Allow members to broadcast clipboard to all'),
                 value: broadcastEnabled,
                 onChanged: (value) {
                   setDialogState(() => broadcastEnabled = value);
@@ -483,7 +503,8 @@ class _MembersTab extends StatelessWidget {
               children: [
                 Expanded(child: Text(member.displayName)),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: member.role == TeamMemberRole.admin
                         ? Theme.of(context).colorScheme.primaryContainer
@@ -559,7 +580,8 @@ class _MembersTab extends StatelessWidget {
                         value: 'remove',
                         child: ListTile(
                           leading: Icon(Icons.remove_circle, color: Colors.red),
-                          title: Text('Remove', style: TextStyle(color: Colors.red)),
+                          title: Text('Remove',
+                              style: TextStyle(color: Colors.red)),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -571,7 +593,6 @@ class _MembersTab extends StatelessWidget {
       },
     );
   }
-
 }
 
 class _InvitationsTab extends StatelessWidget {
@@ -720,30 +741,6 @@ class _AuditLogTab extends StatelessWidget {
   }
 }
 
-// Helper functions
-String formatTimestamp(DateTime dateTime) {
-  final now = DateTime.now();
-  final diff = now.difference(dateTime);
-
-  if (diff.isNegative) {
-    // Future date
-    final absDiff = dateTime.difference(now);
-    if (absDiff.inHours < 1) {
-      return 'in ${absDiff.inMinutes} min';
-    } else if (absDiff.inHours < 24) {
-      return 'in ${absDiff.inHours} hours';
-    } else {
-      return 'in ${absDiff.inDays} days';
-    }
-  }
-
-  if (diff.inDays > 0) {
-    return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
-  } else if (diff.inHours > 0) {
-    return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
-  } else if (diff.inMinutes > 0) {
-    return '${diff.inMinutes} min ago';
-  } else {
-    return 'just now';
-  }
-}
+// Use formatSmartTimestamp from shared utilities for timestamp formatting
+// (imported via timestamp_utils.dart)
+String formatTimestamp(DateTime dateTime) => formatSmartTimestamp(dateTime);
