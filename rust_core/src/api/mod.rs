@@ -300,8 +300,33 @@ pub fn set_device_name(name: String) -> Result<(), String> {
 // ============================================================================
 // Pairing
 // ============================================================================
+//
+// Pairing API Overview:
+// ---------------------
+// This module provides three pairing completion methods for different use cases:
+//
+// 1. `complete_pairing_qr(qr_data)` - For QR code scanning
+//    Use when one device displays a QR code and the other scans it.
+//    The QR contains the public key and device info.
+//
+// 2. `complete_pairing_code(code, peer_public_key)` - For manual code entry
+//    Use when devices can't scan QR codes. The user enters the 6-digit code
+//    displayed on the other device, and the public key is exchanged via
+//    local network discovery.
+//
+// 3. `complete_manual_pairing(peer_public_key, peer_device_name)` - For network discovery
+//    Use when devices are discovered via mDNS or relay server. The public key
+//    and device name are obtained from `find_pairing_device()`.
+//
+// Typical flows:
+// - QR flow: start_pairing() -> display QR -> other device scans -> complete_pairing_qr()
+// - Code flow: start_pairing() -> display code -> enter on other device -> complete_pairing_code()
+// - Discovery flow: start_pairing() -> register_pairing_advertisement() -> find_pairing_device() -> complete_manual_pairing()
 
-/// Start a new pairing session
+/// Start a new pairing session.
+///
+/// Creates a new pairing session and returns the pairing info (code, QR data, public key).
+/// The session must be completed using one of the `complete_pairing_*` functions.
 #[frb(sync)]
 pub fn start_pairing() -> Result<PairingInfoDto, String> {
     let mut guard = TOSS_INSTANCE.write();
@@ -329,7 +354,16 @@ pub struct PairingInfoDto {
     pub public_key: String,
 }
 
-/// Complete pairing with QR data
+/// Complete pairing with QR data.
+///
+/// Use this when the other device has scanned your QR code or you have scanned theirs.
+/// The QR data contains the peer's public key, device name, and pairing code.
+///
+/// # Arguments
+/// * `qr_data` - The scanned QR code data containing pairing information
+///
+/// # Returns
+/// Device info for the newly paired device
 #[frb(sync)]
 pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
     // Validate QR data
@@ -405,7 +439,18 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
     })
 }
 
-/// Complete pairing with manual code
+/// Complete pairing with manual code entry.
+///
+/// Use this when the user manually enters the 6-digit pairing code displayed
+/// on the other device. The peer's public key is obtained separately
+/// (typically via local network discovery or relay server).
+///
+/// # Arguments
+/// * `code` - The 6-digit pairing code from the other device
+/// * `peer_public_key` - The peer's public key (32 bytes)
+///
+/// # Returns
+/// Device info for the newly paired device
 #[frb(sync)]
 pub fn complete_pairing_code(
     code: String,
@@ -541,7 +586,18 @@ pub async fn find_pairing_device(code: String) -> Result<PairingDeviceDto, Strin
     })
 }
 
-/// Complete pairing with a device found via find_pairing_device
+/// Complete pairing with a device found via network discovery.
+///
+/// Use this after finding a device with `find_pairing_device()`. This is the
+/// final step in the discovery-based pairing flow where devices find each other
+/// via mDNS or relay server.
+///
+/// # Arguments
+/// * `peer_public_key` - Base64-encoded public key from `PairingDeviceDto`
+/// * `peer_device_name` - Device name from `PairingDeviceDto`
+///
+/// # Returns
+/// Device info for the newly paired device
 #[frb(sync)]
 pub fn complete_manual_pairing(
     peer_public_key: String,
@@ -1106,30 +1162,22 @@ pub async fn stop_network() {
     }
 }
 
-/// Start listening to network events
-/// Returns a receiver that can be polled for events
-/// Note: Full stream support requires flutter_rust_bridge stream support
-#[frb]
-pub async fn start_event_listener() -> Result<(), String> {
-    let guard = TOSS_INSTANCE.read();
-    let core = guard.as_ref().ok_or("Toss not initialized")?;
-
-    if let Some(ref network) = core.network {
-        // Subscribe to network events
-        let receiver = network.subscribe();
-        // Store receiver for polling
-        let mut guard = TOSS_INSTANCE.write();
-        if let Some(ref mut core) = *guard {
-            core.event_receiver = Some(Arc::new(Mutex::new(receiver)));
-        }
-    }
-
-    Ok(())
-}
-
-/// Poll for network events (polling-based approach until streams are available)
-/// Returns the next event if available, or None
-/// Note: This uses try_recv which is non-blocking
+/// Poll for network events (polling-based approach until streams are available).
+///
+/// This is the primary API for receiving network events in Flutter. Call this function
+/// periodically (e.g., in a timer or animation frame callback) to receive events.
+///
+/// The event receiver is automatically set up when `start_network()` is called.
+///
+/// # Returns
+/// - `Some(TossEvent)` if an event is available
+/// - `None` if no event is currently pending or the network is not running
+///
+/// # Note
+/// This uses `try_recv` which is non-blocking. Events include:
+/// - Device connection/disconnection
+/// - Clipboard updates from remote devices
+/// - Network errors
 #[frb(sync)]
 pub fn poll_event() -> Option<TossEvent> {
     let guard = TOSS_INSTANCE.read();

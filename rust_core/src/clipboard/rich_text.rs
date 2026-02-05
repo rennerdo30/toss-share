@@ -4,6 +4,14 @@
 //! - Windows: CF_HTML, CF_RTF formats
 //! - macOS: HTML, RTF pasteboard types
 //! - Linux: text/html, text/rtf MIME types
+//!
+//! Note: This module provides the framework for rich text handling.
+//! Some methods and implementations are defined for the complete API
+//! but not yet fully integrated. These are marked with `#[allow(dead_code)]`
+//! as they are intentionally preserved for future use.
+
+// Allow dead code for stub implementations that are part of the planned API
+#![allow(dead_code)]
 
 use crate::error::ClipboardError;
 use crate::protocol::ClipboardContent;
@@ -47,7 +55,6 @@ impl RichTextFormat {
     }
 
     /// Get MIME type for this format
-    #[allow(dead_code)]
     pub fn mime_type(&self) -> &'static str {
         match self {
             Self::Html => "text/html",
@@ -59,7 +66,9 @@ impl RichTextFormat {
 /// Platform-specific rich text clipboard operations
 pub trait RichTextClipboardProvider: Send + Sync {
     /// Read rich text from clipboard
-    #[allow(dead_code)]
+    ///
+    /// Note: This method is defined for the interface but implementations
+    /// currently return None/Error as rich text reading is not yet fully implemented.
     fn read_rich_text(
         &self,
         format: RichTextFormat,
@@ -77,7 +86,6 @@ pub trait RichTextClipboardProvider: Send + Sync {
 pub struct DefaultRichTextClipboardProvider;
 
 impl RichTextClipboardProvider for DefaultRichTextClipboardProvider {
-    #[allow(dead_code)]
     fn read_rich_text(
         &self,
         _format: RichTextFormat,
@@ -204,14 +212,12 @@ pub mod windows_impl {
 
     impl WindowsRichTextClipboardProvider {
         /// Create a new Windows rich text clipboard provider
-        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }
 
         /// Create CF_HTML format from HTML content
         /// Returns the complete CF_HTML clipboard data with header
-        #[allow(dead_code)]
         pub fn create_cf_html(html: &str) -> String {
             // Calculate positions
             let header_template = "Version:0.9\r\nStartHTML:0000000000\r\nEndHTML:0000000000\r\nStartFragment:0000000000\r\nEndFragment:0000000000\r\n";
@@ -237,7 +243,6 @@ pub mod windows_impl {
         }
 
         /// Parse CF_HTML format and extract the HTML fragment
-        #[allow(dead_code)]
         pub fn parse_cf_html(cf_html: &str) -> Option<String> {
             // Parse header to get fragment positions
             let mut start_fragment: Option<usize> = None;
@@ -296,13 +301,11 @@ pub mod macos_impl {
 
     impl MacOSRichTextClipboardProvider {
         /// Create a new macOS rich text clipboard provider
-        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }
 
         /// Get the pasteboard type string for a format
-        #[allow(dead_code)]
         pub fn pasteboard_type(format: RichTextFormat) -> &'static str {
             match format {
                 RichTextFormat::Html => "public.html",
@@ -312,7 +315,6 @@ pub mod macos_impl {
 
         /// Convert HTML to a simple RTF representation
         /// This is a basic conversion for interoperability
-        #[allow(dead_code)]
         pub fn html_to_basic_rtf(html: &str) -> String {
             // Very basic conversion - just extract text
             // A full implementation would preserve formatting
@@ -321,7 +323,6 @@ pub mod macos_impl {
         }
 
         /// Strip HTML tags (basic implementation)
-        #[allow(dead_code)]
         fn strip_html_tags(html: &str) -> String {
             let mut result = String::new();
             let mut in_tag = false;
@@ -339,7 +340,6 @@ pub mod macos_impl {
         }
 
         /// Escape special RTF characters
-        #[allow(dead_code)]
         fn escape_rtf(text: &str) -> String {
             text.chars()
                 .map(|c| match c {
@@ -393,13 +393,11 @@ pub mod linux_impl {
 
     impl LinuxRichTextClipboardProvider {
         /// Create a new Linux rich text clipboard provider
-        #[allow(dead_code)]
         pub fn new() -> Self {
             Self
         }
 
         /// Get MIME types for a format (in preference order)
-        #[allow(dead_code)]
         pub fn mime_types(format: RichTextFormat) -> &'static [&'static str] {
             match format {
                 RichTextFormat::Html => &["text/html", "application/xhtml+xml"],
@@ -408,7 +406,6 @@ pub mod linux_impl {
         }
 
         /// Detect format from MIME type string
-        #[allow(dead_code)]
         pub fn format_from_mime(mime: &str) -> Option<RichTextFormat> {
             let mime_lower = mime.to_lowercase();
             if mime_lower.contains("html") || mime_lower.contains("xhtml") {
@@ -422,7 +419,6 @@ pub mod linux_impl {
 
         /// Create targets list for rich text (for X11 selection)
         /// Returns list of MIME types that should be offered
-        #[allow(dead_code)]
         pub fn create_targets(format: RichTextFormat) -> Vec<&'static str> {
             let mut targets = Vec::new();
 

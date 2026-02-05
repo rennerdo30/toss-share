@@ -21,25 +21,6 @@ pub struct RelayClient {
 type WebSocketConnection =
     tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
-/// Registration request
-#[allow(dead_code)]
-#[derive(Debug, Serialize)]
-struct RegisterRequest {
-    device_id: String,
-    public_key: String,
-    device_name: String,
-    timestamp: u64,
-    signature: String,
-}
-
-/// Registration response
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-struct RegisterResponse {
-    token: String,
-    expires_at: u64,
-}
-
 /// Relay message wrapper
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RelayMessage {
