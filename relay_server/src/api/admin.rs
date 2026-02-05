@@ -12,6 +12,7 @@ use std::collections::VecDeque;
 use std::sync::RwLock;
 
 use super::admin_auth::require_auth;
+use crate::db::TeamRole;
 use crate::AppState;
 
 /// Maximum number of log entries to keep in memory
@@ -120,6 +121,7 @@ struct DashboardTemplate {
     connection_percent: i64,
     memory_usage: String,
     pairing_sessions: i64,
+    total_teams: i64,
 }
 
 /// Devices list template
@@ -142,6 +144,58 @@ struct SessionsTemplate {
 struct LogsTemplate {
     logs: Vec<LogEntryView>,
     level: String,
+}
+
+/// Team view for templates
+struct TeamView {
+    id: String,
+    name: String,
+    description: Option<String>,
+    member_count: i64,
+    pending_invitations: i64,
+    broadcast_enabled: bool,
+    created_at: String,
+}
+
+/// Team member view for templates
+struct TeamMemberView {
+    device_id: String,
+    device_name: String,
+    is_admin: bool,
+    joined_at: String,
+}
+
+/// Team invitation view for templates
+struct TeamInvitationView {
+    code: String,
+    status: String,
+    created_at: String,
+    expires_at: String,
+}
+
+/// Team audit entry view for templates
+struct TeamAuditEntryView {
+    action: String,
+    device_id: String,
+    details: Option<String>,
+    created_at: String,
+}
+
+/// Teams list template
+#[derive(Template)]
+#[template(path = "admin/teams.html")]
+struct TeamsTemplate {
+    teams: Vec<TeamView>,
+}
+
+/// Team details template
+#[derive(Template)]
+#[template(path = "admin/team_details.html")]
+struct TeamDetailsTemplate {
+    team: TeamView,
+    members: Vec<TeamMemberView>,
+    invitations: Vec<TeamInvitationView>,
+    audit_entries: Vec<TeamAuditEntryView>,
 }
 
 /// Query parameters for logs page
@@ -182,6 +236,7 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
 
     let queued_messages = state.db.count_queued_messages().await.unwrap_or(0);
     let pairing_sessions = state.db.count_pairing_sessions().await.unwrap_or(0);
+    let total_teams = state.db.count_teams().await.unwrap_or(0);
     let active_connections = state.relay.connection_count() as i64;
     let uptime = format_uptime(state.started_at.elapsed().as_secs());
     let connection_percent = if total_devices > 0 {
@@ -200,6 +255,7 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
         connection_percent,
         memory_usage,
         pairing_sessions,
+        total_teams,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
@@ -610,4 +666,219 @@ pub async fn clear_logs(State(state): State<AppState>, headers: HeaderMap) -> im
     tracing::info!("Admin cleared server logs");
 
     Redirect::to("/admin/logs").into_response()
+}
+
+/// Teams list page handler
+pub async fn teams_list(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Get teams
+    let teams = state.db.list_all_teams().await.unwrap_or_default();
+
+    let mut team_views = Vec::new();
+    for team in teams {
+        let member_count = state.db.count_team_members(&team.id).await.unwrap_or(0);
+        let pending_invitations = state
+            .db
+            .count_pending_invitations(&team.id)
+            .await
+            .unwrap_or(0);
+
+        team_views.push(TeamView {
+            id: team.id,
+            name: team.name,
+            description: team.description,
+            member_count,
+            pending_invitations,
+            broadcast_enabled: team.broadcast_enabled,
+            created_at: format_timestamp(team.created_at),
+        });
+    }
+
+    let template = TeamsTemplate { teams: team_views };
+
+    Html(template.render().unwrap_or_default()).into_response()
+}
+
+/// Team details page handler
+pub async fn team_details(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(team_id): Path<String>,
+) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Get team
+    let team = match state.db.get_team(&team_id).await {
+        Ok(Some(t)) => t,
+        _ => return Redirect::to("/admin/teams").into_response(),
+    };
+
+    let member_count = state.db.count_team_members(&team.id).await.unwrap_or(0);
+    let pending_invitations = state
+        .db
+        .count_pending_invitations(&team.id)
+        .await
+        .unwrap_or(0);
+
+    let team_view = TeamView {
+        id: team.id.clone(),
+        name: team.name,
+        description: team.description,
+        member_count,
+        pending_invitations,
+        broadcast_enabled: team.broadcast_enabled,
+        created_at: format_timestamp(team.created_at),
+    };
+
+    // Get members with device names
+    let members = state
+        .db
+        .get_team_members(&team_id)
+        .await
+        .unwrap_or_default();
+    let mut member_views = Vec::new();
+    for member in members {
+        let device_name = state
+            .db
+            .get_device(&member.device_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|d| d.device_name)
+            .unwrap_or_else(|| "Unknown Device".to_string());
+
+        let is_admin = member.role_enum() == TeamRole::Admin;
+        member_views.push(TeamMemberView {
+            device_id: member.device_id,
+            device_name,
+            is_admin,
+            joined_at: format_timestamp(member.joined_at),
+        });
+    }
+
+    // Get invitations
+    let invitations = state
+        .db
+        .get_team_invitations(&team_id)
+        .await
+        .unwrap_or_default();
+    let invitation_views: Vec<TeamInvitationView> = invitations
+        .into_iter()
+        .map(|inv| TeamInvitationView {
+            code: inv.code,
+            status: inv.status,
+            created_at: format_timestamp(inv.created_at),
+            expires_at: format_timestamp(inv.expires_at),
+        })
+        .collect();
+
+    // Get audit log
+    let audit_entries = state
+        .db
+        .get_team_audit_log(&team_id)
+        .await
+        .unwrap_or_default();
+    let audit_views: Vec<TeamAuditEntryView> = audit_entries
+        .into_iter()
+        .map(|entry| TeamAuditEntryView {
+            action: entry.action,
+            device_id: entry.device_id,
+            details: entry.details,
+            created_at: format_timestamp(entry.created_at),
+        })
+        .collect();
+
+    let template = TeamDetailsTemplate {
+        team: team_view,
+        members: member_views,
+        invitations: invitation_views,
+        audit_entries: audit_views,
+    };
+
+    Html(template.render().unwrap_or_default()).into_response()
+}
+
+/// Delete a team
+pub async fn delete_team(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(team_id): Path<String>,
+) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Delete the team
+    let _ = state.db.delete_team(&team_id).await;
+    tracing::info!("Admin deleted team: {}", team_id);
+
+    Redirect::to("/admin/teams").into_response()
+}
+
+/// Remove a member from a team
+pub async fn remove_team_member(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path((team_id, device_id)): Path<(String, String)>,
+) -> impl IntoResponse {
+    // Check admin is enabled
+    if !state.config.admin_enabled() {
+        return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
+    }
+
+    // Check authentication
+    let cookies = headers.get(COOKIE).and_then(|v| v.to_str().ok());
+
+    if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
+        return redirect.into_response();
+    }
+
+    // Remove the member
+    let _ = state.db.remove_team_member(&team_id, &device_id).await;
+
+    // Log the action
+    let audit_id = uuid::Uuid::new_v4().to_string();
+    let _ = state
+        .db
+        .add_team_audit_entry(
+            &audit_id,
+            &team_id,
+            "admin",
+            "member_removed",
+            Some(&device_id),
+        )
+        .await;
+
+    tracing::info!("Admin removed member {} from team {}", device_id, team_id);
+
+    Redirect::to(&format!("/admin/teams/{}", team_id)).into_response()
 }

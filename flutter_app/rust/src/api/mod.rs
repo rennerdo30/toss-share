@@ -201,11 +201,21 @@ impl From<toss_core::api::ClipboardContentDto> for ClipboardContentDto {
 #[derive(Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
 pub enum TossEvent {
-    ClipboardReceived { item: ClipboardItemDto },
-    DeviceConnected { device: DeviceInfoDto },
-    DeviceDisconnected { device_id: String },
-    PairingRequest { device: DeviceInfoDto },
-    Error { message: String },
+    ClipboardReceived {
+        item: ClipboardItemDto,
+    },
+    DeviceConnected {
+        device: DeviceInfoDto,
+    },
+    DeviceDisconnected {
+        device_id: String,
+    },
+    PairingRequest {
+        device: DeviceInfoDto,
+    },
+    Error {
+        message: String,
+    },
     SyncPreferenceReceived {
         target_device_id: String,
         sync_enabled: bool,
@@ -555,4 +565,260 @@ pub fn get_device_session_key(device_id: String) -> Result<Vec<u8>, String> {
 #[frb(sync)]
 pub fn sign_message(message: String) -> Result<String, String> {
     toss_core::api::sign_message(message)
+}
+
+// ============================================================================
+// Team/Organization Management
+// ============================================================================
+
+/// Team information for Flutter
+#[derive(Debug, Clone)]
+#[frb(dart_metadata=("freezed"))]
+pub struct TeamDto {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_at: u64,
+    pub broadcast_enabled: bool,
+    pub max_members: u32,
+    pub member_count: u32,
+    pub is_admin: bool,
+}
+
+impl From<toss_core::api::team_api::TeamDto> for TeamDto {
+    fn from(t: toss_core::api::team_api::TeamDto) -> Self {
+        Self {
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            created_at: t.created_at,
+            broadcast_enabled: t.broadcast_enabled,
+            max_members: t.max_members,
+            member_count: t.member_count,
+            is_admin: t.is_admin,
+        }
+    }
+}
+
+/// Team member information for Flutter
+#[derive(Debug, Clone)]
+#[frb(dart_metadata=("freezed"))]
+pub struct TeamMemberDto {
+    pub device_id: String,
+    pub display_name: String,
+    pub role: String,
+    pub joined_at: u64,
+    pub is_online: bool,
+    pub platform: String,
+}
+
+impl From<toss_core::api::team_api::TeamMemberDto> for TeamMemberDto {
+    fn from(m: toss_core::api::team_api::TeamMemberDto) -> Self {
+        Self {
+            device_id: m.device_id,
+            display_name: m.display_name,
+            role: m.role,
+            joined_at: m.joined_at,
+            is_online: m.is_online,
+            platform: m.platform,
+        }
+    }
+}
+
+/// Team invitation information for Flutter
+#[derive(Debug, Clone)]
+#[frb(dart_metadata=("freezed"))]
+pub struct TeamInvitationDto {
+    pub id: String,
+    pub team_id: String,
+    pub team_name: String,
+    pub code: String,
+    pub role: String,
+    pub created_by: String,
+    pub created_at: u64,
+    pub expires_at: u64,
+    pub status: String,
+    pub max_uses: u32,
+    pub use_count: u32,
+}
+
+impl From<toss_core::api::team_api::TeamInvitationDto> for TeamInvitationDto {
+    fn from(i: toss_core::api::team_api::TeamInvitationDto) -> Self {
+        Self {
+            id: i.id,
+            team_id: i.team_id,
+            team_name: i.team_name,
+            code: i.code,
+            role: i.role,
+            created_by: i.created_by,
+            created_at: i.created_at,
+            expires_at: i.expires_at,
+            status: i.status,
+            max_uses: i.max_uses,
+            use_count: i.use_count,
+        }
+    }
+}
+
+/// Team audit log entry for Flutter
+#[derive(Debug, Clone)]
+#[frb(dart_metadata=("freezed"))]
+pub struct AuditEntryDto {
+    pub id: String,
+    pub action: String,
+    pub actor_device_id: String,
+    pub actor_display_name: Option<String>,
+    pub target_device_id: Option<String>,
+    pub target_display_name: Option<String>,
+    pub details: Option<String>,
+    pub timestamp: u64,
+}
+
+impl From<toss_core::api::team_api::AuditEntryDto> for AuditEntryDto {
+    fn from(a: toss_core::api::team_api::AuditEntryDto) -> Self {
+        Self {
+            id: a.id,
+            action: a.action,
+            actor_device_id: a.actor_device_id,
+            actor_display_name: a.actor_display_name,
+            target_device_id: a.target_device_id,
+            target_display_name: a.target_display_name,
+            details: a.details,
+            timestamp: a.timestamp,
+        }
+    }
+}
+
+/// Create a new team
+#[frb(sync)]
+pub fn create_team(name: String, description: Option<String>) -> Result<TeamDto, String> {
+    toss_core::api::team_api::create_team(name, description).map(|t| t.into())
+}
+
+/// Get all teams the current device belongs to
+#[frb(sync)]
+pub fn get_my_teams() -> Result<Vec<TeamDto>, String> {
+    toss_core::api::team_api::get_my_teams().map(|v| v.into_iter().map(|t| t.into()).collect())
+}
+
+/// Get team details by ID
+#[frb(sync)]
+pub fn get_team(team_id: String) -> Result<Option<TeamDto>, String> {
+    toss_core::api::team_api::get_team(team_id).map(|o| o.map(|t| t.into()))
+}
+
+/// Update team settings (admin only)
+#[frb(sync)]
+pub fn update_team(
+    team_id: String,
+    name: Option<String>,
+    description: Option<String>,
+    broadcast_enabled: Option<bool>,
+    max_members: Option<u32>,
+) -> Result<(), String> {
+    toss_core::api::team_api::update_team(team_id, name, description, broadcast_enabled, max_members)
+}
+
+/// Delete a team (admin only)
+#[frb(sync)]
+pub fn delete_team(team_id: String) -> Result<(), String> {
+    toss_core::api::team_api::delete_team(team_id)
+}
+
+/// Leave a team
+#[frb(sync)]
+pub fn leave_team(team_id: String) -> Result<(), String> {
+    toss_core::api::team_api::leave_team(team_id)
+}
+
+/// Get all members of a team
+#[frb(sync)]
+pub fn get_team_members(team_id: String) -> Result<Vec<TeamMemberDto>, String> {
+    toss_core::api::team_api::get_team_members(team_id)
+        .map(|v| v.into_iter().map(|m| m.into()).collect())
+}
+
+/// Update a member's role (admin only)
+#[frb(sync)]
+pub fn update_member_role(
+    team_id: String,
+    target_device_id: String,
+    role: String,
+) -> Result<(), String> {
+    toss_core::api::team_api::update_member_role(team_id, target_device_id, role)
+}
+
+/// Remove a member from team (admin only)
+#[frb(sync)]
+pub fn remove_team_member(team_id: String, target_device_id: String) -> Result<(), String> {
+    toss_core::api::team_api::remove_team_member(team_id, target_device_id)
+}
+
+/// Create a team invitation (admin only)
+#[frb(sync)]
+pub fn create_team_invitation(
+    team_id: String,
+    role: String,
+    expires_in_hours: u32,
+    max_uses: u32,
+) -> Result<TeamInvitationDto, String> {
+    toss_core::api::team_api::create_team_invitation(team_id, role, expires_in_hours, max_uses)
+        .map(|i| i.into())
+}
+
+/// Get invitations for a team (admin only)
+#[frb(sync)]
+pub fn get_team_invitations(team_id: String) -> Result<Vec<TeamInvitationDto>, String> {
+    toss_core::api::team_api::get_team_invitations(team_id)
+        .map(|v| v.into_iter().map(|i| i.into()).collect())
+}
+
+/// Revoke an invitation (admin only)
+#[frb(sync)]
+pub fn revoke_team_invitation(team_id: String, invitation_id: String) -> Result<(), String> {
+    toss_core::api::team_api::revoke_team_invitation(team_id, invitation_id)
+}
+
+/// Look up invitation by code
+#[frb(sync)]
+pub fn get_invitation_by_code(code: String) -> Result<Option<TeamInvitationDto>, String> {
+    toss_core::api::team_api::get_invitation_by_code(code).map(|o| o.map(|i| i.into()))
+}
+
+/// Accept a team invitation
+#[frb(sync)]
+pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
+    toss_core::api::team_api::accept_team_invitation(code).map(|t| t.into())
+}
+
+/// Decline a team invitation
+#[frb(sync)]
+pub fn decline_team_invitation(code: String) -> Result<(), String> {
+    toss_core::api::team_api::decline_team_invitation(code)
+}
+
+/// Get team audit log (admin only)
+#[frb(sync)]
+pub fn get_team_audit_log(team_id: String, limit: Option<u32>) -> Result<Vec<AuditEntryDto>, String> {
+    toss_core::api::team_api::get_team_audit_log(team_id, limit)
+        .map(|v| v.into_iter().map(|a| a.into()).collect())
+}
+
+/// Check if current device can broadcast to a team
+#[frb(sync)]
+pub fn can_broadcast_to_team(team_id: String) -> Result<bool, String> {
+    toss_core::api::team_api::can_broadcast_to_team(team_id)
+}
+
+/// Get teams that have broadcast enabled
+#[frb(sync)]
+pub fn get_broadcast_enabled_teams() -> Result<Vec<TeamDto>, String> {
+    toss_core::api::team_api::get_broadcast_enabled_teams()
+        .map(|v| v.into_iter().map(|t| t.into()).collect())
+}
+
+/// Get all device IDs in a team for broadcast
+#[frb(sync)]
+pub fn get_team_device_ids(team_id: String) -> Result<Vec<String>, String> {
+    toss_core::api::team_api::get_team_device_ids(team_id)
 }

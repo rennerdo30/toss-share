@@ -45,6 +45,12 @@ class AppSidebar extends ConsumerWidget {
       selectedIcon: Icons.home,
     ),
     SidebarNavItem(
+      route: '/teams',
+      label: 'Teams',
+      icon: Icons.groups_outlined,
+      selectedIcon: Icons.groups,
+    ),
+    SidebarNavItem(
       route: '/history',
       label: 'History',
       icon: Icons.history_outlined,

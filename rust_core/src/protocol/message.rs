@@ -25,6 +25,12 @@ pub enum MessageType {
     KeyRotation = 0x30,
     // Sync preferences (0x40-0x4F)
     SyncPreferenceUpdate = 0x40,
+    // Team/Organization messages (0x50-0x5F)
+    TeamInvite = 0x50,
+    TeamInviteResponse = 0x51,
+    TeamBroadcast = 0x52,
+    TeamDeviceList = 0x53,
+    TeamDeviceListRequest = 0x54,
     Error = 0xFF,
 }
 
@@ -45,6 +51,11 @@ impl TryFrom<u8> for MessageType {
             0x20 => Ok(MessageType::DeviceInfo),
             0x30 => Ok(MessageType::KeyRotation),
             0x40 => Ok(MessageType::SyncPreferenceUpdate),
+            0x50 => Ok(MessageType::TeamInvite),
+            0x51 => Ok(MessageType::TeamInviteResponse),
+            0x52 => Ok(MessageType::TeamBroadcast),
+            0x53 => Ok(MessageType::TeamDeviceList),
+            0x54 => Ok(MessageType::TeamDeviceListRequest),
             0xFF => Ok(MessageType::Error),
             _ => Err(ProtocolError::UnknownMessageType(value)),
         }
@@ -277,6 +288,124 @@ pub struct SyncPreferenceUpdate {
     pub changed_at: u64,
 }
 
+/// Team member role
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[repr(u8)]
+pub enum TeamMemberRole {
+    /// Full access to team management
+    Admin = 0,
+    /// Standard team member
+    Member = 1,
+}
+
+/// Team invitation message
+///
+/// Sent when inviting a device to join a team.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamInvite {
+    /// Invitation code
+    pub code: String,
+    /// Team ID
+    pub team_id: String,
+    /// Team name
+    pub team_name: String,
+    /// Role to be assigned
+    pub role: TeamMemberRole,
+    /// Inviter's device ID
+    pub inviter_device_id: String,
+    /// Inviter's device name
+    pub inviter_device_name: String,
+    /// Expiration timestamp (Unix seconds)
+    pub expires_at: u64,
+}
+
+/// Team invitation response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamInviteResponse {
+    /// Invitation code being responded to
+    pub code: String,
+    /// Team ID
+    pub team_id: String,
+    /// Whether the invitation was accepted
+    pub accepted: bool,
+    /// Responder's device ID
+    pub device_id: String,
+    /// Responder's device name
+    pub device_name: String,
+}
+
+/// Team-wide clipboard broadcast
+///
+/// Sent to all devices in a team when broadcasting clipboard content.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamBroadcast {
+    /// Team ID
+    pub team_id: String,
+    /// Clipboard content
+    pub content: ClipboardContent,
+    /// SHA-256 hash of plaintext content
+    pub content_hash: [u8; 32],
+    /// Sender's device ID
+    pub sender_device_id: String,
+    /// Sender's device name
+    pub sender_device_name: String,
+}
+
+impl TeamBroadcast {
+    pub fn new(
+        team_id: String,
+        content: ClipboardContent,
+        sender_device_id: String,
+        sender_device_name: String,
+    ) -> Self {
+        let content_hash = content.hash();
+        Self {
+            team_id,
+            content,
+            content_hash,
+            sender_device_id,
+            sender_device_name,
+        }
+    }
+}
+
+/// Team device information for discovery
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamDevice {
+    /// Device ID
+    pub device_id: String,
+    /// Device name
+    pub device_name: String,
+    /// Platform
+    pub platform: Platform,
+    /// Whether device is online
+    pub is_online: bool,
+    /// Member role in the team
+    pub role: TeamMemberRole,
+}
+
+/// Team device list message
+///
+/// Contains list of devices in a team for discovery.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamDeviceList {
+    /// Team ID
+    pub team_id: String,
+    /// Team name
+    pub team_name: String,
+    /// List of devices in the team
+    pub devices: Vec<TeamDevice>,
+    /// Whether team-wide broadcast is enabled
+    pub broadcast_enabled: bool,
+}
+
+/// Request for team device list
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamDeviceListRequest {
+    /// Team ID to request devices for
+    pub team_id: String,
+}
+
 /// Union of all message types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Message {
@@ -294,6 +423,12 @@ pub enum Message {
     KeyRotation(KeyRotation),
     // Sync preferences (meta-sync)
     SyncPreferenceUpdate(SyncPreferenceUpdate),
+    // Team/Organization messages
+    TeamInvite(TeamInvite),
+    TeamInviteResponse(TeamInviteResponse),
+    TeamBroadcast(TeamBroadcast),
+    TeamDeviceList(TeamDeviceList),
+    TeamDeviceListRequest(TeamDeviceListRequest),
     Error(ErrorMessage),
 }
 
@@ -313,6 +448,11 @@ impl Message {
             Message::DeviceInfo(_) => MessageType::DeviceInfo,
             Message::KeyRotation(_) => MessageType::KeyRotation,
             Message::SyncPreferenceUpdate(_) => MessageType::SyncPreferenceUpdate,
+            Message::TeamInvite(_) => MessageType::TeamInvite,
+            Message::TeamInviteResponse(_) => MessageType::TeamInviteResponse,
+            Message::TeamBroadcast(_) => MessageType::TeamBroadcast,
+            Message::TeamDeviceList(_) => MessageType::TeamDeviceList,
+            Message::TeamDeviceListRequest(_) => MessageType::TeamDeviceListRequest,
             Message::Error(_) => MessageType::Error,
         };
         MessageHeader::new(message_type)

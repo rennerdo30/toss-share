@@ -3,6 +3,9 @@
 //! This module provides the public API that is exposed to Flutter
 //! via flutter_rust_bridge.
 
+pub mod team_api;
+pub use team_api::*;
+
 use flutter_rust_bridge::frb;
 use parking_lot::RwLock;
 use sha2::{Digest, Sha256};

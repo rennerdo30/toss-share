@@ -52,6 +52,13 @@ pub fn create_router() -> Router<AppState> {
         )
         .route("/admin/logs", get(admin::logs_page))
         .route("/admin/logs/clear", post(admin::clear_logs))
+        .route("/admin/teams", get(admin::teams_list))
+        .route("/admin/teams/{team_id}", get(admin::team_details))
+        .route("/admin/teams/{team_id}/delete", post(admin::delete_team))
+        .route(
+            "/admin/teams/{team_id}/members/{device_id}/remove",
+            post(admin::remove_team_member),
+        )
         .route("/api/admin/stats", get(admin::get_stats))
 }
 
