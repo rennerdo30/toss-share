@@ -37,3 +37,21 @@ String getPlatformLabel(DevicePlatform platform) {
       return 'Unknown';
   }
 }
+
+/// Parse a platform string into a DevicePlatform enum
+DevicePlatform platformFromString(String platform) {
+  switch (platform.toLowerCase()) {
+    case 'macos':
+      return DevicePlatform.macos;
+    case 'windows':
+      return DevicePlatform.windows;
+    case 'linux':
+      return DevicePlatform.linux;
+    case 'ios':
+      return DevicePlatform.ios;
+    case 'android':
+      return DevicePlatform.android;
+    default:
+      return DevicePlatform.unknown;
+  }
+}

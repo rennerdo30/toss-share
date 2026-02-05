@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1735245230;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -661619588;
 
 // Section: executor
 
@@ -45,6 +45,36 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
+fn wire__crate__api__accept_team_invitation_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "accept_team_invitation",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_code = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::accept_team_invitation(api_code)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__broadcast_sync_preference_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -83,6 +113,36 @@ fn wire__crate__api__broadcast_sync_preference_impl(
                     .await,
                 )
             }
+        },
+    )
+}
+fn wire__crate__api__can_broadcast_to_team_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "can_broadcast_to_team",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::can_broadcast_to_team(api_team_id)?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -297,6 +357,135 @@ fn wire__crate__api__complete_pairing_qr_impl(
         },
     )
 }
+fn wire__crate__api__create_team_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "create_team",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_name = <String>::sse_decode(&mut deserializer);
+            let api_description = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::create_team(api_name, api_description)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__create_team_invitation_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "create_team_invitation",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            let api_role = <String>::sse_decode(&mut deserializer);
+            let api_expires_in_hours = <u32>::sse_decode(&mut deserializer);
+            let api_max_uses = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::create_team_invitation(
+                    api_team_id,
+                    api_role,
+                    api_expires_in_hours,
+                    api_max_uses,
+                )?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__decline_team_invitation_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "decline_team_invitation",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_code = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::decline_team_invitation(api_code)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__delete_team_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "delete_team",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::delete_team(api_team_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__enable_sync_all_devices_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -359,6 +548,35 @@ fn wire__crate__api__find_pairing_device_impl(
                     .await,
                 )
             }
+        },
+    )
+}
+fn wire__crate__api__get_broadcast_enabled_teams_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_broadcast_enabled_teams",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_broadcast_enabled_teams()?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -634,6 +852,65 @@ fn wire__crate__api__get_device_sync_enabled_impl(
         },
     )
 }
+fn wire__crate__api__get_invitation_by_code_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_invitation_by_code",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_code = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_invitation_by_code(api_code)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__get_my_teams_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_my_teams",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_my_teams()?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__get_paired_devices_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -721,6 +998,157 @@ fn wire__crate__api__get_sync_enabled_device_ids_impl(
         },
     )
 }
+fn wire__crate__api__get_team_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_team",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_team(api_team_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__get_team_audit_log_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_team_audit_log",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            let api_limit = <Option<u32>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_team_audit_log(api_team_id, api_limit)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__get_team_device_ids_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_team_device_ids",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_team_device_ids(api_team_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__get_team_invitations_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_team_invitations",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_team_invitations(api_team_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__get_team_members_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_team_members",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::get_team_members(api_team_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__init_toss_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -747,6 +1175,36 @@ fn wire__crate__api__init_toss_impl(
             deserializer.end();
             transform_result_sse::<_, String>((move || {
                 let output_ok = crate::api::init_toss(api_data_dir, api_device_name)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__leave_team_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "leave_team",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::leave_team(api_team_id)?;
                 Ok(output_ok)
             })())
         },
@@ -876,6 +1334,37 @@ fn wire__crate__api__remove_history_item_impl(
         },
     )
 }
+fn wire__crate__api__remove_team_member_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "remove_team_member",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            let api_target_device_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::remove_team_member(api_team_id, api_target_device_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__rename_device_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -902,6 +1391,37 @@ fn wire__crate__api__rename_device_impl(
             deserializer.end();
             transform_result_sse::<_, String>((move || {
                 let output_ok = crate::api::rename_device(api_device_id, api_new_name)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__revoke_team_invitation_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "revoke_team_invitation",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            let api_invitation_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::revoke_team_invitation(api_team_id, api_invitation_id)?;
                 Ok(output_ok)
             })())
         },
@@ -1279,6 +1799,39 @@ fn wire__crate__api__stop_network_impl(
         },
     )
 }
+fn wire__crate__api__update_member_role_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "update_member_role",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            let api_target_device_id = <String>::sse_decode(&mut deserializer);
+            let api_role = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok =
+                    crate::api::update_member_role(api_team_id, api_target_device_id, api_role)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__update_settings_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1309,6 +1862,46 @@ fn wire__crate__api__update_settings_impl(
         },
     )
 }
+fn wire__crate__api__update_team_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "update_team",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_team_id = <String>::sse_decode(&mut deserializer);
+            let api_name = <Option<String>>::sse_decode(&mut deserializer);
+            let api_description = <Option<String>>::sse_decode(&mut deserializer);
+            let api_broadcast_enabled = <Option<bool>>::sse_decode(&mut deserializer);
+            let api_max_members = <Option<u32>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::update_team(
+                    api_team_id,
+                    api_name,
+                    api_description,
+                    api_broadcast_enabled,
+                    api_max_members,
+                )?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 
 // Section: dart2rust
 
@@ -1332,6 +1925,30 @@ impl SseDecode for crate::api::AdvertisementResultDto {
             relay_registered: var_relayRegistered,
             mdns_error: var_mdnsError,
             relay_error: var_relayError,
+        };
+    }
+}
+
+impl SseDecode for crate::api::AuditEntryDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_action = <String>::sse_decode(deserializer);
+        let mut var_actorDeviceId = <String>::sse_decode(deserializer);
+        let mut var_actorDisplayName = <Option<String>>::sse_decode(deserializer);
+        let mut var_targetDeviceId = <Option<String>>::sse_decode(deserializer);
+        let mut var_targetDisplayName = <Option<String>>::sse_decode(deserializer);
+        let mut var_details = <Option<String>>::sse_decode(deserializer);
+        let mut var_timestamp = <u64>::sse_decode(deserializer);
+        return crate::api::AuditEntryDto {
+            id: var_id,
+            action: var_action,
+            actor_device_id: var_actorDeviceId,
+            actor_display_name: var_actorDisplayName,
+            target_device_id: var_targetDeviceId,
+            target_display_name: var_targetDisplayName,
+            details: var_details,
+            timestamp: var_timestamp,
         };
     }
 }
@@ -1407,6 +2024,18 @@ impl SseDecode for Vec<String> {
     }
 }
 
+impl SseDecode for Vec<crate::api::AuditEntryDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::AuditEntryDto>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::ClipboardItemDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1443,6 +2072,42 @@ impl SseDecode for Vec<u8> {
     }
 }
 
+impl SseDecode for Vec<crate::api::TeamDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::TeamDto>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::TeamInvitationDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::TeamInvitationDto>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::TeamMemberDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::TeamMemberDto>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1454,11 +2119,44 @@ impl SseDecode for Option<String> {
     }
 }
 
+impl SseDecode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<bool>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::ClipboardItemDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::api::ClipboardItemDto>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::TeamDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::TeamDto>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::TeamInvitationDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::TeamInvitationDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1526,6 +2224,80 @@ impl SseDecode for crate::api::PairingInfoDto {
             qr_data: var_qrData,
             expires_at: var_expiresAt,
             public_key: var_publicKey,
+        };
+    }
+}
+
+impl SseDecode for crate::api::TeamDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_description = <Option<String>>::sse_decode(deserializer);
+        let mut var_createdAt = <u64>::sse_decode(deserializer);
+        let mut var_broadcastEnabled = <bool>::sse_decode(deserializer);
+        let mut var_maxMembers = <u32>::sse_decode(deserializer);
+        let mut var_memberCount = <u32>::sse_decode(deserializer);
+        let mut var_isAdmin = <bool>::sse_decode(deserializer);
+        return crate::api::TeamDto {
+            id: var_id,
+            name: var_name,
+            description: var_description,
+            created_at: var_createdAt,
+            broadcast_enabled: var_broadcastEnabled,
+            max_members: var_maxMembers,
+            member_count: var_memberCount,
+            is_admin: var_isAdmin,
+        };
+    }
+}
+
+impl SseDecode for crate::api::TeamInvitationDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_teamId = <String>::sse_decode(deserializer);
+        let mut var_teamName = <String>::sse_decode(deserializer);
+        let mut var_code = <String>::sse_decode(deserializer);
+        let mut var_role = <String>::sse_decode(deserializer);
+        let mut var_createdBy = <String>::sse_decode(deserializer);
+        let mut var_createdAt = <u64>::sse_decode(deserializer);
+        let mut var_expiresAt = <u64>::sse_decode(deserializer);
+        let mut var_status = <String>::sse_decode(deserializer);
+        let mut var_maxUses = <u32>::sse_decode(deserializer);
+        let mut var_useCount = <u32>::sse_decode(deserializer);
+        return crate::api::TeamInvitationDto {
+            id: var_id,
+            team_id: var_teamId,
+            team_name: var_teamName,
+            code: var_code,
+            role: var_role,
+            created_by: var_createdBy,
+            created_at: var_createdAt,
+            expires_at: var_expiresAt,
+            status: var_status,
+            max_uses: var_maxUses,
+            use_count: var_useCount,
+        };
+    }
+}
+
+impl SseDecode for crate::api::TeamMemberDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_deviceId = <String>::sse_decode(deserializer);
+        let mut var_displayName = <String>::sse_decode(deserializer);
+        let mut var_role = <String>::sse_decode(deserializer);
+        let mut var_joinedAt = <u64>::sse_decode(deserializer);
+        let mut var_isOnline = <bool>::sse_decode(deserializer);
+        let mut var_platform = <String>::sse_decode(deserializer);
+        return crate::api::TeamMemberDto {
+            device_id: var_deviceId,
+            display_name: var_displayName,
+            role: var_role,
+            joined_at: var_joinedAt,
+            is_online: var_isOnline,
+            platform: var_platform,
         };
     }
 }
@@ -1648,18 +2420,18 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__broadcast_sync_preference_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__find_pairing_device_impl(port, ptr, rust_vec_len, data_len),
-        25 => {
+        2 => wire__crate__api__broadcast_sync_preference_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__find_pairing_device_impl(port, ptr, rust_vec_len, data_len),
+        40 => {
             wire__crate__api__register_pairing_advertisement_impl(port, ptr, rust_vec_len, data_len)
         }
-        29 => wire__crate__api__send_clipboard_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__send_clipboard_to_devices_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__send_text_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__shutdown_toss_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__start_event_listener_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__start_network_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__stop_network_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__send_clipboard_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__send_clipboard_to_devices_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__send_text_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__shutdown_toss_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__start_event_listener_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__start_network_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__stop_network_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1672,36 +2444,55 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        2 => wire__crate__api__cancel_pairing_impl(ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__check_clipboard_changed_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__cleanup_old_history_impl(ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__clear_clipboard_history_impl(ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__complete_manual_pairing_impl(ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__complete_pairing_code_impl(ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__complete_pairing_qr_impl(ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__enable_sync_all_devices_impl(ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__get_clipboard_history_impl(ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__get_clipboard_history_content_impl(ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__get_clipboard_history_filtered_impl(ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__get_connected_devices_impl(ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__get_current_clipboard_impl(ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__get_device_id_impl(ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__get_device_name_impl(ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__get_device_session_key_impl(ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__get_device_sync_enabled_impl(ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__get_paired_devices_impl(ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__get_settings_impl(ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__get_sync_enabled_device_ids_impl(ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__init_toss_impl(ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__poll_event_impl(ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__remove_device_impl(ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__remove_history_item_impl(ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__rename_device_impl(ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__set_device_name_impl(ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__set_device_sync_enabled_impl(ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__sign_message_impl(ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__start_pairing_impl(ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__update_settings_impl(ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__accept_team_invitation_impl(ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__can_broadcast_to_team_impl(ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__cancel_pairing_impl(ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__check_clipboard_changed_impl(ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__cleanup_old_history_impl(ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__clear_clipboard_history_impl(ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__complete_manual_pairing_impl(ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__complete_pairing_code_impl(ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__complete_pairing_qr_impl(ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__create_team_impl(ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__create_team_invitation_impl(ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__decline_team_invitation_impl(ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__delete_team_impl(ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__enable_sync_all_devices_impl(ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__get_broadcast_enabled_teams_impl(ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__get_clipboard_history_impl(ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__get_clipboard_history_content_impl(ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__get_clipboard_history_filtered_impl(ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__get_connected_devices_impl(ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__get_current_clipboard_impl(ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__get_device_id_impl(ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__get_device_name_impl(ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__get_device_session_key_impl(ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__get_device_sync_enabled_impl(ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__get_invitation_by_code_impl(ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__get_my_teams_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__get_paired_devices_impl(ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__get_settings_impl(ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__get_sync_enabled_device_ids_impl(ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__get_team_impl(ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__get_team_audit_log_impl(ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__get_team_device_ids_impl(ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__get_team_invitations_impl(ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__get_team_members_impl(ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__init_toss_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__leave_team_impl(ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__poll_event_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__remove_device_impl(ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__remove_history_item_impl(ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__remove_team_member_impl(ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__rename_device_impl(ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__revoke_team_invitation_impl(ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__set_device_name_impl(ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__set_device_sync_enabled_impl(ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__sign_message_impl(ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__start_pairing_impl(ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__update_member_role_impl(ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__update_settings_impl(ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__update_team_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1728,6 +2519,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::AdvertisementResultDto>
     for crate::api::AdvertisementResultDto
 {
     fn into_into_dart(self) -> crate::api::AdvertisementResultDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::AuditEntryDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.action.into_into_dart().into_dart(),
+            self.actor_device_id.into_into_dart().into_dart(),
+            self.actor_display_name.into_into_dart().into_dart(),
+            self.target_device_id.into_into_dart().into_dart(),
+            self.target_display_name.into_into_dart().into_dart(),
+            self.details.into_into_dart().into_dart(),
+            self.timestamp.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::AuditEntryDto {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::AuditEntryDto> for crate::api::AuditEntryDto {
+    fn into_into_dart(self) -> crate::api::AuditEntryDto {
         self
     }
 }
@@ -1833,6 +2646,75 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::PairingInfoDto> for crate::ap
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::TeamDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
+            self.created_at.into_into_dart().into_dart(),
+            self.broadcast_enabled.into_into_dart().into_dart(),
+            self.max_members.into_into_dart().into_dart(),
+            self.member_count.into_into_dart().into_dart(),
+            self.is_admin.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::TeamDto {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::TeamDto> for crate::api::TeamDto {
+    fn into_into_dart(self) -> crate::api::TeamDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::TeamInvitationDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.team_id.into_into_dart().into_dart(),
+            self.team_name.into_into_dart().into_dart(),
+            self.code.into_into_dart().into_dart(),
+            self.role.into_into_dart().into_dart(),
+            self.created_by.into_into_dart().into_dart(),
+            self.created_at.into_into_dart().into_dart(),
+            self.expires_at.into_into_dart().into_dart(),
+            self.status.into_into_dart().into_dart(),
+            self.max_uses.into_into_dart().into_dart(),
+            self.use_count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::TeamInvitationDto {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::TeamInvitationDto>
+    for crate::api::TeamInvitationDto
+{
+    fn into_into_dart(self) -> crate::api::TeamInvitationDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::TeamMemberDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.device_id.into_into_dart().into_dart(),
+            self.display_name.into_into_dart().into_dart(),
+            self.role.into_into_dart().into_dart(),
+            self.joined_at.into_into_dart().into_dart(),
+            self.is_online.into_into_dart().into_dart(),
+            self.platform.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::TeamMemberDto {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::TeamMemberDto> for crate::api::TeamMemberDto {
+    fn into_into_dart(self) -> crate::api::TeamMemberDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::TossEvent {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -1917,6 +2799,20 @@ impl SseEncode for crate::api::AdvertisementResultDto {
     }
 }
 
+impl SseEncode for crate::api::AuditEntryDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.action, serializer);
+        <String>::sse_encode(self.actor_device_id, serializer);
+        <Option<String>>::sse_encode(self.actor_display_name, serializer);
+        <Option<String>>::sse_encode(self.target_device_id, serializer);
+        <Option<String>>::sse_encode(self.target_display_name, serializer);
+        <Option<String>>::sse_encode(self.details, serializer);
+        <u64>::sse_encode(self.timestamp, serializer);
+    }
+}
+
 impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1966,6 +2862,16 @@ impl SseEncode for Vec<String> {
     }
 }
 
+impl SseEncode for Vec<crate::api::AuditEntryDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::AuditEntryDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::ClipboardItemDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1996,6 +2902,36 @@ impl SseEncode for Vec<u8> {
     }
 }
 
+impl SseEncode for Vec<crate::api::TeamDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::TeamDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::TeamInvitationDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::TeamInvitationDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::TeamMemberDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::TeamMemberDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2006,12 +2942,42 @@ impl SseEncode for Option<String> {
     }
 }
 
+impl SseEncode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <bool>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::ClipboardItemDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::ClipboardItemDto>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::TeamDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::TeamDto>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::TeamInvitationDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::TeamInvitationDto>::sse_encode(value, serializer);
         }
     }
 }
@@ -2063,6 +3029,49 @@ impl SseEncode for crate::api::PairingInfoDto {
         <String>::sse_encode(self.qr_data, serializer);
         <u64>::sse_encode(self.expires_at, serializer);
         <String>::sse_encode(self.public_key, serializer);
+    }
+}
+
+impl SseEncode for crate::api::TeamDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.name, serializer);
+        <Option<String>>::sse_encode(self.description, serializer);
+        <u64>::sse_encode(self.created_at, serializer);
+        <bool>::sse_encode(self.broadcast_enabled, serializer);
+        <u32>::sse_encode(self.max_members, serializer);
+        <u32>::sse_encode(self.member_count, serializer);
+        <bool>::sse_encode(self.is_admin, serializer);
+    }
+}
+
+impl SseEncode for crate::api::TeamInvitationDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.team_id, serializer);
+        <String>::sse_encode(self.team_name, serializer);
+        <String>::sse_encode(self.code, serializer);
+        <String>::sse_encode(self.role, serializer);
+        <String>::sse_encode(self.created_by, serializer);
+        <u64>::sse_encode(self.created_at, serializer);
+        <u64>::sse_encode(self.expires_at, serializer);
+        <String>::sse_encode(self.status, serializer);
+        <u32>::sse_encode(self.max_uses, serializer);
+        <u32>::sse_encode(self.use_count, serializer);
+    }
+}
+
+impl SseEncode for crate::api::TeamMemberDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.device_id, serializer);
+        <String>::sse_encode(self.display_name, serializer);
+        <String>::sse_encode(self.role, serializer);
+        <u64>::sse_encode(self.joined_at, serializer);
+        <bool>::sse_encode(self.is_online, serializer);
+        <String>::sse_encode(self.platform, serializer);
     }
 }
 

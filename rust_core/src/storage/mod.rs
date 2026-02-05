@@ -6,6 +6,7 @@ mod device_storage;
 mod history_storage;
 mod secure_storage;
 mod settings_storage;
+mod team_storage;
 
 pub use device_storage::{DeviceStorage, StoredDevice};
 pub use history_storage::{HistoryStorage, StoredHistoryItem};
@@ -14,6 +15,10 @@ pub use secure_storage::{
     get_or_create_storage_encryption_key, retrieve_identity_key, store_identity_key,
 };
 pub use settings_storage::SettingsStorage;
+pub use team_storage::{
+    AuditAction, InvitationStatus, StoredAuditEntry, StoredTeam, StoredTeamInvitation,
+    StoredTeamMember, TeamRole, TeamStorage,
+};
 
 use rusqlite::{Connection, Result as SqliteResult};
 use std::path::{Path, PathBuf};
@@ -120,6 +125,103 @@ impl Storage {
             [],
         )?;
 
+        // Create teams table
+        conn.execute(
+            r#"
+            CREATE TABLE IF NOT EXISTS teams (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                broadcast_enabled INTEGER DEFAULT 0,
+                max_members INTEGER DEFAULT 0
+            )
+            "#,
+            [],
+        )?;
+
+        // Create team_members table
+        conn.execute(
+            r#"
+            CREATE TABLE IF NOT EXISTS team_members (
+                team_id TEXT NOT NULL,
+                device_id TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                role INTEGER NOT NULL DEFAULT 1,
+                joined_at INTEGER NOT NULL,
+                invited_by TEXT,
+                PRIMARY KEY (team_id, device_id),
+                FOREIGN KEY (team_id) REFERENCES teams(id)
+            )
+            "#,
+            [],
+        )?;
+
+        // Create index on team_members for device lookups
+        conn.execute(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_team_members_device_id
+            ON team_members(device_id)
+            "#,
+            [],
+        )?;
+
+        // Create team_invitations table
+        conn.execute(
+            r#"
+            CREATE TABLE IF NOT EXISTS team_invitations (
+                id TEXT PRIMARY KEY,
+                team_id TEXT NOT NULL,
+                code TEXT NOT NULL UNIQUE,
+                role INTEGER NOT NULL DEFAULT 1,
+                created_by TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                status INTEGER NOT NULL DEFAULT 0,
+                max_uses INTEGER DEFAULT 1,
+                use_count INTEGER DEFAULT 0,
+                FOREIGN KEY (team_id) REFERENCES teams(id)
+            )
+            "#,
+            [],
+        )?;
+
+        // Create index on team_invitations for code lookups
+        conn.execute(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_team_invitations_code
+            ON team_invitations(code)
+            "#,
+            [],
+        )?;
+
+        // Create team_audit_log table
+        conn.execute(
+            r#"
+            CREATE TABLE IF NOT EXISTS team_audit_log (
+                id TEXT PRIMARY KEY,
+                team_id TEXT NOT NULL,
+                action INTEGER NOT NULL,
+                actor_device_id TEXT NOT NULL,
+                target_device_id TEXT,
+                details TEXT,
+                timestamp INTEGER NOT NULL,
+                FOREIGN KEY (team_id) REFERENCES teams(id)
+            )
+            "#,
+            [],
+        )?;
+
+        // Create index on team_audit_log for team lookups
+        conn.execute(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_team_audit_log_team_id
+            ON team_audit_log(team_id, timestamp DESC)
+            "#,
+            [],
+        )?;
+
         Ok(())
     }
 
@@ -136,6 +238,11 @@ impl Storage {
     /// Get settings storage operations
     pub fn settings(&self) -> SettingsStorage<'_> {
         SettingsStorage::new(&self.conn)
+    }
+
+    /// Get team storage operations
+    pub fn teams(&self) -> TeamStorage<'_> {
+        TeamStorage::new(&self.conn)
     }
 
     /// Cleanup old clipboard history based on retention period

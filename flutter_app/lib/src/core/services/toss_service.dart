@@ -788,6 +788,8 @@ class TossService {
     required bool historyEnabled,
     required int historyDays,
     String? relayUrl,
+    int streamingChunkSize = 65536,
+    bool streamingEnabled = true,
   }) async {
     try {
       final settings = api.TossSettings(
@@ -800,6 +802,8 @@ class TossService {
         historyEnabled: historyEnabled,
         historyDays: historyDays,
         relayUrl: relayUrl,
+        streamingChunkSize: streamingChunkSize,
+        streamingEnabled: streamingEnabled,
       );
       api.updateSettings(settings: settings);
     } catch (e) {

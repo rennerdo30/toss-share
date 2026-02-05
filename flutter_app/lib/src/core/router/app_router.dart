@@ -6,6 +6,8 @@ import '../../features/pairing/pairing_screen.dart';
 import '../../features/devices/devices_screen.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/teams/teams_screen.dart';
+import '../../features/teams/team_details_screen.dart';
 import '../../shared/widgets/desktop_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -35,6 +37,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/devices',
             name: 'devices',
             builder: (context, state) => const DevicesScreen(),
+          ),
+          GoRoute(
+            path: '/teams',
+            name: 'teams',
+            builder: (context, state) => const TeamsScreen(),
+          ),
+          GoRoute(
+            path: '/teams/:teamId',
+            name: 'team-details',
+            builder: (context, state) => TeamDetailsScreen(
+              teamId: state.pathParameters['teamId']!,
+            ),
           ),
         ],
       ),
