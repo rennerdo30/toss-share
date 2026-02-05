@@ -4,6 +4,7 @@
 
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Instant;
 
 use axum::Router;
 use tokio::net::TcpListener;
@@ -27,6 +28,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub db: Arc<Database>,
     pub relay: Arc<RelayState>,
+    pub started_at: Instant,
 }
 
 /// Create the application router with the given state
@@ -68,6 +70,7 @@ impl TestServer {
             config: Arc::new(config),
             db: Arc::new(database),
             relay: Arc::new(RelayState::new()),
+            started_at: Instant::now(),
         };
 
         // Create the app

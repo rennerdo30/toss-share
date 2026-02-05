@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ import '../../core/services/toss_service.dart';
 import '../../core/models/device.dart';
 import '../../core/models/clipboard_item.dart';
 import '../../shared/widgets/responsive_layout.dart';
+import '../../shared/utils/timestamp_utils.dart';
 import 'widgets/connection_status.dart';
 import 'widgets/device_list.dart';
 import 'widgets/clipboard_preview.dart';
@@ -67,8 +69,8 @@ class _MobileLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final isDesktop = !kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
     return Scaffold(
       appBar: AppBar(
@@ -202,7 +204,7 @@ class _MobileLayout extends StatelessWidget {
             if (device.lastSeen != null)
               _DetailRow(
                 label: 'Last Seen',
-                value: _formatLastSeen(device.lastSeen!),
+                value: formatLastSeen(device.lastSeen!),
               ),
           ],
         ),
@@ -229,16 +231,6 @@ class _MobileLayout extends StatelessWidget {
     );
   }
 
-  String _formatLastSeen(DateTime lastSeen) {
-    final now = DateTime.now();
-    final diff = now.difference(lastSeen);
-
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${lastSeen.month}/${lastSeen.day}/${lastSeen.year}';
-  }
 }
 
 /// Desktop layout - clipboard focused with quick actions
@@ -281,7 +273,7 @@ class _DesktopLayout extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         currentClipboard != null
-                            ? 'Last updated ${_formatTimestamp(currentClipboard!.timestamp)}'
+                            ? 'Last updated ${formatRelativeTimestamp(currentClipboard!.timestamp)}'
                             : 'No clipboard content',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.outline,
@@ -438,15 +430,6 @@ class _DesktopLayout extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final diff = now.difference(timestamp);
-
-    if (diff.inSeconds < 60) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${timestamp.month}/${timestamp.day} at ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
-  }
 }
 
 /// Quick action button for desktop header

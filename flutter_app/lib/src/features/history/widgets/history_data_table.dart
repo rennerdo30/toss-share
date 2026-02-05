@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/clipboard_item.dart';
 import '../../../shared/widgets/context_menu.dart';
+import '../../../shared/utils/content_type_utils.dart';
+import '../../../shared/utils/timestamp_utils.dart';
 
 /// Column types for sorting
 enum HistorySortColumn {
@@ -85,10 +87,12 @@ class _HistoryDataTableState extends State<HistoryDataTable> {
       return const SizedBox.shrink();
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Scrollbar(
+      thumbVisibility: true,
       child: SingleChildScrollView(
-        child: DataTable(
+        scrollDirection: Axis.horizontal,
+        child: SingleChildScrollView(
+          child: DataTable(
           sortColumnIndex: _sortColumn.index,
           sortAscending: _sortAscending,
           headingRowColor: WidgetStateProperty.all(
@@ -129,7 +133,7 @@ class _HistoryDataTableState extends State<HistoryDataTable> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _getContentTypeIcon(item.contentType),
+                        getContentTypeIcon(item.contentType),
                         size: 16,
                         color: theme.colorScheme.primary,
                       ),
@@ -162,7 +166,7 @@ class _HistoryDataTableState extends State<HistoryDataTable> {
                 ),
                 // Timestamp
                 DataCell(
-                  Text(_formatTimestamp(item.timestamp)),
+                  Text(formatAbsoluteTimestamp(item.timestamp)),
                 ),
                 // Source device
                 DataCell(
@@ -206,35 +210,10 @@ class _HistoryDataTableState extends State<HistoryDataTable> {
               ],
             );
           }).toList(),
+          ),
         ),
       ),
     );
   }
 
-  IconData _getContentTypeIcon(ClipboardContentType type) {
-    switch (type) {
-      case ClipboardContentType.text:
-        return Icons.text_fields;
-      case ClipboardContentType.richText:
-        return Icons.format_paint;
-      case ClipboardContentType.image:
-        return Icons.image;
-      case ClipboardContentType.file:
-        return Icons.attach_file;
-      case ClipboardContentType.url:
-        return Icons.link;
-    }
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final diff = now.difference(timestamp);
-
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-
-    return '${timestamp.month}/${timestamp.day} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
-  }
 }

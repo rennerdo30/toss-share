@@ -577,6 +577,7 @@ class _ScanCodeTabState extends State<_ScanCodeTab> {
                   letterSpacing: 8,
                 ),
             decoration: const InputDecoration(
+              labelText: 'Pairing code',
               hintText: '000000',
               counterText: '',
             ),

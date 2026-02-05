@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 
-use super::{handlers, websocket};
+use super::{admin, admin_auth, handlers, websocket};
 use crate::AppState;
 
 /// Create the API router
@@ -31,6 +31,20 @@ pub fn create_router() -> Router<AppState> {
         .route("/api/v1/pairing/{code}", delete(handlers::cancel_pairing))
         // WebSocket
         .route("/api/v1/ws", get(websocket::ws_handler))
+        // Admin dashboard
+        .route("/admin", get(admin::dashboard))
+        .route("/admin/login", get(admin_auth::login_page))
+        .route("/admin/login", post(admin_auth::login_submit))
+        .route("/admin/logout", post(admin_auth::logout))
+        .route("/admin/devices", get(admin::devices_list))
+        .route(
+            "/admin/devices/{device_id}/delete",
+            post(admin::delete_device),
+        )
+        .route("/admin/cleanup/messages", post(admin::cleanup_messages))
+        .route("/admin/cleanup/pairings", post(admin::cleanup_pairings))
+        .route("/admin/cleanup/devices", post(admin::cleanup_devices))
+        .route("/api/admin/stats", get(admin::get_stats))
 }
 
 async fn health_check() -> &'static str {

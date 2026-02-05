@@ -45,6 +45,11 @@ futures = "0.3"
 thiserror = "2"
 rand = "0.8"
 
+# Admin dashboard
+askama = "0.12"
+askama_axum = "0.4"
+bcrypt = "0.17"
+
 [dev-dependencies]
 tokio-test = "0.4"
 hex = "0.4"

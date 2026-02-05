@@ -632,6 +632,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         title: const Text('Device Name'),
         content: Form(
@@ -680,6 +681,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       BuildContext context, WidgetRef ref, int currentSize) {
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SimpleDialog(
         title: const Text('Max File Size'),
         children: [10, 25, 50, 100, 200].map((size) {
@@ -705,6 +707,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       BuildContext context, WidgetRef ref, int currentDays) {
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SimpleDialog(
         title: const Text('Keep History For'),
         children: [1, 3, 7, 14, 30].map((days) {
@@ -733,6 +736,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         title: const Text('Relay Server URL'),
         content: Form(
@@ -784,6 +788,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       BuildContext context, WidgetRef ref, ThemeMode currentMode) {
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SimpleDialog(
         title: const Text('Theme'),
         children: ThemeMode.values.map((mode) {

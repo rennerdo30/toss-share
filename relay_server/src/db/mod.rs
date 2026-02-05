@@ -315,4 +315,81 @@ impl Database {
 
         Ok(result.rows_affected())
     }
+
+    // Admin operations
+
+    /// List all devices (for admin dashboard)
+    pub async fn list_all_devices(&self) -> Result<Vec<Device>, ApiError> {
+        let devices = sqlx::query_as::<_, Device>(
+            r#"
+            SELECT id, public_key, device_name, is_online, last_seen, created_at, updated_at
+            FROM devices
+            ORDER BY last_seen DESC NULLS LAST
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(devices)
+    }
+
+    /// Count devices by online status (for admin dashboard)
+    pub async fn count_devices_by_status(&self) -> Result<(i64, i64), ApiError> {
+        let online: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM devices WHERE is_online = 1")
+            .fetch_one(&self.pool)
+            .await?;
+
+        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM devices")
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok((online.0, total.0))
+    }
+
+    /// Count queued messages (for admin dashboard)
+    pub async fn count_queued_messages(&self) -> Result<i64, ApiError> {
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM message_queue")
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok(count.0)
+    }
+
+    /// Cleanup stale devices (not seen for specified days)
+    pub async fn cleanup_stale_devices(&self, days: i64) -> Result<u64, ApiError> {
+        let cutoff = Utc::now().timestamp() - (days * 24 * 60 * 60);
+
+        // First delete related queued messages
+        sqlx::query(
+            r#"
+            DELETE FROM message_queue
+            WHERE from_device IN (SELECT id FROM devices WHERE last_seen < ? OR last_seen IS NULL)
+               OR to_device IN (SELECT id FROM devices WHERE last_seen < ? OR last_seen IS NULL)
+            "#,
+        )
+        .bind(cutoff)
+        .bind(cutoff)
+        .execute(&self.pool)
+        .await?;
+
+        // Then delete stale devices
+        let result = sqlx::query("DELETE FROM devices WHERE last_seen < ? OR last_seen IS NULL")
+            .bind(cutoff)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected())
+    }
+
+    /// Count pairing sessions (for admin dashboard)
+    pub async fn count_pairing_sessions(&self) -> Result<i64, ApiError> {
+        let now = Utc::now().timestamp();
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM pairing_sessions WHERE expires_at > ?")
+                .bind(now)
+                .fetch_one(&self.pool)
+                .await?;
+
+        Ok(count.0)
+    }
 }

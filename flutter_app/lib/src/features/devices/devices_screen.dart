@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/devices_provider.dart';
 import '../../core/models/device.dart';
+import '../../shared/widgets/empty_state.dart';
+import '../../shared/utils/platform_utils.dart';
+import '../../shared/utils/timestamp_utils.dart';
 
 class DevicesScreen extends ConsumerStatefulWidget {
   const DevicesScreen({super.key});
@@ -152,20 +155,23 @@ class _DeviceListItem extends ConsumerWidget {
         leading: Stack(
           children: [
             CircleAvatar(
-              child: Icon(_getPlatformIcon(device.platform)),
+              child: Icon(getPlatformIcon(device.platform)),
             ),
             Positioned(
               right: 0,
               bottom: 0,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: device.isOnline ? Colors.green : Colors.grey,
-                  border: Border.all(
-                    color: Theme.of(context).cardColor,
-                    width: 2,
+              child: Semantics(
+                label: device.isOnline ? 'Online' : 'Offline',
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: device.isOnline ? Colors.green : Colors.grey,
+                    border: Border.all(
+                      color: Theme.of(context).cardColor,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -177,7 +183,7 @@ class _DeviceListItem extends ConsumerWidget {
           device.isOnline
               ? 'Online'
               : device.lastSeen != null
-                  ? 'Last seen ${_formatLastSeen(device.lastSeen!)}'
+                  ? 'Last seen ${formatLastSeen(device.lastSeen!)}'
                   : 'Offline',
         ),
         trailing: PopupMenuButton(
@@ -211,58 +217,15 @@ class _DeviceListItem extends ConsumerWidget {
     );
   }
 
-  IconData _getPlatformIcon(DevicePlatform platform) {
-    switch (platform) {
-      case DevicePlatform.macos:
-        return Icons.laptop_mac;
-      case DevicePlatform.windows:
-        return Icons.laptop_windows;
-      case DevicePlatform.linux:
-        return Icons.computer;
-      case DevicePlatform.ios:
-        return Icons.phone_iphone;
-      case DevicePlatform.android:
-        return Icons.phone_android;
-      case DevicePlatform.unknown:
-        return Icons.devices_other;
-    }
-  }
-
-  String _formatLastSeen(DateTime lastSeen) {
-    final diff = DateTime.now().difference(lastSeen);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
-  }
 }
 
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.devices,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No devices paired',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Go to the home screen to pair a device',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-          ),
-        ],
-      ),
+    return const EmptyState(
+      icon: Icons.devices,
+      title: 'No devices paired',
+      subtitle: 'Go to the home screen to pair a device',
     );
   }
 }

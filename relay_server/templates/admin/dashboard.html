@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Toss Admin{% endblock %}
+
+{% block nav_dashboard %}font-bold{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-gray-500 text-sm font-medium">Online Devices</h2>
+                <p class="text-2xl font-bold text-gray-800">{{ online_devices }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-gray-500 text-sm font-medium">Total Devices</h2>
+                <p class="text-2xl font-bold text-gray-800">{{ total_devices }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-gray-500 text-sm font-medium">Queued Messages</h2>
+                <p class="text-2xl font-bold text-gray-800">{{ queued_messages }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-gray-500 text-sm font-medium">Uptime</h2>
+                <p class="text-2xl font-bold text-gray-800">{{ uptime }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Connections -->
+<div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-gray-800">Active WebSocket Connections</h2>
+        <span class="text-2xl font-bold text-indigo-600">{{ active_connections }}</span>
+    </div>
+    <div class="h-2 bg-gray-200 rounded-full">
+        <div class="h-2 bg-indigo-600 rounded-full" style="width: {{ connection_percent }}%"></div>
+    </div>
+    <p class="text-sm text-gray-500 mt-2">{{ active_connections }} of {{ total_devices }} devices connected via WebSocket</p>
+</div>
+
+<!-- Cleanup Actions -->
+<div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-4">Maintenance Actions</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <form action="/admin/cleanup/messages" method="POST" onsubmit="return confirm('Delete old queued messages?')">
+            <button type="submit" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">
+                Cleanup Old Messages
+            </button>
+            <p class="text-sm text-gray-500 mt-1">Delete messages older than 24 hours</p>
+        </form>
+
+        <form action="/admin/cleanup/pairings" method="POST" onsubmit="return confirm('Delete expired pairing sessions?')">
+            <button type="submit" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">
+                Cleanup Expired Pairings
+            </button>
+            <p class="text-sm text-gray-500 mt-1">Delete expired pairing sessions</p>
+        </form>
+
+        <form action="/admin/cleanup/devices" method="POST" onsubmit="return confirm('Delete devices not seen in 30 days?')">
+            <button type="submit" class="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
+                Cleanup Stale Devices
+            </button>
+            <p class="text-sm text-gray-500 mt-1">Delete devices not seen in 30 days</p>
+        </form>
+    </div>
+</div>
+{% endblock %}

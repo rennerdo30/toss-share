@@ -8,6 +8,9 @@ import '../../core/models/clipboard_item.dart';
 import '../../core/services/toss_service.dart';
 import '../../shared/widgets/responsive_layout.dart';
 import '../../shared/widgets/context_menu.dart';
+import '../../shared/widgets/empty_state.dart';
+import '../../shared/utils/content_type_utils.dart';
+import '../../shared/utils/timestamp_utils.dart';
 import 'widgets/history_data_table.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -559,7 +562,7 @@ class _HistoryItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  _getContentTypeIcon(item.contentType),
+                  getContentTypeIcon(item.contentType),
                   size: 20,
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
@@ -581,7 +584,7 @@ class _HistoryItem extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          _formatTimestamp(item.timestamp),
+                          formatRelativeTimestamp(item.timestamp),
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall
@@ -618,6 +621,7 @@ class _HistoryItem extends StatelessWidget {
               // Actions
               IconButton(
                 icon: const Icon(Icons.delete_outline),
+                tooltip: 'Delete',
                 onPressed: onDelete,
                 visualDensity: VisualDensity.compact,
               ),
@@ -628,32 +632,6 @@ class _HistoryItem extends StatelessWidget {
     );
   }
 
-  IconData _getContentTypeIcon(ClipboardContentType type) {
-    switch (type) {
-      case ClipboardContentType.text:
-        return Icons.text_fields;
-      case ClipboardContentType.richText:
-        return Icons.format_paint;
-      case ClipboardContentType.image:
-        return Icons.image;
-      case ClipboardContentType.file:
-        return Icons.attach_file;
-      case ClipboardContentType.url:
-        return Icons.link;
-    }
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final diff = now.difference(timestamp);
-
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-
-    return '${timestamp.month}/${timestamp.day}';
-  }
 }
 
 class _EmptyState extends StatelessWidget {
@@ -663,31 +641,12 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            hasFilters ? Icons.filter_alt_off : Icons.history,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            hasFilters ? 'No items match filters' : 'No clipboard history',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            hasFilters
-                ? 'Try adjusting your search or filters'
-                : 'Synced clipboard items will appear here',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-          ),
-        ],
-      ),
+    return EmptyState(
+      icon: hasFilters ? Icons.filter_alt_off : Icons.history,
+      title: hasFilters ? 'No items match filters' : 'No clipboard history',
+      subtitle: hasFilters
+          ? 'Try adjusting your search or filters'
+          : 'Synced clipboard items will appear here',
     );
   }
 }

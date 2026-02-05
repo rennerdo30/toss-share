@@ -1,0 +1,465 @@
+{
+  "name": "Toss Codebase Completion & Bug Fixes",
+  "description": "Fix all critical bugs, replace unsafe unwrap() calls, complete partial features, wire up unused endpoints, implement future enhancements, and bring the application to production-ready state",
+  "branchName": "ralph/toss-codebase-completion",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Persist Settings to SQLite Database",
+      "description": "As a user, I want my settings to be saved permanently so that they persist across app restarts.",
+      "acceptanceCriteria": [
+        "Implement save_settings() function in rust_core/src/storage/mod.rs that writes to the settings table",
+        "Implement load_settings() function that reads from the settings table on startup",
+        "Update api.updateSettings() in rust_core/src/api/mod.rs to call save_settings()",
+        "Load settings from database in TossApi::new() initialization",
+        "Update TossService in Flutter to verify settings persist after app restart",
+        "Add migration handling for settings schema changes",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Implement Automatic Session Key Rotation",
+      "description": "As a user, I want session keys to rotate automatically so that my clipboard data remains secure over long sessions.",
+      "acceptanceCriteria": [
+        "Add message counter to track messages per session in rust_core/src/network/mod.rs",
+        "Add timestamp tracking for session key age",
+        "Implement automatic key rotation trigger after 1000 messages OR 24 hours (per SPECIFICATION.md section 3.5)",
+        "Call rotate_session_key() automatically when thresholds are met",
+        "Ensure key rotation doesn't interrupt active transfers",
+        "Add unit tests for rotation triggers",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "make ci passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-003",
+      "title": "Integrate STUN/TURN for NAT Traversal",
+      "description": "As a user, I want peer-to-peer connections to work through NATs so that I can sync clipboards without relay server dependency.",
+      "acceptanceCriteria": [
+        "Integrate NatTraversal from rust_core/src/network/nat_traversal.rs into NetworkManager::connect()",
+        "Perform NAT type detection on connection attempt",
+        "Use STUN for symmetric NAT hole punching",
+        "Fall back to TURN relay when direct connection fails",
+        "Configure default STUN/TURN servers (or use relay server as TURN)",
+        "Add connection type indicator to Flutter UI (direct vs relayed)",
+        "Remove or use the 10+ unused constants in nat_traversal.rs",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-004",
+      "title": "Replace Unsafe unwrap() Calls with Proper Error Handling",
+      "description": "As a developer, I want the codebase to handle errors gracefully so that the app doesn't crash unexpectedly.",
+      "acceptanceCriteria": [
+        "Replace mutex .unwrap() calls with .expect(\"mutex poisoned - this is a bug\") at lines 336, 405, 553, 724, 737, 811, 1089, 1238, 1277, 1311 in rust_core/src/api/mod.rs",
+        "Replace timestamp conversion unwraps with Result<T, E> propagation",
+        "Update FFI boundary functions to return Result types where appropriate",
+        "Update Flutter FFI bindings to handle error results",
+        "Add error logging for all converted error paths",
+        "Ensure no unwrap() on user-provided or network data",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-005",
+      "title": "Implement Auto-Sync for Outgoing Clipboard Changes",
+      "description": "As a user, I want my clipboard to automatically sync to paired devices when auto-sync is enabled so that I don't have to manually send each time.",
+      "acceptanceCriteria": [
+        "Extend ClipboardMonitorService in Flutter to detect LOCAL clipboard changes",
+        "When auto_sync setting is true, automatically call send to all paired devices",
+        "Add debouncing to prevent rapid-fire syncs (e.g., 500ms delay)",
+        "Respect per-device sync preferences when implemented",
+        "Add visual indicator in UI when auto-sync sends content",
+        "Ensure auto-sync doesn't create infinite loops between devices",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Implement History Auto-Cleanup Based on Age",
+      "description": "As a user, I want old clipboard history to be automatically deleted so that my storage doesn't grow indefinitely.",
+      "acceptanceCriteria": [
+        "Implement cleanup_old_history() function in rust_core/src/storage/mod.rs",
+        "Use history_days setting from rust_core/src/api/mod.rs:52 to determine retention period",
+        "Run cleanup on app startup",
+        "Run cleanup periodically (e.g., daily) while app is running",
+        "Add manual Clear History option in Flutter settings",
+        "Log number of entries cleaned up",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Implement History Date Range Filtering",
+      "description": "As a user, I want to filter clipboard history by date range so that I can find items from specific time periods.",
+      "acceptanceCriteria": [
+        "Update _loadHistory() in flutter_app/lib/src/features/history/history_screen.dart to use date filter values",
+        "Add date range parameters to the Rust API get_history() function",
+        "Implement SQL query filtering by timestamp range",
+        "Update UI to show active filter state",
+        "Add Clear Filters button",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-008",
+      "title": "Complete iOS Background Service Implementation",
+      "description": "As an iOS user, I want clipboard sync to work when the app is in the background so that I receive clipboard content without opening the app.",
+      "acceptanceCriteria": [
+        "Implement handleShortcutAction() in flutter_app/lib/src/core/services/ios_background_service.dart:56",
+        "Implement syncOnForeground() at line 81",
+        "Register for background fetch capabilities in iOS project",
+        "Handle clipboard access restrictions in background mode",
+        "Test background sync on physical iOS device",
+        "Document iOS-specific limitations",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-009",
+      "title": "Implement Integration Tests",
+      "description": "As a developer, I want comprehensive integration tests so that I can verify the app works end-to-end.",
+      "acceptanceCriteria": [
+        "Implement all 11 placeholder tests in flutter_app/integration_test/app_test.dart",
+        "Test device pairing flow",
+        "Test clipboard send/receive",
+        "Test history view and search",
+        "Test settings persistence",
+        "Test offline/online transitions",
+        "Ensure tests can run in CI environment",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-005",
+        "US-007"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Wire Up Device Status API Endpoint",
+      "description": "As a user, I want to see real-time status of my paired devices so that I know which devices are online.",
+      "acceptanceCriteria": [
+        "Call /api/v1/devices/{device_id}/status from Flutter app",
+        "Display online/offline status in device list",
+        "Show last seen timestamp for offline devices",
+        "Implement periodic status polling (every 30 seconds)",
+        "Update UI immediately when status changes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-011",
+      "title": "Implement WebSocket Real-Time Sync",
+      "description": "As a user, I want clipboard content to sync instantly so that I don't have to wait for polling intervals.",
+      "acceptanceCriteria": [
+        "Connect to /api/v1/ws WebSocket endpoint from Flutter",
+        "Implement WebSocket message handling for clipboard events",
+        "Keep polling as fallback when WebSocket disconnects",
+        "Implement automatic WebSocket reconnection with exponential backoff",
+        "Show connection status indicator in UI (WebSocket vs polling)",
+        "Handle WebSocket authentication",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-010"
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "Build Admin Web Dashboard for Relay Server",
+      "description": "As a server administrator, I want a web dashboard to monitor and manage the relay server so that I can oversee system health.",
+      "acceptanceCriteria": [
+        "Create HTML templates in relay_server/templates/ for admin dashboard",
+        "Implement dashboard home page showing server stats (uptime, memory, connections)",
+        "Add connected devices list view with details",
+        "Add active sessions view",
+        "Implement authentication for admin routes (use existing admin_auth.rs)",
+        "Add ability to disconnect devices",
+        "Add server logs viewer",
+        "Style with CSS (minimal, functional design)",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "make ci passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-013"
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Implement Admin Authentication Flow",
+      "description": "As an administrator, I want secure login to the admin dashboard so that unauthorized users cannot access server controls.",
+      "acceptanceCriteria": [
+        "Implement login page in relay_server/templates/",
+        "Use admin_auth.rs for authentication logic",
+        "Implement session-based auth with secure cookies",
+        "Add logout functionality",
+        "Implement rate limiting on login attempts",
+        "Add password hashing (argon2 or bcrypt)",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "make ci passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-014",
+      "title": "Clean Up Dead Code and Unused Structs",
+      "description": "As a developer, I want the codebase free of dead code so that it's easier to maintain.",
+      "acceptanceCriteria": [
+        "Remove or integrate RegisterRequest/RegisterResponse in rust_core/src/network/relay_client.rs:25-41",
+        "Remove #[allow(dead_code)] annotations and either use or delete the methods in rust_core/src/clipboard/rich_text.rs",
+        "Evaluate MemoryStorage fallback in rust_core/src/storage/secure_storage.rs:759-791 - integrate or remove",
+        "Remove or document start_event_listener() if poll_event() is the intended API",
+        "Consolidate redundant pairing functions or document why all three are needed",
+        "Run cargo clippy and address all dead_code warnings",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "make ci passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-015",
+      "title": "Fix Test Assertions",
+      "description": "As a developer, I want tests to use proper assertions so that failures are clear and debugging is easier.",
+      "acceptanceCriteria": [
+        "Replace panic!(\"Expected X\") with assert!() or assert_eq!() in rust_core/src/protocol/message.rs at lines 341, 365, 384, 410, 434",
+        "Ensure all tests have descriptive assertion messages",
+        "Verify tests still pass after refactoring",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "make ci passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-016",
+      "title": "Implement Clipboard Streaming for Large Content",
+      "description": "As a user, I want to sync large clipboard content (like images) efficiently so that transfers don't time out or use excessive memory.",
+      "acceptanceCriteria": [
+        "Implement chunked transfer protocol for content > 1MB",
+        "Add progress indicator for large transfers in Flutter UI",
+        "Implement resume capability for interrupted transfers",
+        "Add memory-efficient streaming (don't load entire content in memory)",
+        "Update SPECIFICATION.md section 12 to reflect implementation",
+        "Add configuration for chunk size",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ]
+    },
+    {
+      "id": "US-017",
+      "title": "Implement Selective Sync Per Device",
+      "description": "As a user, I want to choose which devices receive my clipboard so that I have control over where my data goes.",
+      "acceptanceCriteria": [
+        "Add per-device sync toggle in Flutter device settings",
+        "Store sync preferences in database",
+        "Filter target devices in send operation based on preferences",
+        "Add Sync to All quick action",
+        "Show sync status per device in device list",
+        "Sync preferences should sync across devices (meta-sync)",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-005"
+      ]
+    },
+    {
+      "id": "US-018",
+      "title": "Implement Compression for Clipboard Content",
+      "description": "As a user, I want clipboard content to be compressed during transfer so that syncing is faster on slow networks.",
+      "acceptanceCriteria": [
+        "Add compression for content > 10KB (configurable threshold)",
+        "Use zstd or lz4 for compression (fast decompression)",
+        "Add compression flag to protocol messages",
+        "Implement automatic decompression on receive",
+        "Show compression ratio in transfer stats (optional)",
+        "Ensure backwards compatibility with uncompressed messages",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "make ci passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-019",
+      "title": "Create Browser Extension for Clipboard Sync",
+      "description": "As a user, I want to sync clipboard content directly from my browser so that I can share content without switching apps.",
+      "acceptanceCriteria": [
+        "Create Chrome extension with manifest v3",
+        "Implement Firefox extension (WebExtension API)",
+        "Add popup UI showing recent clipboard items",
+        "Implement Send to Device context menu option",
+        "Connect to relay server via WebSocket",
+        "Implement extension authentication with main app",
+        "Add extension settings (auto-sync toggle, target device)",
+        "Create extension build process and documentation",
+        "make ci passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-011"
+      ]
+    },
+    {
+      "id": "US-020",
+      "title": "Implement Team/Organization Support",
+      "description": "As a team administrator, I want to manage clipboard sharing within my organization so that team members can securely share content.",
+      "acceptanceCriteria": [
+        "Add organization/team model to database schema",
+        "Implement team creation and invitation flow",
+        "Add team device discovery (see all team devices)",
+        "Implement team-wide clipboard broadcast option",
+        "Add role-based permissions (admin, member)",
+        "Create team management UI in Flutter",
+        "Add team management to relay server admin dashboard",
+        "Implement team audit log for compliance",
+        "cargo fmt --check passes",
+        "cargo clippy -- -D warnings passes",
+        "cargo test passes",
+        "flutter analyze passes",
+        "flutter test passes",
+        "make ci passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-012",
+        "US-013",
+        "US-017"
+      ]
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-02-05T05:08:23.430Z"
+  }
+}
