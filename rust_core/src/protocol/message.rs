@@ -339,15 +339,21 @@ mod tests {
         // Deserialize using Message's deserialize method
         let deserialized = Message::deserialize(&header, &serialized).unwrap();
 
-        match deserialized {
-            Message::ClipboardUpdate(deserialized_update) => {
-                assert_eq!(update.content_hash, deserialized_update.content_hash);
-                assert_eq!(
-                    update.content.as_text(),
-                    deserialized_update.content.as_text()
-                );
-            }
-            _ => panic!("Expected ClipboardUpdate"),
+        assert!(
+            matches!(&deserialized, Message::ClipboardUpdate(_)),
+            "Expected ClipboardUpdate variant, got {:?}",
+            std::mem::discriminant(&deserialized)
+        );
+        if let Message::ClipboardUpdate(deserialized_update) = deserialized {
+            assert_eq!(
+                update.content_hash, deserialized_update.content_hash,
+                "Content hash mismatch after deserialization"
+            );
+            assert_eq!(
+                update.content.as_text(),
+                deserialized_update.content.as_text(),
+                "Content text mismatch after deserialization"
+            );
         }
     }
 
@@ -365,13 +371,24 @@ mod tests {
         let header = message.header();
         let deserialized = Message::deserialize(&header, &serialized).unwrap();
 
-        match deserialized {
-            Message::ClipboardAck(deserialized_ack) => {
-                assert_eq!(ack.message_id, deserialized_ack.message_id);
-                assert_eq!(ack.content_hash, deserialized_ack.content_hash);
-                assert_eq!(ack.success, deserialized_ack.success);
-            }
-            _ => panic!("Expected ClipboardAck"),
+        assert!(
+            matches!(&deserialized, Message::ClipboardAck(_)),
+            "Expected ClipboardAck variant, got {:?}",
+            std::mem::discriminant(&deserialized)
+        );
+        if let Message::ClipboardAck(deserialized_ack) = deserialized {
+            assert_eq!(
+                ack.message_id, deserialized_ack.message_id,
+                "Message ID mismatch after deserialization"
+            );
+            assert_eq!(
+                ack.content_hash, deserialized_ack.content_hash,
+                "Content hash mismatch after deserialization"
+            );
+            assert_eq!(
+                ack.success, deserialized_ack.success,
+                "Success flag mismatch after deserialization"
+            );
         }
     }
 
@@ -385,12 +402,20 @@ mod tests {
         let header = message.header();
         let deserialized = Message::deserialize(&header, &serialized).unwrap();
 
-        match deserialized {
-            Message::DeviceInfo(deserialized_info) => {
-                assert_eq!(device_info.device_id, deserialized_info.device_id);
-                assert_eq!(device_info.device_name, deserialized_info.device_name);
-            }
-            _ => panic!("Expected DeviceInfo"),
+        assert!(
+            matches!(&deserialized, Message::DeviceInfo(_)),
+            "Expected DeviceInfo variant, got {:?}",
+            std::mem::discriminant(&deserialized)
+        );
+        if let Message::DeviceInfo(deserialized_info) = deserialized {
+            assert_eq!(
+                device_info.device_id, deserialized_info.device_id,
+                "Device ID mismatch after deserialization"
+            );
+            assert_eq!(
+                device_info.device_name, deserialized_info.device_name,
+                "Device name mismatch after deserialization"
+            );
         }
     }
 
@@ -407,16 +432,24 @@ mod tests {
         let header = message.header();
         let deserialized = Message::deserialize(&header, &serialized).unwrap();
 
-        match deserialized {
-            Message::Error(deserialized_error) => {
-                assert_eq!(error.code, deserialized_error.code);
-                assert_eq!(error.message, deserialized_error.message);
-                assert_eq!(
-                    error.related_message_id,
-                    deserialized_error.related_message_id
-                );
-            }
-            _ => panic!("Expected Error"),
+        assert!(
+            matches!(&deserialized, Message::Error(_)),
+            "Expected Error variant, got {:?}",
+            std::mem::discriminant(&deserialized)
+        );
+        if let Message::Error(deserialized_error) = deserialized {
+            assert_eq!(
+                error.code, deserialized_error.code,
+                "Error code mismatch after deserialization"
+            );
+            assert_eq!(
+                error.message, deserialized_error.message,
+                "Error message mismatch after deserialization"
+            );
+            assert_eq!(
+                error.related_message_id, deserialized_error.related_message_id,
+                "Related message ID mismatch after deserialization"
+            );
         }
     }
 
@@ -437,10 +470,17 @@ mod tests {
         let header = ping.header();
         let deserialized = Message::deserialize(&header, &serialized).unwrap();
 
+        assert!(
+            matches!(&deserialized, Message::Ping(_)),
+            "Expected Ping variant, got {:?}",
+            std::mem::discriminant(&deserialized)
+        );
         if let Message::Ping(p) = deserialized {
-            assert!(p.timestamp > 0);
-        } else {
-            panic!("Expected Ping message");
+            assert!(
+                p.timestamp > 0,
+                "Ping timestamp should be greater than 0, got {}",
+                p.timestamp
+            );
         }
     }
 
