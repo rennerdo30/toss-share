@@ -213,8 +213,19 @@ class ClipboardMonitorService {
         }
         break;
       case 'device_connected':
-        // Update devices provider
-        ref.read(devicesProvider.notifier).refresh();
+        // Update devices provider immediately for connected device
+        final connectedDevice = event.data?['device'] as DeviceInfo?;
+        if (connectedDevice != null) {
+          ref.read(devicesProvider.notifier).updateDeviceStatus(
+                connectedDevice.id,
+                true,
+                lastSeen: DateTime.fromMillisecondsSinceEpoch(
+                    connectedDevice.lastSeen),
+              );
+        } else {
+          // Fallback to full refresh if no device info
+          ref.read(devicesProvider.notifier).refresh();
+        }
         final connectedCount =
             ref.read(devicesProvider).where((d) => d.isOnline).length;
         // Update tray icon status on desktop
@@ -227,8 +238,18 @@ class ClipboardMonitorService {
         }
         break;
       case 'device_disconnected':
-        // Update devices provider
-        ref.read(devicesProvider.notifier).refresh();
+        // Update devices provider immediately for disconnected device
+        final disconnectedDeviceId = event.data?['device_id'] as String?;
+        if (disconnectedDeviceId != null) {
+          ref.read(devicesProvider.notifier).updateDeviceStatus(
+                disconnectedDeviceId,
+                false,
+                lastSeen: DateTime.now(),
+              );
+        } else {
+          // Fallback to full refresh if no device ID
+          ref.read(devicesProvider.notifier).refresh();
+        }
         final remainingCount =
             ref.read(devicesProvider).where((d) => d.isOnline).length;
         // Update tray icon status on desktop
