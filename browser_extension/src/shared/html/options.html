@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toss Settings</title>
+  <link rel="stylesheet" href="../css/options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header class="header">
+      <img src="../icons/icon48.png" alt="Toss" class="logo">
+      <div>
+        <h1>Toss Settings</h1>
+        <p class="subtitle">Configure your clipboard sync preferences</p>
+      </div>
+    </header>
+
+    <main class="settings">
+      <!-- Connection Section -->
+      <section class="section">
+        <h2 class="section-title">Connection</h2>
+        <div class="setting-group">
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="relayUrl">Relay Server URL</label>
+              <p class="setting-description">WebSocket URL for the relay server</p>
+            </div>
+            <input type="text" id="relayUrl" class="text-input" placeholder="wss://localhost:8080/api/v1/ws">
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label>Device ID</label>
+              <p class="setting-description">Your unique device identifier</p>
+            </div>
+            <code id="deviceId" class="device-id">Loading...</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sync Section -->
+      <section class="section">
+        <h2 class="section-title">Sync Settings</h2>
+        <div class="setting-group">
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="autoSync">Auto-sync</label>
+              <p class="setting-description">Automatically sync clipboard when connected</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoSync">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="targetDevice">Default Target Device</label>
+              <p class="setting-description">Send clipboard to this device by default</p>
+            </div>
+            <select id="targetDevice" class="select-input">
+              <option value="">All devices</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content Types Section -->
+      <section class="section">
+        <h2 class="section-title">Content Types</h2>
+        <div class="setting-group">
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="syncText">Text</label>
+              <p class="setting-description">Sync plain text and rich text</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="syncText">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="syncImages">Images</label>
+              <p class="setting-description">Sync copied images</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="syncImages">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="syncUrls">URLs</label>
+              <p class="setting-description">Sync copied links</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="syncUrls">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Notifications Section -->
+      <section class="section">
+        <h2 class="section-title">Notifications</h2>
+        <div class="setting-group">
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="notifications">Show Notifications</label>
+              <p class="setting-description">Display notifications for synced items</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="notifications">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- History Section -->
+      <section class="section">
+        <h2 class="section-title">History</h2>
+        <div class="setting-group">
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="maxHistory">Maximum History Items</label>
+              <p class="setting-description">Number of clipboard items to keep in history</p>
+            </div>
+            <input type="number" id="maxHistory" class="number-input" min="10" max="500" step="10">
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label>Clear History</label>
+              <p class="setting-description">Remove all clipboard history</p>
+            </div>
+            <button id="clearHistory" class="btn-secondary">Clear All</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data Section -->
+      <section class="section">
+        <h2 class="section-title">Data Management</h2>
+        <div class="setting-group">
+          <div class="setting-row">
+            <div class="setting-info">
+              <label>Export Data</label>
+              <p class="setting-description">Download your settings and paired devices</p>
+            </div>
+            <button id="exportData" class="btn-secondary">Export</button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label>Import Data</label>
+              <p class="setting-description">Restore from a backup file</p>
+            </div>
+            <input type="file" id="importFile" accept=".json" hidden>
+            <button id="importData" class="btn-secondary">Import</button>
+          </div>
+          <div class="setting-row danger">
+            <div class="setting-info">
+              <label>Reset Extension</label>
+              <p class="setting-description">Clear all data and start fresh</p>
+            </div>
+            <button id="resetExtension" class="btn-danger">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section class="section">
+        <h2 class="section-title">About</h2>
+        <div class="setting-group">
+          <div class="about-info">
+            <p><strong>Toss - Clipboard Sync</strong></p>
+            <p>Version 1.0.0</p>
+            <p class="hint">End-to-end encrypted clipboard sharing across devices</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div id="saveStatus" class="save-status">Settings saved automatically</div>
+    </footer>
+  </div>
+
+  <script type="module" src="../js/options.js"></script>
+</body>
+</html>
