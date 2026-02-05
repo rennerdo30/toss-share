@@ -47,8 +47,14 @@ class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
       // Load clipboard history on app start
       ref.read(clipboardHistoryProvider.notifier).loadHistory();
 
-      // Load devices on app start
-      ref.read(devicesProvider.notifier).refresh();
+      // Load devices on app start and start status polling
+      ref.read(devicesProvider.notifier).refresh().then((_) {
+        // Start device status polling after devices are loaded
+        final settings = ref.read(settingsProvider);
+        ref.read(devicesProvider.notifier).startStatusPolling(
+              relayUrl: settings.relayUrl,
+            );
+      });
 
       // Start network after initialization
       TossService.startNetwork().catchError((e) {
@@ -133,6 +139,9 @@ class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
 
     ClipboardMonitorService().stopMonitoring();
+
+    // Note: Device status polling timer is automatically cleaned up
+    // by the devicesProvider's onDispose callback
 
     // Clean up iOS background service
     if (Platform.isIOS) {

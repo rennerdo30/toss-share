@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/device.dart';
 import '../../../shared/utils/platform_utils.dart';
+import '../../../shared/utils/timestamp_utils.dart';
 import '../../../shared/constants/layout_constants.dart';
 
 class DeviceList extends StatelessWidget {
@@ -108,13 +109,28 @@ class DeviceCard extends StatelessWidget {
               device.name,
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+
+            // Last seen for offline devices
+            if (!device.isOnline && device.lastSeen != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  formatLastSeen(device.lastSeen!),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colorScheme.outline,
+                        fontSize: 10,
+                      ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
-
 }

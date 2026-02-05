@@ -1,6 +1,7 @@
 import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:toss/src/core/services/logging_service.dart';
+import 'package:toss/src/core/services/device_status_service.dart';
 import 'dart:io';
 import 'dart:async';
 
@@ -494,6 +495,35 @@ class TossService {
       LoggingService.warn(' Failed to rename device: $e');
       rethrow;
     }
+  }
+
+  /// Get device status from relay server API
+  ///
+  /// Returns the device status including online/offline and last seen timestamp.
+  /// Falls back to local device info if relay is not available.
+  static Future<DeviceStatusResponse?> getDeviceStatus(
+    String deviceId, {
+    required String? relayUrl,
+    String? authToken,
+  }) async {
+    return DeviceStatusService.instance.getDeviceStatus(
+      deviceId,
+      relayUrl: relayUrl,
+      authToken: authToken,
+    );
+  }
+
+  /// Get status for multiple devices from relay server API
+  static Future<Map<String, DeviceStatusResponse?>> getMultipleDeviceStatuses(
+    List<String> deviceIds, {
+    required String? relayUrl,
+    String? authToken,
+  }) async {
+    return DeviceStatusService.instance.getMultipleDeviceStatuses(
+      deviceIds,
+      relayUrl: relayUrl,
+      authToken: authToken,
+    );
   }
 
   // ============================================================================
