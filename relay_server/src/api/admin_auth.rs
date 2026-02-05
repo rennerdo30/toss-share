@@ -385,6 +385,29 @@ pub fn require_auth(cookies: Option<&str>, session_secret: &str) -> Option<Redir
     }
 }
 
+/// Generate a CSRF token derived from the session token
+pub fn generate_csrf_token(cookies: Option<&str>, session_secret: &str) -> String {
+    let session_token = extract_session_token(cookies.unwrap_or("")).unwrap_or_default();
+    hmac_sha256(session_secret, &format!("csrf:{}", session_token))
+}
+
+/// Validate a CSRF token against the session
+pub fn validate_csrf_token(csrf_token: &str, cookies: Option<&str>, session_secret: &str) -> bool {
+    let expected = generate_csrf_token(cookies, session_secret);
+    constant_time_eq(csrf_token.as_bytes(), expected.as_bytes())
+}
+
+/// Extract the session token value from cookies
+fn extract_session_token(cookies: &str) -> Option<String> {
+    for cookie in cookies.split(';') {
+        let parts: Vec<&str> = cookie.trim().splitn(2, '=').collect();
+        if parts.len() == 2 && parts[0] == SESSION_COOKIE_NAME {
+            return Some(parts[1].to_string());
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -516,5 +539,29 @@ mod tests {
         assert_eq!(hex_encode(&[0xff]), "ff");
         assert_eq!(hex_encode(&[0x12, 0x34, 0xab]), "1234ab");
         assert_eq!(hex_encode(&[]), "");
+    }
+
+    #[test]
+    fn test_csrf_token_generation_and_validation() {
+        let secret = "test_csrf_secret";
+        let session_token = create_session_token(secret);
+        let cookies = format!("admin_session={}", session_token);
+
+        // Generate CSRF token
+        let csrf_token = generate_csrf_token(Some(&cookies), secret);
+        assert!(!csrf_token.is_empty());
+
+        // Validate should succeed with correct token
+        assert!(validate_csrf_token(&csrf_token, Some(&cookies), secret));
+
+        // Validate should fail with wrong token
+        assert!(!validate_csrf_token("wrong_token", Some(&cookies), secret));
+
+        // Validate should fail with no session
+        assert!(!validate_csrf_token(&csrf_token, None, secret));
+
+        // Same session should produce same CSRF token (deterministic)
+        let csrf_token2 = generate_csrf_token(Some(&cookies), secret);
+        assert_eq!(csrf_token, csrf_token2);
     }
 }

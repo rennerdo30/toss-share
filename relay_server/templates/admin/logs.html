@@ -20,6 +20,7 @@
             </button>
         </form>
         <form action="/admin/logs/clear" method="POST" onsubmit="return confirm('Clear all logs?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-600">
                 Clear Logs
             </button>

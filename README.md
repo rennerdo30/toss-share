@@ -15,6 +15,9 @@ Toss is a cross-platform clipboard sharing application with end-to-end encryptio
 - **Relay Fallback**: Cloud relay server for syncing when devices aren't on the same network
 - **Multiple Content Types**: Supports text, images, files, and URLs
 - **Easy Pairing**: QR code or 6-digit code for secure device pairing
+- **Team Support**: Create teams with role-based access, invitation codes, and audit logging
+- **Compression**: Automatic zstd compression for efficient transfers
+- **Browser Extension**: Chrome/Firefox extension for clipboard sync from the browser
 - **Privacy Focused**: Zero-knowledge architecture - relay servers can't read your data
 
 ## Installation

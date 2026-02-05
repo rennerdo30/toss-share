@@ -16,22 +16,16 @@ use crate::storage::{
     StoredTeamMember, TeamRole,
 };
 
-use super::TOSS_INSTANCE;
+use super::{current_unix_timestamp_secs, TOSS_INSTANCE};
 
-/// Get current unix timestamp in seconds.
-fn current_unix_timestamp_secs() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
-}
+const INVITATION_CODE_LENGTH: usize = 6;
 
-/// Generate a 6-character alphanumeric invitation code
+/// Generate an alphanumeric invitation code
 fn generate_invitation_code() -> String {
     use rand::Rng;
     const CHARSET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars
     let mut rng = rand::thread_rng();
-    (0..6)
+    (0..INVITATION_CODE_LENGTH)
         .map(|_| {
             let idx = rng.gen_range(0..CHARSET.len());
             CHARSET[idx] as char
@@ -611,6 +605,26 @@ pub fn remove_team_member(team_id: String, target_device_id: String) -> Result<(
         return Err("Use leave_team to leave the team yourself".to_string());
     }
 
+    // Check if removing this member would leave the team without admins
+    let target_member = core
+        .storage
+        .teams()
+        .get_member(&team_id, &target_device_id)
+        .map_err(|e| format!("Failed to get member: {}", e))?
+        .ok_or("Target member not found")?;
+
+    if target_member.role == TeamRole::Admin {
+        let members = core
+            .storage
+            .teams()
+            .get_team_members(&team_id)
+            .map_err(|e| format!("Failed to get members: {}", e))?;
+        let admin_count = members.iter().filter(|m| m.role == TeamRole::Admin).count();
+        if admin_count <= 1 {
+            return Err("Cannot remove the last admin. Transfer admin role first.".to_string());
+        }
+    }
+
     core.storage
         .teams()
         .remove_member(&team_id, &target_device_id)
@@ -645,6 +659,9 @@ pub fn create_team_invitation(
     expires_in_hours: u32,
     max_uses: u32,
 ) -> Result<TeamInvitationDto, String> {
+    if max_uses == 0 {
+        return Err("max_uses must be at least 1".to_string());
+    }
     if expires_in_hours == 0 {
         return Err("Expiration must be at least 1 hour".to_string());
     }
@@ -676,7 +693,9 @@ pub fn create_team_invitation(
         .ok_or("Team not found")?;
 
     let now = current_unix_timestamp_secs();
-    let expires_at = now + (expires_in_hours as u64 * 3600);
+    let expires_at = now
+        .checked_add(expires_in_hours as u64 * 3600)
+        .ok_or("Timestamp overflow")?;
 
     // Generate invitation code with retry on collision
     let code = {
@@ -925,7 +944,7 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
 
     let now = current_unix_timestamp_secs();
 
-    // Validate invitation
+    // Validate invitation (basic checks before transaction)
     if invitation.status != InvitationStatus::Pending {
         return Err(format!(
             "Invitation is {}",
@@ -939,22 +958,7 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
             .ok();
         return Err("Invitation has expired".to_string());
     }
-    if invitation.max_uses > 0 && invitation.use_count >= invitation.max_uses {
-        return Err("Invitation has reached maximum uses".to_string());
-    }
 
-    // Check if already a member
-    if core
-        .storage
-        .teams()
-        .get_member(&invitation.team_id, &device_id)
-        .map_err(|e| format!("Failed to check membership: {}", e))?
-        .is_some()
-    {
-        return Err("You are already a member of this team".to_string());
-    }
-
-    // Check max members limit
     let team = core
         .storage
         .teams()
@@ -962,14 +966,8 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
         .map_err(|e| format!("Failed to get team: {}", e))?
         .ok_or("Team not found")?;
 
-    if team.max_members > 0 {
-        let member_count = core.storage.teams().count_members(&team.id).unwrap_or(0);
-        if member_count >= team.max_members {
-            return Err("Team has reached maximum member limit".to_string());
-        }
-    }
-
-    // Add member and update invitation atomically to prevent race conditions
+    // All critical checks (already-member, max_members, max_uses) happen
+    // atomically inside accept_invitation_atomic to prevent TOCTOU races
     let member = StoredTeamMember {
         team_id: invitation.team_id.clone(),
         device_id: device_id.clone(),
@@ -989,10 +987,7 @@ pub fn accept_team_invitation(code: String) -> Result<TeamDto, String> {
             &member,
         )
         .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => {
-                "Team has reached maximum member limit or invitation has reached maximum uses"
-                    .to_string()
-            }
+            rusqlite::Error::InvalidParameterName(ref msg) => msg.clone(),
             other => format!("Failed to join team: {}", other),
         })?;
 

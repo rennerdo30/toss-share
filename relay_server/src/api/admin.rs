@@ -5,13 +5,14 @@ use axum::{
     extract::{Path, Query, State},
     http::{header::COOKIE, HeaderMap, StatusCode},
     response::{Html, IntoResponse, Json, Redirect},
+    Form,
 };
 use chrono::{TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::sync::RwLock;
 
-use super::admin_auth::require_auth;
+use super::admin_auth::{generate_csrf_token, require_auth, validate_csrf_token};
 use crate::db::TeamRole;
 use crate::AppState;
 
@@ -122,6 +123,7 @@ struct DashboardTemplate {
     memory_usage: String,
     pairing_sessions: i64,
     total_teams: i64,
+    csrf_token: String,
 }
 
 /// Devices list template
@@ -129,6 +131,7 @@ struct DashboardTemplate {
 #[template(path = "admin/devices.html")]
 struct DevicesTemplate {
     devices: Vec<DeviceView>,
+    csrf_token: String,
 }
 
 /// Sessions list template
@@ -136,6 +139,7 @@ struct DevicesTemplate {
 #[template(path = "admin/sessions.html")]
 struct SessionsTemplate {
     sessions: Vec<SessionView>,
+    csrf_token: String,
 }
 
 /// Logs template
@@ -144,6 +148,7 @@ struct SessionsTemplate {
 struct LogsTemplate {
     logs: Vec<LogEntryView>,
     level: String,
+    csrf_token: String,
 }
 
 /// Team view for templates
@@ -186,6 +191,7 @@ struct TeamAuditEntryView {
 #[template(path = "admin/teams.html")]
 struct TeamsTemplate {
     teams: Vec<TeamView>,
+    csrf_token: String,
 }
 
 /// Team details template
@@ -196,6 +202,13 @@ struct TeamDetailsTemplate {
     members: Vec<TeamMemberView>,
     invitations: Vec<TeamInvitationView>,
     audit_entries: Vec<TeamAuditEntryView>,
+    csrf_token: String,
+}
+
+/// CSRF token form field for POST requests
+#[derive(Deserialize)]
+pub struct CsrfForm {
+    csrf_token: String,
 }
 
 /// Query parameters for logs page
@@ -245,6 +258,7 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
         0
     };
     let memory_usage = format_memory(get_memory_usage());
+    let csrf_token = generate_csrf_token(cookies, &state.config.session_secret);
 
     let template = DashboardTemplate {
         online_devices,
@@ -256,6 +270,7 @@ pub async fn dashboard(State(state): State<AppState>, headers: HeaderMap) -> imp
         memory_usage,
         pairing_sessions,
         total_teams,
+        csrf_token,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
@@ -289,8 +304,10 @@ pub async fn devices_list(State(state): State<AppState>, headers: HeaderMap) -> 
         })
         .collect();
 
+    let csrf_token = generate_csrf_token(cookies, &state.config.session_secret);
     let template = DevicesTemplate {
         devices: device_views,
+        csrf_token,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
@@ -301,6 +318,7 @@ pub async fn delete_device(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(device_id): Path<String>,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -312,6 +330,11 @@ pub async fn delete_device(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    // Validate CSRF token
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Delete the device
@@ -324,6 +347,7 @@ pub async fn delete_device(
 pub async fn cleanup_messages(
     State(state): State<AppState>,
     headers: HeaderMap,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -335,6 +359,11 @@ pub async fn cleanup_messages(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    // Validate CSRF token
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Cleanup messages older than 24 hours
@@ -347,6 +376,7 @@ pub async fn cleanup_messages(
 pub async fn cleanup_pairings(
     State(state): State<AppState>,
     headers: HeaderMap,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -358,6 +388,10 @@ pub async fn cleanup_pairings(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Cleanup expired pairings
@@ -370,6 +404,7 @@ pub async fn cleanup_pairings(
 pub async fn cleanup_devices(
     State(state): State<AppState>,
     headers: HeaderMap,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -381,6 +416,10 @@ pub async fn cleanup_devices(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Cleanup devices not seen in 30 days
@@ -548,8 +587,10 @@ pub async fn sessions_list(State(state): State<AppState>, headers: HeaderMap) ->
         })
         .collect();
 
+    let csrf_token = generate_csrf_token(cookies, &state.config.session_secret);
     let template = SessionsTemplate {
         sessions: session_views,
+        csrf_token,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
@@ -560,6 +601,7 @@ pub async fn cancel_session(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(code): Path<String>,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -571,6 +613,10 @@ pub async fn cancel_session(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Cancel the pairing session
@@ -584,6 +630,7 @@ pub async fn disconnect_device(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(device_id): Path<String>,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -595,6 +642,10 @@ pub async fn disconnect_device(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Disconnect the device from relay (this closes the WebSocket connection)
@@ -640,16 +691,22 @@ pub async fn logs_page(
         })
         .collect();
 
+    let csrf_token = generate_csrf_token(cookies, &state.config.session_secret);
     let template = LogsTemplate {
         logs: log_views,
         level,
+        csrf_token,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
 }
 
 /// Clear logs handler
-pub async fn clear_logs(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
+pub async fn clear_logs(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Form(form): Form<CsrfForm>,
+) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
         return (StatusCode::NOT_FOUND, "Admin dashboard not configured").into_response();
@@ -660,6 +717,10 @@ pub async fn clear_logs(State(state): State<AppState>, headers: HeaderMap) -> im
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     LOG_BUFFER.clear();
@@ -705,7 +766,11 @@ pub async fn teams_list(State(state): State<AppState>, headers: HeaderMap) -> im
         });
     }
 
-    let template = TeamsTemplate { teams: team_views };
+    let csrf_token = generate_csrf_token(cookies, &state.config.session_secret);
+    let template = TeamsTemplate {
+        teams: team_views,
+        csrf_token,
+    };
 
     Html(template.render().unwrap_or_default()).into_response()
 }
@@ -818,11 +883,13 @@ pub async fn team_details(
         })
         .collect();
 
+    let csrf_token = generate_csrf_token(cookies, &state.config.session_secret);
     let template = TeamDetailsTemplate {
         team: team_view,
         members: member_views,
         invitations: invitation_views,
         audit_entries: audit_views,
+        csrf_token,
     };
 
     Html(template.render().unwrap_or_default()).into_response()
@@ -833,6 +900,7 @@ pub async fn delete_team(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(team_id): Path<String>,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -844,6 +912,10 @@ pub async fn delete_team(
 
     if let Some(redirect) = require_auth(cookies, &state.config.session_secret) {
         return redirect.into_response();
+    }
+
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
     }
 
     // Verify team exists before deleting
@@ -860,7 +932,10 @@ pub async fn delete_team(
     }
 
     // Delete the team
-    let _ = state.db.delete_team(&team_id).await;
+    if let Err(e) = state.db.delete_team(&team_id).await {
+        tracing::error!("Failed to delete team {}: {}", team_id, e);
+        return Redirect::to("/admin/teams").into_response();
+    }
     tracing::info!("Admin deleted team: {}", team_id);
 
     Redirect::to("/admin/teams").into_response()
@@ -871,6 +946,7 @@ pub async fn remove_team_member(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path((team_id, device_id)): Path<(String, String)>,
+    Form(form): Form<CsrfForm>,
 ) -> impl IntoResponse {
     // Check admin is enabled
     if !state.config.admin_enabled() {
@@ -884,28 +960,71 @@ pub async fn remove_team_member(
         return redirect.into_response();
     }
 
+    if !validate_csrf_token(&form.csrf_token, cookies, &state.config.session_secret) {
+        return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
+    }
+
+    // Verify team and member exist, check last-admin constraint
+    let members = state
+        .db
+        .get_team_members(&team_id)
+        .await
+        .unwrap_or_default();
+    let target = members.iter().find(|m| m.device_id == device_id);
+
+    match target {
+        None => {
+            tracing::warn!(
+                "Admin attempted to remove non-existent member {} from team {}",
+                device_id,
+                team_id
+            );
+            return Redirect::to(&format!("/admin/teams/{}", team_id)).into_response();
+        }
+        Some(member) => {
+            if member.role_enum() == TeamRole::Admin {
+                let admin_count = members
+                    .iter()
+                    .filter(|m| m.role_enum() == TeamRole::Admin)
+                    .count();
+                if admin_count <= 1 {
+                    tracing::warn!(
+                        "Admin attempted to remove last admin {} from team {}",
+                        device_id,
+                        team_id
+                    );
+                    return Redirect::to(&format!("/admin/teams/{}", team_id)).into_response();
+                }
+            }
+        }
+    }
+
     // Remove the member
-    let _ = state.db.remove_team_member(&team_id, &device_id).await;
+    if let Err(e) = state.db.remove_team_member(&team_id, &device_id).await {
+        tracing::error!(
+            "Failed to remove member {} from team {}: {}",
+            device_id,
+            team_id,
+            e
+        );
+        return Redirect::to(&format!("/admin/teams/{}", team_id)).into_response();
+    }
 
-    // Log the action with admin identity from session
-    let admin_identity = cookies
-        .unwrap_or("")
-        .split(';')
-        .find(|c| c.trim().starts_with("admin_session="))
-        .map(|_| "admin_dashboard")
-        .unwrap_or("admin");
-
+    let admin_user = state.config.admin_username.as_deref().unwrap_or("admin");
     let audit_id = uuid::Uuid::new_v4().to_string();
-    let _ = state
+    if let Err(e) = state
         .db
         .add_team_audit_entry(
             &audit_id,
             &team_id,
-            admin_identity,
+            admin_user,
             "member_removed",
             Some(&device_id),
         )
-        .await;
+        .await
+    {
+        tracing::error!("Failed to write audit log for member removal: {}", e);
+    }
 
     tracing::info!("Admin removed member {} from team {}", device_id, team_id);
 

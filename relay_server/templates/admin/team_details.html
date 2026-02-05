@@ -27,6 +27,7 @@
             </span>
             {% endif %}
             <form action="/admin/teams/{{ team.id }}/delete" method="POST" class="inline" onsubmit="return confirm('Delete this team? This cannot be undone.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 text-sm">
                     Delete Team
                 </button>
@@ -88,6 +89,7 @@
                 <td class="px-4 py-2 text-sm text-gray-500">{{ member.joined_at }}</td>
                 <td class="px-4 py-2">
                     <form action="/admin/teams/{{ team.id }}/members/{{ member.device_id }}/remove" method="POST" class="inline" onsubmit="return confirm('Remove this member from the team?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button type="submit" class="text-red-600 hover:text-red-900 text-sm">Remove</button>
                     </form>
                 </td>

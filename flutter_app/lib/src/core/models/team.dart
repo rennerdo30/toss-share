@@ -1,3 +1,6 @@
+/// Sentinel value for distinguishing "not provided" from null in copyWith
+const _descriptionSentinel = Object();
+
 /// Team model for organization/team management
 class Team {
   final String id;
@@ -51,7 +54,7 @@ class Team {
   Team copyWith({
     String? id,
     String? name,
-    String? description,
+    Object? description = _descriptionSentinel,
     DateTime? createdAt,
     bool? broadcastEnabled,
     int? maxMembers,
@@ -61,7 +64,9 @@ class Team {
     return Team(
       id: id ?? this.id,
       name: name ?? this.name,
-      description: description ?? this.description,
+      description: identical(description, _descriptionSentinel)
+          ? this.description
+          : description as String?,
       createdAt: createdAt ?? this.createdAt,
       broadcastEnabled: broadcastEnabled ?? this.broadcastEnabled,
       maxMembers: maxMembers ?? this.maxMembers,
@@ -235,7 +240,10 @@ class TeamInvitation {
   }
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
-  bool get isValid => status == InvitationStatus.pending && !isExpired;
+  bool get isValid =>
+      status == InvitationStatus.pending &&
+      !isExpired &&
+      (maxUses == 0 || useCount < maxUses);
 
   @override
   bool operator ==(Object other) {
