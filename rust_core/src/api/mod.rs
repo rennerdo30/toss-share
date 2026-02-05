@@ -1562,6 +1562,21 @@ pub fn check_clipboard_changed() -> bool {
     }
 }
 
+/// Sign a message with the device's identity key
+/// Returns the signature as a base64-encoded string
+/// Used for WebSocket authentication
+#[frb(sync)]
+pub fn sign_message(message: String) -> Result<String, String> {
+    let guard = TOSS_INSTANCE.read();
+    let core = guard.as_ref().ok_or("Toss not initialized")?;
+
+    let signature = core.identity.sign(message.as_bytes());
+    let signature_b64 =
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, signature);
+
+    Ok(signature_b64)
+}
+
 /// Decrypted clipboard content from history
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ClipboardContentDto {

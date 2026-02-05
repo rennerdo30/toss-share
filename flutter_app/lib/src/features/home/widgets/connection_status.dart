@@ -1,5 +1,65 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/services/websocket_service.dart';
+
+/// Sync method for real-time updates
+enum SyncMethod {
+  /// Polling-based sync (fallback)
+  polling,
+
+  /// WebSocket-based real-time sync
+  websocket,
+
+  /// WebSocket reconnecting
+  reconnecting;
+
+  String get displayName {
+    switch (this) {
+      case SyncMethod.polling:
+        return 'Polling';
+      case SyncMethod.websocket:
+        return 'Real-time';
+      case SyncMethod.reconnecting:
+        return 'Reconnecting';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case SyncMethod.polling:
+        return Icons.refresh;
+      case SyncMethod.websocket:
+        return Icons.bolt;
+      case SyncMethod.reconnecting:
+        return Icons.sync;
+    }
+  }
+
+  Color getColor(ColorScheme colorScheme) {
+    switch (this) {
+      case SyncMethod.polling:
+        return colorScheme.outline;
+      case SyncMethod.websocket:
+        return Colors.green;
+      case SyncMethod.reconnecting:
+        return Colors.orange;
+    }
+  }
+
+  static SyncMethod fromWebSocketState(WebSocketConnectionState state) {
+    switch (state) {
+      case WebSocketConnectionState.authenticated:
+        return SyncMethod.websocket;
+      case WebSocketConnectionState.connecting:
+      case WebSocketConnectionState.connected:
+      case WebSocketConnectionState.reconnecting:
+        return SyncMethod.reconnecting;
+      case WebSocketConnectionState.disconnected:
+        return SyncMethod.polling;
+    }
+  }
+}
+
 /// Connection type enum matching the Rust ConnectionType
 enum ConnectionType {
   direct,
@@ -59,6 +119,7 @@ class ConnectionStatusBanner extends StatelessWidget {
   final bool isSyncing;
   final bool relayConfigured;
   final ConnectionType? connectionType;
+  final SyncMethod syncMethod;
 
   const ConnectionStatusBanner({
     super.key,
@@ -66,6 +127,7 @@ class ConnectionStatusBanner extends StatelessWidget {
     this.isSyncing = false,
     this.relayConfigured = false,
     this.connectionType,
+    this.syncMethod = SyncMethod.polling,
   });
 
   @override
@@ -122,6 +184,31 @@ class ConnectionStatusBanner extends StatelessWidget {
             ),
             const SizedBox(width: 8),
           ],
+
+          // Sync method indicator (WebSocket vs Polling)
+          Tooltip(
+            message: 'Sync: ${syncMethod.displayName}',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: syncMethod.getColor(colorScheme),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  syncMethod.icon,
+                  size: 14,
+                  color: foregroundColor.withValues(alpha: 0.7),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
 
           // Relay indicator
           if (relayConfigured) ...[
