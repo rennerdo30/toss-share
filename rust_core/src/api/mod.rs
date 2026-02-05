@@ -168,13 +168,22 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
     let clipboard =
         ClipboardManager::new().map_err(|e| format!("Failed to initialize clipboard: {}", e))?;
 
+    // Load settings from database, fall back to defaults if not found
+    let settings = storage.load_settings().unwrap_or_else(|e| {
+        tracing::warn!(
+            "Failed to load settings from database: {}, using defaults",
+            e
+        );
+        TossSettings::default()
+    });
+
     let core = TossCore {
         identity: Arc::new(identity),
         device_name,
         clipboard,
         network: None,
         pairing_session: None,
-        settings: TossSettings::default(),
+        settings,
         storage,
         event_receiver: None,
         last_sync_time: std::sync::Mutex::new(std::time::Instant::now()),
@@ -969,6 +978,11 @@ pub fn get_settings() -> TossSettings {
 #[frb(sync)]
 pub fn update_settings(settings: TossSettings) -> Result<(), String> {
     if let Some(ref mut core) = *TOSS_INSTANCE.write() {
+        // Save settings to database for persistence
+        core.storage
+            .save_settings(&settings)
+            .map_err(|e| format!("Failed to save settings: {}", e))?;
+
         core.settings = settings;
         Ok(())
     } else {
