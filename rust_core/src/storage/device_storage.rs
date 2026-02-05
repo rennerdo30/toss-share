@@ -37,7 +37,10 @@ impl<'conn> DeviceStorage<'conn> {
             .as_ref()
             .and_then(|key| encrypt_for_storage(key).ok());
 
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             r#"
             INSERT OR REPLACE INTO devices
@@ -61,7 +64,10 @@ impl<'conn> DeviceStorage<'conn> {
     /// Get a device by ID
     /// Session keys are decrypted after retrieval
     pub fn get_device(&self, device_id: &str) -> SqliteResult<Option<StoredDevice>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare(
             "SELECT id, name, public_key, session_key, last_seen, created_at, is_active, platform FROM devices WHERE id = ?1"
         )?;
@@ -94,7 +100,10 @@ impl<'conn> DeviceStorage<'conn> {
     /// Get all active devices
     /// Session keys are decrypted after retrieval
     pub fn get_all_devices(&self) -> SqliteResult<Vec<StoredDevice>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare(
             "SELECT id, name, public_key, session_key, last_seen, created_at, is_active, platform FROM devices WHERE is_active = 1 ORDER BY created_at DESC"
         )?;
@@ -126,10 +135,16 @@ impl<'conn> DeviceStorage<'conn> {
     pub fn update_last_seen(&self, device_id: &str) -> SqliteResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .map(|d| d.as_secs())
+            .unwrap_or_else(|e| {
+                tracing::error!("System time before UNIX_EPOCH: {}", e);
+                0
+            });
 
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             "UPDATE devices SET last_seen = ?1 WHERE id = ?2",
             rusqlite::params![now, device_id],
@@ -139,7 +154,10 @@ impl<'conn> DeviceStorage<'conn> {
 
     /// Remove a device (mark as inactive)
     pub fn remove_device(&self, device_id: &str) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             "UPDATE devices SET is_active = 0 WHERE id = ?1",
             [device_id],
@@ -149,14 +167,20 @@ impl<'conn> DeviceStorage<'conn> {
 
     /// Permanently delete a device
     pub fn delete_device(&self, device_id: &str) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute("DELETE FROM devices WHERE id = ?1", [device_id])?;
         Ok(())
     }
 
     /// Update device name
     pub fn update_device_name(&self, device_id: &str, new_name: &str) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             "UPDATE devices SET name = ?1 WHERE id = ?2",
             rusqlite::params![new_name, device_id],

@@ -52,7 +52,10 @@ impl Storage {
 
     /// Initialize database schema
     fn init_schema(&self) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         // Create devices table
         conn.execute(
             r#"

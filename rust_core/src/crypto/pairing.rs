@@ -52,11 +52,14 @@ impl PairingSession {
     pub fn new(_device_name: &str) -> Self {
         let code = generate_pairing_code();
         let ephemeral = EphemeralKeyPair::generate();
-        let expires_at = SystemTime::now()
+        let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            + PAIRING_TIMEOUT_SECS;
+            .map(|d| d.as_secs())
+            .unwrap_or_else(|e| {
+                tracing::error!("System time before UNIX_EPOCH: {}", e);
+                0
+            });
+        let expires_at = now + PAIRING_TIMEOUT_SECS;
 
         Self {
             code,
@@ -88,7 +91,12 @@ impl PairingSession {
             pk: public_key.clone(),
             name: device_name.to_string(),
         };
-        let qr_data = serde_json::to_string(&qr_payload).unwrap();
+        // QrPayload serialization should never fail as it contains only basic types,
+        // but we handle the error gracefully with an empty string fallback and logging
+        let qr_data = serde_json::to_string(&qr_payload).unwrap_or_else(|e| {
+            tracing::error!("Failed to serialize QR payload: {}", e);
+            String::new()
+        });
 
         PairingInfo {
             code: self.code.clone(),
@@ -102,8 +110,12 @@ impl PairingSession {
     pub fn is_expired(&self) -> bool {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .map(|d| d.as_secs())
+            .unwrap_or_else(|e| {
+                tracing::error!("System time before UNIX_EPOCH: {}", e);
+                // If we can't get the current time, assume expired for safety
+                u64::MAX
+            });
         now > self.expires_at
     }
 

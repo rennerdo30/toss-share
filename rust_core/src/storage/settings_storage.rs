@@ -15,7 +15,10 @@ impl<'conn> SettingsStorage<'conn> {
 
     /// Save a setting key-value pair
     pub fn save_setting(&self, key: &str, value: &str) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             r#"
             INSERT OR REPLACE INTO settings (key, value)
@@ -28,7 +31,10 @@ impl<'conn> SettingsStorage<'conn> {
 
     /// Load a setting by key
     pub fn load_setting(&self, key: &str) -> SqliteResult<Option<String>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare("SELECT value FROM settings WHERE key = ?1")?;
 
         let result = stmt.query_row([key], |row| row.get(0));
@@ -42,7 +48,10 @@ impl<'conn> SettingsStorage<'conn> {
 
     /// Load all settings as key-value pairs
     pub fn load_all_settings(&self) -> SqliteResult<Vec<(String, String)>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         let mut stmt = conn.prepare("SELECT key, value FROM settings")?;
 
         let settings = stmt
@@ -54,14 +63,20 @@ impl<'conn> SettingsStorage<'conn> {
 
     /// Delete a setting by key
     pub fn delete_setting(&self, key: &str) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute("DELETE FROM settings WHERE key = ?1", [key])?;
         Ok(())
     }
 
     /// Clear all settings
     pub fn clear_settings(&self) -> SqliteResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .expect("storage mutex poisoned - this is a bug");
         conn.execute("DELETE FROM settings", [])?;
         Ok(())
     }
