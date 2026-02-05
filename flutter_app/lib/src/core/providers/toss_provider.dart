@@ -4,6 +4,42 @@ import '../services/toss_service.dart';
 
 part 'toss_provider.g.dart';
 
+/// Progress information for large content transfers
+class TransferProgress {
+  final int totalChunks;
+  final int chunksCompleted;
+  final int bytesTransferred;
+  final int totalBytes;
+  final double progress; // 0.0 - 1.0
+
+  const TransferProgress({
+    this.totalChunks = 0,
+    this.chunksCompleted = 0,
+    this.bytesTransferred = 0,
+    this.totalBytes = 0,
+    this.progress = 0.0,
+  });
+
+  /// Whether this is a chunked transfer (content > 1MB)
+  bool get isChunked => totalChunks > 1;
+
+  /// Formatted progress percentage string
+  String get progressPercent => '${(progress * 100).toStringAsFixed(0)}%';
+
+  /// Formatted bytes transferred string
+  String get bytesProgressString {
+    final transferred = _formatBytes(bytesTransferred);
+    final total = _formatBytes(totalBytes);
+    return '$transferred / $total';
+  }
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
 /// Toss state
 class TossState {
   final String deviceId;
@@ -11,6 +47,7 @@ class TossState {
   final bool isInitialized;
   final bool isSyncing;
   final int connectedDevices;
+  final TransferProgress? transferProgress;
 
   const TossState({
     required this.deviceId,
@@ -18,6 +55,7 @@ class TossState {
     required this.isInitialized,
     this.isSyncing = false,
     this.connectedDevices = 0,
+    this.transferProgress,
   });
 
   TossState copyWith({
@@ -26,6 +64,8 @@ class TossState {
     bool? isInitialized,
     bool? isSyncing,
     int? connectedDevices,
+    TransferProgress? transferProgress,
+    bool clearTransferProgress = false,
   }) {
     return TossState(
       deviceId: deviceId ?? this.deviceId,
@@ -33,6 +73,7 @@ class TossState {
       isInitialized: isInitialized ?? this.isInitialized,
       isSyncing: isSyncing ?? this.isSyncing,
       connectedDevices: connectedDevices ?? this.connectedDevices,
+      transferProgress: clearTransferProgress ? null : (transferProgress ?? this.transferProgress),
     );
   }
 }
@@ -80,15 +121,24 @@ class Toss extends _$Toss {
     state = state.copyWith(connectedDevices: count);
   }
 
+  /// Update transfer progress for chunked transfers
+  void updateTransferProgress(TransferProgress? progress) {
+    state = state.copyWith(
+      transferProgress: progress,
+      clearTransferProgress: progress == null,
+    );
+  }
+
   /// Send clipboard to all connected devices
+  /// For large content (> 1MB), this uses chunked transfer with progress tracking
   Future<void> sendClipboard() async {
     if (state.isSyncing) return; // Prevent multiple sends
 
-    state = state.copyWith(isSyncing: true);
+    state = state.copyWith(isSyncing: true, clearTransferProgress: true);
     try {
       await TossService.sendClipboard();
     } finally {
-      state = state.copyWith(isSyncing: false);
+      state = state.copyWith(isSyncing: false, clearTransferProgress: true);
     }
   }
 }

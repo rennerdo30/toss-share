@@ -6,12 +6,18 @@
 mod content;
 mod frame;
 mod message;
+pub mod streaming;
 
 pub use content::{ClipboardContent, ContentMetadata, ContentType};
 pub use frame::Frame;
 pub use message::{
     ClipboardAck, ClipboardRequest, ClipboardUpdate, DeviceInfo, ErrorMessage, KeyRotation,
     KeyRotationReason, Message, MessageHeader, MessageType, Ping, Platform, Pong,
+};
+pub use streaming::{
+    ChunkAssembler, ChunkedTransferAck, ChunkedTransferComplete, ChunkedTransferData,
+    ChunkedTransferInit, StreamingConfig, TransferManager, TransferProgress, TransferState,
+    CHUNKED_TRANSFER_THRESHOLD, DEFAULT_CHUNK_SIZE, MAX_CHUNK_SIZE, MIN_CHUNK_SIZE,
 };
 
 /// Maximum message size (50 MB)

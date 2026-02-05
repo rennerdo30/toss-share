@@ -490,9 +490,119 @@ make build    # Build everything
 
 ---
 
-## 12. Future Considerations
+## 12. Chunked Transfer Protocol
 
-- Clipboard streaming for rapid changes
+### 12.1 Overview
+
+Large clipboard content (> 1 MB by default) uses a chunked transfer protocol for efficient streaming. This provides:
+- Memory-efficient transfers (content is not loaded entirely into memory)
+- Progress tracking for large transfers
+- Resume capability for interrupted transfers
+- Configurable chunk sizes
+
+### 12.2 Configuration
+
+| Parameter | Default | Min | Max | Description |
+|-----------|---------|-----|-----|-------------|
+| `streaming_chunk_size` | 1 MB | 64 KB | 4 MB | Size of each chunk |
+| `chunked_threshold` | 1 MB | - | - | Content size threshold for chunked transfer |
+| `streaming_enabled` | true | - | - | Enable/disable chunked transfers |
+
+### 12.3 Message Types
+
+| Type | Code | Description |
+|------|------|-------------|
+| ChunkedTransferInit | 0x13 | Initiate chunked transfer with metadata |
+| ChunkedTransferData | 0x14 | Individual chunk with sequence number |
+| ChunkedTransferAck | 0x15 | Acknowledge receipt of chunk |
+| ChunkedTransferComplete | 0x16 | Signal transfer completion/cancellation |
+
+### 12.4 Message Structures
+
+```rust
+struct ChunkedTransferInit {
+    transfer_id: u64,           // Unique transfer identifier
+    total_chunks: u32,          // Total number of chunks
+    total_size: u64,            // Total size in bytes
+    chunk_size: u32,            // Chunk size in bytes
+    content_type: ContentType,  // Clipboard content type
+    metadata: ContentMetadata,  // Preview, dimensions, etc.
+    content_hash: [u8; 32],     // SHA-256 of full content
+}
+
+struct ChunkedTransferData {
+    transfer_id: u64,           // Transfer identifier
+    chunk_index: u32,           // Chunk sequence number (0-indexed)
+    data: Vec<u8>,              // Chunk data
+    chunk_hash: [u8; 32],       // SHA-256 of this chunk
+}
+
+struct ChunkedTransferAck {
+    transfer_id: u64,           // Transfer identifier
+    chunk_index: u32,           // Acknowledged chunk index
+    success: bool,              // Whether chunk was received successfully
+    error: Option<String>,      // Error message if failed
+}
+
+struct ChunkedTransferComplete {
+    transfer_id: u64,           // Transfer identifier
+    state: TransferState,       // Completed, Failed, or Cancelled
+    error: Option<String>,      // Error message if failed
+}
+
+enum TransferState {
+    Initiated,
+    InProgress,
+    Completed,
+    Failed,
+    Cancelled,
+}
+```
+
+### 12.5 Transfer Flow
+
+```
+Sender                                      Receiver
+   |                                            |
+   |------- ChunkedTransferInit --------------->|
+   |        (metadata, total_chunks, hash)      |
+   |                                            |
+   |------- ChunkedTransferData (chunk 0) ----->|
+   |<------ ChunkedTransferAck (optional) ------|
+   |                                            |
+   |------- ChunkedTransferData (chunk 1) ----->|
+   |<------ ChunkedTransferAck (optional) ------|
+   |                                            |
+   |              ... (repeat) ...              |
+   |                                            |
+   |------- ChunkedTransferData (chunk N) ----->|
+   |                                            |
+   |------- ChunkedTransferComplete ----------->|
+   |        (state=Completed)                   |
+   |                                            |
+   |        Receiver verifies full content hash |
+   |        and assembles into ClipboardContent |
+```
+
+### 12.6 Error Handling
+
+- **Chunk Hash Mismatch**: Receiver requests retransmission via ChunkedTransferAck
+- **Transfer Timeout**: Transfers expire after 300 seconds (5 minutes)
+- **Missing Chunks**: Receiver can request specific chunks via ChunkedTransferAck
+- **Cancellation**: Either party can send ChunkedTransferComplete with state=Cancelled
+
+### 12.7 Limits
+
+| Limit | Value |
+|-------|-------|
+| Max concurrent transfers | 4 per connection |
+| Transfer timeout | 300 seconds |
+| Max transfer ID | u64::MAX |
+
+---
+
+## 13. Future Considerations
+
 - Selective sync (choose devices)
 - Team/Organization support
 - Browser extension
