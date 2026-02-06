@@ -526,19 +526,26 @@ mod tests {
 
     #[test]
     fn test_streaming_config_validation() {
-        let mut config = StreamingConfig::default();
-
         // Test minimum clamping
-        config.chunk_size = 1024; // Too small
-        assert_eq!(config.validated_chunk_size(), MIN_CHUNK_SIZE);
+        let config_small = StreamingConfig {
+            chunk_size: 1024, // Too small
+            ..StreamingConfig::default()
+        };
+        assert_eq!(config_small.validated_chunk_size(), MIN_CHUNK_SIZE);
 
         // Test maximum clamping
-        config.chunk_size = 100 * 1024 * 1024; // Too large
-        assert_eq!(config.validated_chunk_size(), MAX_CHUNK_SIZE);
+        let config_large = StreamingConfig {
+            chunk_size: 100 * 1024 * 1024, // Too large
+            ..StreamingConfig::default()
+        };
+        assert_eq!(config_large.validated_chunk_size(), MAX_CHUNK_SIZE);
 
         // Test valid value
-        config.chunk_size = 2 * 1024 * 1024; // 2 MB
-        assert_eq!(config.validated_chunk_size(), 2 * 1024 * 1024);
+        let config_valid = StreamingConfig {
+            chunk_size: 2 * 1024 * 1024, // 2 MB
+            ..StreamingConfig::default()
+        };
+        assert_eq!(config_valid.validated_chunk_size(), 2 * 1024 * 1024);
     }
 
     #[test]

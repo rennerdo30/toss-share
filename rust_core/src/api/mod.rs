@@ -2285,16 +2285,13 @@ mod tests {
         let chunk_size = crate::protocol::DEFAULT_CHUNK_SIZE as u64;
 
         // Exact multiple
-        assert_eq!(((2 * chunk_size + chunk_size - 1) / chunk_size) as u32, 2);
+        assert_eq!((2 * chunk_size).div_ceil(chunk_size) as u32, 2);
 
         // With remainder
-        assert_eq!(
-            ((2 * chunk_size + 100 + chunk_size - 1) / chunk_size) as u32,
-            3
-        );
+        assert_eq!((2 * chunk_size + 100).div_ceil(chunk_size) as u32, 3);
 
         // Less than one chunk
-        assert_eq!(((1000 + chunk_size - 1) / chunk_size) as u32, 1);
+        assert_eq!(1000_u64.div_ceil(chunk_size) as u32, 1);
     }
 
     #[test]
