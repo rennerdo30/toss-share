@@ -8,10 +8,8 @@
 
 use crate::error::CryptoError;
 
-#[cfg(target_os = "linux")]
-use std::collections::HashMap;
-
 #[cfg(any(
+    target_os = "linux",
     test,
     not(any(
         target_os = "macos",

@@ -716,7 +716,13 @@ pub fn update_team(
     broadcast_enabled: Option<bool>,
     max_members: Option<u32>,
 ) -> Result<(), String> {
-    toss_core::api::team_api::update_team(team_id, name, description, broadcast_enabled, max_members)
+    toss_core::api::team_api::update_team(
+        team_id,
+        name,
+        description,
+        broadcast_enabled,
+        max_members,
+    )
 }
 
 /// Delete a team (admin only)
@@ -799,7 +805,10 @@ pub fn decline_team_invitation(code: String) -> Result<(), String> {
 
 /// Get team audit log (admin only)
 #[frb(sync)]
-pub fn get_team_audit_log(team_id: String, limit: Option<u32>) -> Result<Vec<AuditEntryDto>, String> {
+pub fn get_team_audit_log(
+    team_id: String,
+    limit: Option<u32>,
+) -> Result<Vec<AuditEntryDto>, String> {
     toss_core::api::team_api::get_team_audit_log(team_id, limit)
         .map(|v| v.into_iter().map(|a| a.into()).collect())
 }
