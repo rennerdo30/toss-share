@@ -7,6 +7,8 @@
 //! - Network manager coordinating all networking
 
 pub mod discovery;
+pub mod firewall;
+pub mod interfaces;
 pub mod nat_traversal;
 pub mod relay_client;
 pub mod transport;
@@ -131,6 +133,23 @@ struct PeerEphemeralKey {
     peer_public_key: Option<[u8; 32]>, // Peer's current ephemeral public key
 }
 
+/// Network diagnostic information for troubleshooting
+#[derive(Debug, Clone)]
+pub struct NetworkDiagnostics {
+    /// All detected network interfaces
+    pub interfaces: Vec<interfaces::NetworkInterface>,
+    /// Whether a VPN is detected
+    pub vpn_active: bool,
+    /// LAN IPv4 addresses suitable for discovery
+    pub lan_addresses: Vec<std::net::Ipv4Addr>,
+    /// Whether the firewall port is allowed
+    pub firewall_port_allowed: bool,
+    /// The QUIC bound address/port
+    pub bound_address: Option<SocketAddr>,
+    /// Whether mDNS is active
+    pub mdns_active: bool,
+}
+
 /// Callback function type for getting device public key by device ID
 pub type GetPublicKeyFn = Box<dyn Fn(&[u8; 32]) -> Option<[u8; 32]> + Send + Sync>;
 
@@ -194,6 +213,14 @@ impl NetworkManager {
 
     /// Start the network manager
     pub async fn start(&mut self) -> Result<(), NetworkError> {
+        // Log interface diagnostics at startup
+        interfaces::log_interface_diagnostics();
+
+        // Warn if VPN is active
+        if interfaces::is_vpn_active() {
+            tracing::warn!("VPN detected — local network discovery may be affected");
+        }
+
         // Initialize QUIC transport
         let bind_addr: SocketAddr = format!("0.0.0.0:{}", self.config.quic_port)
             .parse()
@@ -202,6 +229,11 @@ impl NetworkManager {
         let transport = QuicTransport::new(bind_addr).await?;
         let local_port = transport.local_addr().port();
         self.transport = Some(transport);
+
+        // Request firewall exemption for the QUIC port
+        if let Err(e) = firewall::ensure_firewall_exemption(local_port, "Toss") {
+            tracing::warn!("Failed to configure firewall: {}", e);
+        }
 
         // Initialize mDNS discovery
         if self.config.enable_mdns {
@@ -262,6 +294,11 @@ impl NetworkManager {
         // Disconnect relay (async, after lock released)
         if let Some(ref mut relay) = self.relay_client {
             relay.disconnect().await;
+        }
+
+        // Remove firewall exemption (best-effort cleanup)
+        if let Err(e) = firewall::remove_firewall_exemption("Toss") {
+            tracing::debug!("Failed to remove firewall exemption: {}", e);
         }
     }
 
@@ -738,6 +775,21 @@ impl NetworkManager {
     /// Get the local QUIC address
     pub fn local_addr(&self) -> Option<SocketAddr> {
         self.transport.as_ref().map(|t| t.local_addr())
+    }
+
+    /// Get network diagnostic information for troubleshooting
+    pub fn network_diagnostics(&self) -> NetworkDiagnostics {
+        let bound_address = self.local_addr();
+        let port = bound_address.map(|a| a.port()).unwrap_or(0);
+
+        NetworkDiagnostics {
+            interfaces: interfaces::get_all_interfaces(),
+            vpn_active: interfaces::is_vpn_active(),
+            lan_addresses: interfaces::get_lan_ipv4_addresses(),
+            firewall_port_allowed: firewall::is_port_allowed(port),
+            bound_address,
+            mdns_active: self.discovery.is_some(),
+        }
     }
 
     /// Connect to a peer by address with NAT traversal support

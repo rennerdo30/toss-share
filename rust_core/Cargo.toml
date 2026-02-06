@@ -25,6 +25,9 @@ ed25519-dalek.workspace = true
 rand.workspace = true
 rand_core.workspace = true
 
+# Network interface enumeration
+if-addrs.workspace = true
+
 # Networking
 quinn.workspace = true
 rustls.workspace = true
