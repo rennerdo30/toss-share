@@ -1133,19 +1133,38 @@ pub enum CandidateType {
 }
 
 /// Gather ICE candidates for connection establishment
+///
+/// Uses real LAN interface addresses instead of the bound address (which is often 0.0.0.0).
 pub async fn gather_candidates(
     local_addr: SocketAddr,
     stun_config: Option<StunConfig>,
     turn_config: Option<TurnConfig>,
 ) -> Result<Vec<IceCandidate>, NetworkError> {
     let mut candidates = Vec::new();
+    let port = local_addr.port();
 
-    // Always add host candidate
-    candidates.push(IceCandidate {
-        candidate_type: CandidateType::Host,
-        address: local_addr,
-        priority: 126, // Host candidates have highest priority
-    });
+    // Add host candidates for each real LAN interface instead of 0.0.0.0
+    let lan_addrs = crate::network::interfaces::get_lan_ipv4_addresses();
+    if lan_addrs.is_empty() {
+        // Fallback: use the bound address even if it's 0.0.0.0
+        tracing::warn!(
+            "No LAN addresses found for ICE host candidates, using bound address {}",
+            local_addr
+        );
+        candidates.push(IceCandidate {
+            candidate_type: CandidateType::Host,
+            address: local_addr,
+            priority: 126,
+        });
+    } else {
+        for (i, addr) in lan_addrs.iter().enumerate() {
+            candidates.push(IceCandidate {
+                candidate_type: CandidateType::Host,
+                address: SocketAddr::new(IpAddr::V4(*addr), port),
+                priority: 126 - i as u64,
+            });
+        }
+    }
 
     // Try STUN if configured
     if let Some(stun_config) = stun_config {
@@ -1208,11 +1227,49 @@ mod tests {
 
     #[tokio::test]
     async fn test_gather_candidates_host_only() {
-        let local_addr: SocketAddr = "127.0.0.1:12345".parse().unwrap();
+        let local_addr: SocketAddr = "0.0.0.0:12345".parse().unwrap();
         let candidates = gather_candidates(local_addr, None, None).await.unwrap();
 
-        assert_eq!(candidates.len(), 1);
+        // Should have at least one host candidate
+        assert!(!candidates.is_empty());
         assert_eq!(candidates[0].candidate_type, CandidateType::Host);
-        assert_eq!(candidates[0].address, local_addr);
+
+        // If LAN addresses are available, candidates should use real IPs (not 0.0.0.0)
+        let lan_addrs = crate::network::interfaces::get_lan_ipv4_addresses();
+        if !lan_addrs.is_empty() {
+            assert_eq!(candidates.len(), lan_addrs.len());
+            for candidate in &candidates {
+                assert_ne!(
+                    candidate.address.ip(),
+                    IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                    "Host candidate should not be 0.0.0.0"
+                );
+                assert_eq!(candidate.address.port(), 12345);
+            }
+        } else {
+            // Fallback: single candidate with bound address
+            assert_eq!(candidates.len(), 1);
+            assert_eq!(candidates[0].address, local_addr);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_gather_candidates_uses_real_ips() {
+        let local_addr: SocketAddr = "0.0.0.0:54321".parse().unwrap();
+        let candidates = gather_candidates(local_addr, None, None).await.unwrap();
+
+        // All host candidates should have the correct port
+        for candidate in &candidates {
+            assert_eq!(candidate.candidate_type, CandidateType::Host);
+            assert_eq!(candidate.address.port(), 54321);
+        }
+
+        // Priority should decrease for each subsequent candidate
+        for i in 1..candidates.len() {
+            assert!(
+                candidates[i].priority < candidates[i - 1].priority,
+                "Priorities should decrease"
+            );
+        }
     }
 }

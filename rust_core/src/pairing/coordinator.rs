@@ -8,9 +8,19 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 
 use crate::error::NetworkError;
+use crate::network::interfaces;
 
 /// Service type for pairing discovery
 const PAIRING_SERVICE_TYPE: &str = "_toss-pair._udp.local.";
+
+/// Default mDNS browse timeout for pairing (seconds)
+const DEFAULT_MDNS_TIMEOUT_SECS: u64 = 15;
+
+/// Maximum number of mDNS discovery retries
+const MAX_MDNS_RETRIES: u32 = 3;
+
+/// Delay between mDNS retry attempts
+const MDNS_RETRY_DELAY: Duration = Duration::from_secs(2);
 
 /// Result of pairing advertisement registration
 #[derive(Debug, Clone, Default)]
@@ -102,6 +112,7 @@ impl PairingCoordinator {
     }
 
     /// Start advertising this device for pairing with the given code and public key
+    /// Uses real LAN IP addresses for mDNS announcement
     /// Returns an `AdvertisementResult` indicating which methods succeeded/failed
     pub async fn start_advertisement(
         &self,
@@ -117,7 +128,7 @@ impl PairingCoordinator {
         let public_key_b64 =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, public_key);
 
-        // Try mDNS advertisement
+        // Try mDNS advertisement with real LAN IPs
         if let Some(ref daemon) = self.mdns_daemon {
             let host_name = format!("toss-pair-{}.local.", code);
             let truncated_pk = &public_key_b64[..43.min(public_key_b64.len())]; // Max TXT record value size
@@ -132,11 +143,26 @@ impl PairingCoordinator {
 
             let properties_vec: Vec<(&str, &str)> = properties.into_iter().collect();
 
+            // Get real LAN addresses for the advertisement
+            let lan_addrs = interfaces::get_lan_ipv4_addresses();
+            let ip_str = if lan_addrs.is_empty() {
+                tracing::warn!(
+                    "No LAN IPv4 addresses found — pairing mDNS will register without explicit IPs"
+                );
+                String::new()
+            } else {
+                lan_addrs
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            };
+
             match ServiceInfo::new(
                 PAIRING_SERVICE_TYPE,
                 &format!("toss-pair-{}", code),
                 &host_name,
-                "",
+                ip_str.as_str(),
                 12345, // Arbitrary port for pairing advertisement
                 &properties_vec[..],
             ) {
@@ -248,80 +274,126 @@ impl PairingCoordinator {
         ))
     }
 
-    /// Find device via mDNS
+    /// Find device via mDNS with retry logic
     async fn find_via_mdns(
         &self,
         daemon: &ServiceDaemon,
         code: &str,
     ) -> Result<Option<PairingDeviceInfo>, NetworkError> {
-        tracing::debug!("Starting mDNS browse for pairing code: {}", code);
-        let receiver = daemon
-            .browse(PAIRING_SERVICE_TYPE)
-            .map_err(|e| NetworkError::Discovery(format!("Failed to browse mDNS: {}", e)))?;
+        for attempt in 1..=MAX_MDNS_RETRIES {
+            tracing::debug!(
+                "mDNS browse attempt {}/{} for pairing code: {}",
+                attempt,
+                MAX_MDNS_RETRIES,
+                code
+            );
 
-        // Listen for pairing services (5 second timeout for slow announcements)
-        let timeout = tokio::time::timeout(Duration::from_secs(5), async {
-            while let Ok(event) = receiver.recv() {
-                tracing::trace!("mDNS event: {:?}", event);
-                if let ServiceEvent::ServiceResolved(info) = event {
-                    if let Some(found_code) = info.get_properties().get("code") {
-                        if found_code.val_str() == code {
-                            // Found matching device
-                            let pk_str = info
-                                .get_properties()
-                                .get("pk")
-                                .map(|v| v.val_str().to_string())
-                                .unwrap_or_default();
+            let receiver = daemon
+                .browse(PAIRING_SERVICE_TYPE)
+                .map_err(|e| NetworkError::Discovery(format!("Failed to browse mDNS: {}", e)))?;
 
-                            let device_name = info
-                                .get_properties()
-                                .get("name")
-                                .map(|v| v.val_str().to_string())
-                                .unwrap_or_else(|| "Unknown".to_string());
+            // Listen for pairing services with configurable timeout
+            let timeout_duration = Duration::from_secs(DEFAULT_MDNS_TIMEOUT_SECS);
+            let timeout = tokio::time::timeout(timeout_duration, async {
+                while let Ok(event) = receiver.recv() {
+                    tracing::trace!("mDNS event: {:?}", event);
+                    if let ServiceEvent::ServiceResolved(info) = event {
+                        if let Some(found_code) = info.get_properties().get("code") {
+                            if found_code.val_str() == code {
+                                // Found matching device
+                                let pk_str = info
+                                    .get_properties()
+                                    .get("pk")
+                                    .map(|v| v.val_str().to_string())
+                                    .unwrap_or_default();
 
-                            // Decode public key
-                            if let Ok(pk_bytes) = base64::Engine::decode(
-                                &base64::engine::general_purpose::STANDARD,
-                                &pk_str,
-                            ) {
-                                if pk_bytes.len() == 32 {
-                                    let mut public_key = [0u8; 32];
-                                    public_key.copy_from_slice(&pk_bytes);
+                                let device_name = info
+                                    .get_properties()
+                                    .get("name")
+                                    .map(|v| v.val_str().to_string())
+                                    .unwrap_or_else(|| "Unknown".to_string());
 
-                                    let addresses: Vec<SocketAddr> = info
-                                        .get_addresses()
-                                        .iter()
-                                        .filter_map(|scoped_ip| {
-                                            let ip: IpAddr = match scoped_ip {
-                                                mdns_sd::ScopedIp::V4(v4) => IpAddr::V4(*v4.addr()),
-                                                mdns_sd::ScopedIp::V6(v6) => IpAddr::V6(*v6.addr()),
-                                                _ => return None, // Handle future variants
-                                            };
-                                            Some(SocketAddr::new(ip, info.get_port()))
-                                        })
-                                        .collect();
+                                // Decode public key
+                                if let Ok(pk_bytes) = base64::Engine::decode(
+                                    &base64::engine::general_purpose::STANDARD,
+                                    &pk_str,
+                                ) {
+                                    if pk_bytes.len() == 32 {
+                                        let mut public_key = [0u8; 32];
+                                        public_key.copy_from_slice(&pk_bytes);
 
-                                    return Some(PairingDeviceInfo {
-                                        code: code.to_string(),
-                                        public_key,
-                                        device_name,
-                                        addresses,
-                                        via_relay: false,
-                                        expires_at: None, // mDNS doesn't provide expiration
-                                    });
+                                        // Get addresses, filtering out loopback/link-local
+                                        let mut addresses: Vec<SocketAddr> = info
+                                            .get_addresses()
+                                            .iter()
+                                            .filter_map(|scoped_ip| {
+                                                let ip: IpAddr = match scoped_ip {
+                                                    mdns_sd::ScopedIp::V4(v4) => {
+                                                        IpAddr::V4(*v4.addr())
+                                                    }
+                                                    mdns_sd::ScopedIp::V6(v6) => {
+                                                        IpAddr::V6(*v6.addr())
+                                                    }
+                                                    _ => return None,
+                                                };
+                                                // Filter out non-LAN addresses
+                                                if !interfaces::is_lan_suitable(&ip) {
+                                                    tracing::debug!(
+                                                        "Filtered non-LAN address {} from pairing discovery",
+                                                        ip
+                                                    );
+                                                    return None;
+                                                }
+                                                Some(SocketAddr::new(ip, info.get_port()))
+                                            })
+                                            .collect();
+
+                                        // Prioritize IPv4 over IPv6
+                                        addresses.sort_by_key(|a| if a.is_ipv4() { 0 } else { 1 });
+
+                                        return Some(PairingDeviceInfo {
+                                            code: code.to_string(),
+                                            public_key,
+                                            device_name,
+                                            addresses,
+                                            via_relay: false,
+                                            expires_at: None,
+                                        });
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            None
-        });
+                None
+            });
 
-        match timeout.await {
-            Ok(result) => Ok(result),
-            Err(_) => Ok(None), // Timeout, device not found via mDNS
+            match timeout.await {
+                Ok(Some(info)) => return Ok(Some(info)),
+                Ok(None) => {
+                    tracing::debug!(
+                        "mDNS browse attempt {}/{} — no matching device found",
+                        attempt,
+                        MAX_MDNS_RETRIES,
+                    );
+                }
+                Err(_) => {
+                    tracing::debug!(
+                        "mDNS browse attempt {}/{} timed out after {}s",
+                        attempt,
+                        MAX_MDNS_RETRIES,
+                        DEFAULT_MDNS_TIMEOUT_SECS,
+                    );
+                }
+            }
+
+            // Delay before retry (skip delay on last attempt)
+            if attempt < MAX_MDNS_RETRIES {
+                tokio::time::sleep(MDNS_RETRY_DELAY).await;
+            }
         }
+
+        Ok(None) // Device not found after all retries
     }
 
     /// Find device via relay server
@@ -428,5 +500,15 @@ mod tests {
             PairingCoordinator::new("Test Device", Some("http://localhost:8080".to_string()));
         assert!(coordinator.is_ok());
         assert!(coordinator.unwrap().has_relay());
+    }
+
+    #[test]
+    fn test_mdns_timeout_constant() {
+        assert_eq!(DEFAULT_MDNS_TIMEOUT_SECS, 15);
+    }
+
+    #[test]
+    fn test_mdns_retry_constant() {
+        assert_eq!(MAX_MDNS_RETRIES, 3);
     }
 }
