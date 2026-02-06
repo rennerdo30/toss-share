@@ -527,7 +527,7 @@ mod tests {
 
         let loaded = storage.load_settings().unwrap();
 
-        assert_eq!(loaded.auto_sync, false);
+        assert!(!loaded.auto_sync);
         assert_eq!(loaded.max_file_size_mb, 100);
         assert_eq!(loaded.relay_url, Some("https://relay.test.com".to_string()));
     }
@@ -561,13 +561,13 @@ mod tests {
             let storage = Storage::new(&db_path).unwrap();
             let loaded = storage.load_settings().unwrap();
 
-            assert_eq!(loaded.auto_sync, false);
-            assert_eq!(loaded.sync_text, true);
-            assert_eq!(loaded.sync_rich_text, false);
-            assert_eq!(loaded.sync_images, true);
-            assert_eq!(loaded.sync_files, false);
+            assert!(!loaded.auto_sync);
+            assert!(loaded.sync_text);
+            assert!(!loaded.sync_rich_text);
+            assert!(loaded.sync_images);
+            assert!(!loaded.sync_files);
             assert_eq!(loaded.max_file_size_mb, 75);
-            assert_eq!(loaded.history_enabled, true);
+            assert!(loaded.history_enabled);
             assert_eq!(loaded.history_days, 21);
             assert_eq!(
                 loaded.relay_url,
