@@ -1,14 +1,15 @@
 {
   "id": "32213428-5a93-4f42-8f39-a72462feb262",
-  "status": "running",
+  "status": "completed",
   "startedAt": "2026-02-05T05:04:03.404Z",
-  "updatedAt": "2026-02-05T08:44:22.905Z",
+  "updatedAt": "2026-02-05T09:32:59.618Z",
   "agentPlugin": "claude",
   "trackerPlugin": "json",
   "prdPath": "./tasks/prd.json",
-  "currentIteration": 19,
+  "currentIteration": 20,
   "maxIterations": 20,
   "totalTasks": 0,
-  "tasksCompleted": 19,
-  "cwd": "/Users/rennerdo30/Development/shared-clipboard"
+  "tasksCompleted": 20,
+  "cwd": "/Users/rennerdo30/Development/shared-clipboard",
+  "endedAt": "2026-02-05T09:32:59.618Z"
 }

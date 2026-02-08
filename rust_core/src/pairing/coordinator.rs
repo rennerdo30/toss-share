@@ -87,6 +87,26 @@ pub struct PairingCoordinator {
 }
 
 impl PairingCoordinator {
+    /// Decode base64-encoded public key, accepting both padded and no-pad forms.
+    fn decode_public_key_b64(pk_str: &str) -> Result<[u8; 32], String> {
+        let pk_bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, pk_str)
+            .or_else(|_| {
+                base64::Engine::decode(&base64::engine::general_purpose::STANDARD_NO_PAD, pk_str)
+            })
+            .map_err(|e| format!("Invalid public key encoding: {}", e))?;
+
+        if pk_bytes.len() != 32 {
+            return Err(format!(
+                "Invalid public key length: expected 32 bytes, got {}",
+                pk_bytes.len()
+            ));
+        }
+
+        let mut public_key = [0u8; 32];
+        public_key.copy_from_slice(&pk_bytes);
+        Ok(public_key)
+    }
+
     /// Create a new pairing coordinator
     pub fn new(device_name: &str, relay_url: Option<String>) -> Result<Self, NetworkError> {
         let mdns_daemon = match ServiceDaemon::new() {
@@ -131,11 +151,10 @@ impl PairingCoordinator {
         // Try mDNS advertisement with real LAN IPs
         if let Some(ref daemon) = self.mdns_daemon {
             let host_name = format!("toss-pair-{}.local.", code);
-            let truncated_pk = &public_key_b64[..43.min(public_key_b64.len())]; // Max TXT record value size
-
             let properties: HashMap<&str, &str> = [
                 ("code", code),
-                ("pk", truncated_pk),
+                // Keep full base64 key in TXT. 32-byte keys are only 44 chars (well under TXT limits).
+                ("pk", public_key_b64.as_str()),
                 ("name", &self.device_name),
             ]
             .into_iter()
@@ -313,15 +332,9 @@ impl PairingCoordinator {
                                     .map(|v| v.val_str().to_string())
                                     .unwrap_or_else(|| "Unknown".to_string());
 
-                                // Decode public key
-                                if let Ok(pk_bytes) = base64::Engine::decode(
-                                    &base64::engine::general_purpose::STANDARD,
-                                    &pk_str,
-                                ) {
-                                    if pk_bytes.len() == 32 {
-                                        let mut public_key = [0u8; 32];
-                                        public_key.copy_from_slice(&pk_bytes);
-
+                                // Decode public key (accept padded and unpadded base64).
+                                match Self::decode_public_key_b64(&pk_str) {
+                                    Ok(public_key) => {
                                         // Get addresses, filtering out loopback/link-local
                                         let mut addresses: Vec<SocketAddr> = info
                                             .get_addresses()
@@ -359,6 +372,13 @@ impl PairingCoordinator {
                                             via_relay: false,
                                             expires_at: None,
                                         });
+                                    }
+                                    Err(e) => {
+                                        tracing::debug!(
+                                            "Ignoring mDNS pairing record with invalid public key for code {}: {}",
+                                            code,
+                                            e
+                                        );
                                     }
                                 }
                             }
@@ -510,5 +530,32 @@ mod tests {
     #[test]
     fn test_mdns_retry_constant() {
         assert_eq!(MAX_MDNS_RETRIES, 3);
+    }
+
+    #[test]
+    fn test_decode_public_key_b64_accepts_padded_and_unpadded() {
+        let pk = [7u8; 32];
+        let padded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, pk);
+        let unpadded =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD_NO_PAD, pk);
+
+        assert_eq!(
+            PairingCoordinator::decode_public_key_b64(&padded).unwrap(),
+            pk
+        );
+        assert_eq!(
+            PairingCoordinator::decode_public_key_b64(&unpadded).unwrap(),
+            pk
+        );
+    }
+
+    #[test]
+    fn test_decode_public_key_b64_rejects_invalid_length() {
+        // 31 bytes, encoded with no padding for easier fixture.
+        let too_short =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD_NO_PAD, [1u8; 31]);
+
+        let err = PairingCoordinator::decode_public_key_b64(&too_short).unwrap_err();
+        assert!(err.contains("Invalid public key length"));
     }
 }

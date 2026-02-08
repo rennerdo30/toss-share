@@ -103,9 +103,13 @@ Future<void> _initializeApp() async {
       await UpdateService.initialize();
       _writeEarlyCrashLog('Step 3: UpdateService OK');
 
-      // Apply any pending updates before starting the UI
-      if (await UpdateService.hasPendingUpdate()) {
-        await UpdateService.applyPendingUpdate();
+      // Apply pending updates only when auto-update is enabled.
+      if (UpdateService.isAutoUpdateEnabled &&
+          await UpdateService.hasPendingUpdate()) {
+        final updateResult = await UpdateService.applyPendingUpdate();
+        _writeEarlyCrashLog(
+          'Step 3b: Pending update result: $updateResult',
+        );
         // App may have restarted, continue if not
       }
     } catch (e, stack) {
@@ -146,7 +150,8 @@ Future<void> _initializeApp() async {
   _writeEarlyCrashLog('Step 5: Initializing TossService (Rust FFI)...');
   try {
     await TossService.initialize();
-    _writeEarlyCrashLog('Step 5: TossService OK (FFI available: ${TossService.isFfiAvailable})');
+    _writeEarlyCrashLog(
+        'Step 5: TossService OK (FFI available: ${TossService.isFfiAvailable})');
 
     // Start periodic history cleanup (runs every 24 hours)
     // Note: Cleanup also runs on startup in the Rust core
@@ -191,10 +196,11 @@ Future<void> _initializeApp() async {
   _writeEarlyCrashLog('Step 8: App UI started successfully');
 
   // Check for updates in background after app starts (desktop only)
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if ((Platform.isWindows || Platform.isLinux || Platform.isMacOS) &&
+      UpdateService.isAutoUpdateEnabled) {
     // Delay to let the UI initialize first
     Future.delayed(const Duration(seconds: 5), () {
-      container.read(updateProvider.notifier).checkForUpdates();
+      container.read(updateProvider.notifier).checkForUpdates(automatic: true);
     });
   }
 }
@@ -320,12 +326,14 @@ void _startPeriodicHistoryCleanup() {
     try {
       final deletedCount = await TossService.cleanupOldHistory();
       if (deletedCount > 0) {
-        LoggingService.info('Periodic cleanup: removed $deletedCount old history entries');
+        LoggingService.info(
+            'Periodic cleanup: removed $deletedCount old history entries');
       }
     } catch (e) {
       LoggingService.warn('Periodic history cleanup failed: $e');
     }
   });
 
-  LoggingService.debug('Periodic history cleanup timer started (interval: 24 hours)');
+  LoggingService.debug(
+      'Periodic history cleanup timer started (interval: 24 hours)');
 }

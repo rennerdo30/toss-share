@@ -2,26 +2,80 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/app_update.dart';
-import 'storage_service.dart';
 import 'logging_service.dart';
+import 'storage_service.dart';
 
-/// Service for checking and applying app updates from GitHub Releases
+/// Result of applying a staged update.
+enum UpdateApplyResult {
+  applied,
+  skipped,
+  failed,
+}
+
+/// Decision for whether an update should be staged.
+enum UpdateStagingDecision {
+  proceed,
+  alreadyStaged,
+  blockedByRecentFailure,
+}
+
+/// Platform target used by updater internals.
+enum UpdatePlatform {
+  macOS,
+  windows,
+  linux,
+  unsupported,
+}
+
+/// Service for checking and applying app updates from GitHub Releases.
 class UpdateService {
   UpdateService._();
 
   static const String _repoOwner = 'rennerdo30';
   static const String _repoName = 'toss-share';
   static const String _releaseTag = 'nightly';
+  static const Duration _applyFailureCooldown = Duration(minutes: 5);
 
   static String? _currentVersion;
   static String? _currentSha;
+  static String? _failedApplyShaThisLaunch;
 
-  /// Initialize the update service
+  @visibleForTesting
+  static DateTime Function() nowProvider = DateTime.now;
+
+  @visibleForTesting
+  static Map<String, dynamic>? testSettingsStore;
+
+  @visibleForTesting
+  static UpdatePlatform? testPlatformOverride;
+
+  @visibleForTesting
+  static String? testResolvedExecutableOverride;
+
+  @visibleForTesting
+  static Future<bool> Function(
+    UpdatePlatform platform,
+    Directory extractedDir,
+    Directory currentDir,
+  )? testApplyUpdateOverride;
+
+  @visibleForTesting
+  static void resetTestingOverrides() {
+    testSettingsStore = null;
+    testPlatformOverride = null;
+    testResolvedExecutableOverride = null;
+    testApplyUpdateOverride = null;
+    nowProvider = DateTime.now;
+    _failedApplyShaThisLaunch = null;
+  }
+
+  /// Initialize the update service.
   static Future<void> initialize() async {
     LoggingService.debug('UpdateService: Getting package info...');
     final packageInfo = await PackageInfo.fromPlatform();
@@ -29,18 +83,29 @@ class UpdateService {
     LoggingService.debug('UpdateService: Version: $_currentVersion');
 
     // Load stored SHA of current installation
-    _currentSha =
-        StorageService.getSetting<String>(SettingsKeys.currentBuildSha);
-    LoggingService.info('UpdateService: Initialized (SHA: ${_currentSha ?? "none"})');
+    _currentSha = _getSetting<String>(SettingsKeys.currentBuildSha);
+    LoggingService.info(
+      'UpdateService: Initialized (SHA: ${_currentSha ?? "none"})',
+    );
   }
 
-  /// Get current app version
+  /// Get current app version.
   static String get currentVersion => _currentVersion ?? '0.0.0';
 
-  /// Get current build SHA
+  /// Get current build SHA.
   static String? get currentSha => _currentSha;
 
-  /// Check for available updates from GitHub Releases
+  /// Check if auto-update is supported on current platform.
+  static bool get isSupported {
+    return Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+  }
+
+  /// Gate auto-update to desktop release builds only.
+  static bool get isAutoUpdateEnabled {
+    return isSupported && kReleaseMode;
+  }
+
+  /// Check for available updates from GitHub Releases.
   static Future<AppUpdate?> checkForUpdate() async {
     LoggingService.debug('UpdateService: Checking for updates...');
     try {
@@ -54,13 +119,17 @@ class UpdateService {
       });
 
       if (response.statusCode != 200) {
-        LoggingService.warn('UpdateService: GitHub API returned ${response.statusCode}');
+        LoggingService.warn(
+          'UpdateService: GitHub API returned ${response.statusCode}',
+        );
         return null;
       }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       final assets = json['assets'] as List<dynamic>;
-      LoggingService.debug('UpdateService: Found ${assets.length} release assets');
+      LoggingService.debug(
+        'UpdateService: Found ${assets.length} release assets',
+      );
 
       // Find the correct asset for this platform
       final assetName = _getPlatformAssetName();
@@ -72,15 +141,21 @@ class UpdateService {
           );
 
       if (asset.isEmpty) {
-        LoggingService.warn('UpdateService: No matching asset found for platform');
+        LoggingService.warn(
+          'UpdateService: No matching asset found for platform',
+        );
         return null;
       }
 
       final update = AppUpdate.fromGitHubRelease(json, asset);
-      LoggingService.info('UpdateService: Found release - SHA: ${update.sha}, Size: ${update.formattedSize}');
+      LoggingService.info(
+        'UpdateService: Found release - SHA: ${update.sha}, Size: ${update.formattedSize}',
+      );
 
       // Check if this is a newer version by comparing SHA
-      LoggingService.debug('UpdateService: Comparing SHAs - current: $_currentSha, remote: ${update.sha}');
+      LoggingService.debug(
+        'UpdateService: Comparing SHAs - current: $_currentSha, remote: ${update.sha}',
+      );
       if (_currentSha != null && _currentSha == update.sha) {
         LoggingService.info('UpdateService: Already on latest version');
         return null; // Already on this version
@@ -89,24 +164,29 @@ class UpdateService {
       LoggingService.info('UpdateService: Update available!');
       return update;
     } catch (e, stack) {
-      LoggingService.error('UpdateService: Failed to check for updates', e, stack);
+      LoggingService.error(
+          'UpdateService: Failed to check for updates', e, stack);
       return null;
     }
   }
 
-  /// Download update to temp directory
+  /// Download update to temp directory.
   static Future<File?> downloadUpdate(
     AppUpdate update, {
     void Function(double progress)? onProgress,
   }) async {
-    LoggingService.info('UpdateService: Starting download of ${update.formattedSize}');
+    LoggingService.info(
+      'UpdateService: Starting download of ${update.formattedSize}',
+    );
     try {
       final tempDir = await getTemporaryDirectory();
-      final downloadPath = '${tempDir.path}/toss_update_${update.sha.substring(0, 8)}';
+      final downloadPath =
+          '${tempDir.path}/toss_update_${update.sha.substring(0, 8)}';
       final assetName = _getPlatformAssetName();
       final downloadFile = File('$downloadPath/$assetName');
 
-      LoggingService.debug('UpdateService: Download path: ${downloadFile.path}');
+      LoggingService.debug(
+          'UpdateService: Download path: ${downloadFile.path}');
 
       // Create download directory
       await Directory(downloadPath).create(recursive: true);
@@ -116,7 +196,9 @@ class UpdateService {
       final streamedResponse = await request.send();
 
       if (streamedResponse.statusCode != 200) {
-        LoggingService.error('UpdateService: Download failed with status ${streamedResponse.statusCode}');
+        LoggingService.error(
+          'UpdateService: Download failed with status ${streamedResponse.statusCode}',
+        );
         return null;
       }
 
@@ -142,15 +224,20 @@ class UpdateService {
 
       // Verify download size
       final downloadedSize = await downloadFile.length();
-      LoggingService.debug('UpdateService: Downloaded $downloadedSize bytes, expected ${update.size}');
+      LoggingService.debug(
+        'UpdateService: Downloaded $downloadedSize bytes, expected ${update.size}',
+      );
 
       if (downloadedSize != update.size) {
-        LoggingService.error('UpdateService: Size mismatch! Downloaded: $downloadedSize, Expected: ${update.size}');
+        LoggingService.error(
+          'UpdateService: Size mismatch! Downloaded: $downloadedSize, Expected: ${update.size}',
+        );
         await downloadFile.delete();
         return null;
       }
 
-      LoggingService.info('UpdateService: Download complete: ${downloadFile.path}');
+      LoggingService.info(
+          'UpdateService: Download complete: ${downloadFile.path}');
       return downloadFile;
     } catch (e, stack) {
       LoggingService.error('UpdateService: Download failed', e, stack);
@@ -158,7 +245,7 @@ class UpdateService {
     }
   }
 
-  /// Extract downloaded update archive
+  /// Extract downloaded update archive.
   static Future<Directory?> extractUpdate(File archiveFile) async {
     LoggingService.info('UpdateService: Extracting ${archiveFile.path}');
     try {
@@ -180,7 +267,9 @@ class UpdateService {
         archive = ZipDecoder().decodeBytes(bytes);
       }
 
-      LoggingService.debug('UpdateService: Archive contains ${archive.length} entries');
+      LoggingService.debug(
+        'UpdateService: Archive contains ${archive.length} entries',
+      );
       var fileCount = 0;
 
       for (final file in archive) {
@@ -200,7 +289,9 @@ class UpdateService {
         }
       }
 
-      LoggingService.info('UpdateService: Extracted $fileCount files to ${extractDir.path}');
+      LoggingService.info(
+        'UpdateService: Extracted $fileCount files to ${extractDir.path}',
+      );
       return extractDir;
     } catch (e, stack) {
       LoggingService.error('UpdateService: Extraction failed', e, stack);
@@ -208,7 +299,7 @@ class UpdateService {
     }
   }
 
-  /// Stage update for installation on next restart
+  /// Stage update for installation on next restart.
   static Future<bool> stageUpdate(File archiveFile, AppUpdate update) async {
     LoggingService.info('UpdateService: Staging update for SHA: ${update.sha}');
     try {
@@ -219,16 +310,12 @@ class UpdateService {
       }
 
       // Store the path to extracted update and metadata
-      await StorageService.setSetting(
-        SettingsKeys.pendingUpdatePath,
-        extractedDir.path,
-      );
-      await StorageService.setSetting(
-        SettingsKeys.pendingUpdateSha,
-        update.sha,
-      );
+      await _setSetting(SettingsKeys.pendingUpdatePath, extractedDir.path);
+      await _setSetting(SettingsKeys.pendingUpdateSha, update.sha);
+      await _clearRecentApplyFailureIfMatches(update.sha);
 
-      LoggingService.info('UpdateService: Update staged at ${extractedDir.path}');
+      LoggingService.info(
+          'UpdateService: Update staged at ${extractedDir.path}');
       return true;
     } catch (e, stack) {
       LoggingService.error('UpdateService: Failed to stage update', e, stack);
@@ -236,18 +323,43 @@ class UpdateService {
     }
   }
 
-  /// Check if there's a pending update to apply
+  /// Check if there's a pending update to apply.
   static Future<bool> hasPendingUpdate() async {
-    final pendingPath = StorageService.getSetting<String>(
-      SettingsKeys.pendingUpdatePath,
-    );
+    final pendingPath = _getSetting<String>(SettingsKeys.pendingUpdatePath);
     if (pendingPath == null) return false;
 
     final dir = Directory(pendingPath);
     return dir.existsSync();
   }
 
-  /// Validate SHA format (40 hex chars or timestamp-based "ts-...")
+  /// Check if there is already a staged update for the same SHA.
+  static Future<bool> hasPendingUpdateForSha(String sha) async {
+    final pendingSha = _getSetting<String>(SettingsKeys.pendingUpdateSha);
+    if (pendingSha != sha) return false;
+    return hasPendingUpdate();
+  }
+
+  /// Evaluate whether an update should be staged.
+  static Future<UpdateStagingDecision> evaluateStagingDecision(
+      String sha) async {
+    if (await hasPendingUpdateForSha(sha)) {
+      LoggingService.info(
+        'UpdateService: Update SHA $sha is already staged, skipping download',
+      );
+      return UpdateStagingDecision.alreadyStaged;
+    }
+
+    if (await _hasRecentApplyFailure(sha)) {
+      LoggingService.warn(
+        'UpdateService: Skipping re-stage for SHA $sha due to recent apply failure',
+      );
+      return UpdateStagingDecision.blockedByRecentFailure;
+    }
+
+    return UpdateStagingDecision.proceed;
+  }
+
+  /// Validate SHA format (40 hex chars or timestamp-based "ts-...").
   static bool _isValidSha(String sha) {
     // Valid 40-char hex SHA
     if (RegExp(r'^[a-f0-9]{40}$', caseSensitive: false).hasMatch(sha)) {
@@ -260,96 +372,262 @@ class UpdateService {
     return false;
   }
 
-  /// Apply pending update (called early in app startup)
-  static Future<bool> applyPendingUpdate() async {
+  /// Apply pending update (called early in app startup).
+  static Future<UpdateApplyResult> applyPendingUpdate() {
+    return _applyPendingUpdateInternal(
+      platform: _currentPlatform(),
+      resolvedExecutablePath:
+          testResolvedExecutableOverride ?? Platform.resolvedExecutable,
+      applyOverride: testApplyUpdateOverride,
+    );
+  }
+
+  static Future<UpdateApplyResult> _applyPendingUpdateInternal({
+    required UpdatePlatform platform,
+    required String resolvedExecutablePath,
+    Future<bool> Function(
+      UpdatePlatform platform,
+      Directory extractedDir,
+      Directory currentDir,
+    )? applyOverride,
+  }) async {
     LoggingService.info('UpdateService: Checking for pending update...');
+
+    String? pendingSha;
+    Directory? extractedDir;
+
     try {
-      final pendingPath = StorageService.getSetting<String>(
-        SettingsKeys.pendingUpdatePath,
-      );
-      final pendingSha = StorageService.getSetting<String>(
-        SettingsKeys.pendingUpdateSha,
-      );
+      final pendingPath = _getSetting<String>(SettingsKeys.pendingUpdatePath);
+      pendingSha = _getSetting<String>(SettingsKeys.pendingUpdateSha);
 
       if (pendingPath == null || pendingSha == null) {
         LoggingService.debug('UpdateService: No pending update found');
-        return false;
+        return UpdateApplyResult.skipped;
       }
 
-      LoggingService.info('UpdateService: Found pending update - SHA: $pendingSha, Path: $pendingPath');
+      extractedDir = Directory(pendingPath);
+      LoggingService.info(
+        'UpdateService: Found pending update - SHA: $pendingSha, Path: $pendingPath',
+      );
+
+      if (await _hasRecentApplyFailure(pendingSha)) {
+        LoggingService.warn(
+          'UpdateService: Skipping pending apply for $pendingSha due to recent failure marker',
+        );
+        await _clearPendingUpdate();
+        await _cleanupExtractedDir(extractedDir);
+        return UpdateApplyResult.skipped;
+      }
 
       // Validate SHA format - reject invalid SHAs (like "main" from old broken downloads)
       if (!_isValidSha(pendingSha)) {
-        LoggingService.warn('UpdateService: Invalid SHA format "$pendingSha", clearing pending update...');
+        LoggingService.warn(
+          'UpdateService: Invalid SHA format "$pendingSha", clearing pending update...',
+        );
         await _clearPendingUpdate();
-        // Clean up the extracted directory
-        try {
-          final dir = Directory(pendingPath);
-          if (dir.existsSync()) {
-            await dir.delete(recursive: true);
-          }
-        } catch (_) {}
-        return false;
+        await _cleanupExtractedDir(extractedDir);
+        return UpdateApplyResult.skipped;
       }
 
-      final extractedDir = Directory(pendingPath);
       if (!extractedDir.existsSync()) {
-        LoggingService.warn('UpdateService: Pending update directory missing, clearing...');
+        LoggingService.warn(
+          'UpdateService: Pending update directory missing, clearing...',
+        );
         await _clearPendingUpdate();
-        return false;
+        return UpdateApplyResult.skipped;
+      }
+
+      if (platform == UpdatePlatform.unsupported) {
+        LoggingService.warn(
+          'UpdateService: Pending update found on unsupported platform, skipping',
+        );
+        return UpdateApplyResult.skipped;
       }
 
       // Get current executable location
-      final currentExe = Platform.resolvedExecutable;
-      final currentDir = File(currentExe).parent;
-      LoggingService.debug('UpdateService: Current executable: $currentExe');
-      LoggingService.debug('UpdateService: Current directory: ${currentDir.path}');
+      final currentDir = File(resolvedExecutablePath).parent;
+      LoggingService.debug(
+          'UpdateService: Current executable: $resolvedExecutablePath');
+      LoggingService.debug(
+          'UpdateService: Current directory: ${currentDir.path}');
 
-      bool success = false;
+      final applyFn = applyOverride ?? _applyUpdateForPlatform;
 
-      if (Platform.isMacOS) {
-        success = await _applyMacOSUpdate(extractedDir, currentDir);
-      } else if (Platform.isWindows) {
-        // IMPORTANT: For Windows, we must clear pending update BEFORE calling
-        // _applyWindowsUpdate because it calls exit(0) and never returns.
-        // Store SHA first, then clear pending markers
-        LoggingService.info('UpdateService: Pre-clearing pending update for Windows...');
-        await StorageService.setSetting(SettingsKeys.currentBuildSha, pendingSha);
+      // IMPORTANT: For Windows, clear pending update before replacement script.
+      if (platform == UpdatePlatform.windows) {
+        LoggingService.info(
+          'UpdateService: Pre-clearing pending update for Windows...',
+        );
+        await _setSetting(SettingsKeys.currentBuildSha, pendingSha);
         await _clearPendingUpdate();
-
-        success = await _applyWindowsUpdate(extractedDir, currentDir);
-        // Note: On Windows, we won't reach here due to exit(0)
-      } else if (Platform.isLinux) {
-        success = await _applyLinuxUpdate(extractedDir, currentDir);
       }
+
+      final success = await applyFn(platform, extractedDir, currentDir);
 
       if (success) {
-        // Update stored SHA to mark this version as current
-        LoggingService.info('UpdateService: Update applied, storing new SHA: $pendingSha');
-        await StorageService.setSetting(
-            SettingsKeys.currentBuildSha, pendingSha);
-        await _clearPendingUpdate();
+        LoggingService.info(
+          'UpdateService: Update applied, storing new SHA: $pendingSha',
+        );
+        await _setSetting(SettingsKeys.currentBuildSha, pendingSha);
+        _currentSha = pendingSha;
 
-        // Clean up temp files
-        try {
-          await extractedDir.delete(recursive: true);
-        } catch (_) {}
+        if (platform != UpdatePlatform.windows) {
+          await _clearPendingUpdate();
+        }
+
+        await _clearRecentApplyFailureIfMatches(pendingSha);
+        await _cleanupExtractedDir(extractedDir);
+        return UpdateApplyResult.applied;
       }
 
-      return success;
+      await _markApplyFailure(pendingSha);
+      await _clearPendingUpdate();
+      await _cleanupExtractedDir(extractedDir);
+      return UpdateApplyResult.failed;
     } catch (e, stack) {
-      LoggingService.error('UpdateService: Failed to apply pending update', e, stack);
-      return false;
+      LoggingService.error(
+          'UpdateService: Failed to apply pending update', e, stack);
+
+      if (pendingSha != null) {
+        await _markApplyFailure(pendingSha);
+      }
+
+      await _clearPendingUpdate();
+      if (extractedDir != null) {
+        await _cleanupExtractedDir(extractedDir);
+      }
+
+      return UpdateApplyResult.failed;
     }
   }
 
-  /// Clear pending update markers
-  static Future<void> _clearPendingUpdate() async {
-    await StorageService.removeSetting(SettingsKeys.pendingUpdatePath);
-    await StorageService.removeSetting(SettingsKeys.pendingUpdateSha);
+  static UpdatePlatform _currentPlatform() {
+    if (testPlatformOverride != null) {
+      return testPlatformOverride!;
+    }
+    if (Platform.isMacOS) return UpdatePlatform.macOS;
+    if (Platform.isWindows) return UpdatePlatform.windows;
+    if (Platform.isLinux) return UpdatePlatform.linux;
+    return UpdatePlatform.unsupported;
   }
 
-  /// Apply update on macOS
+  static Future<bool> _applyUpdateForPlatform(
+    UpdatePlatform platform,
+    Directory extractedDir,
+    Directory currentDir,
+  ) {
+    switch (platform) {
+      case UpdatePlatform.macOS:
+        return _applyMacOSUpdate(extractedDir, currentDir);
+      case UpdatePlatform.windows:
+        return _applyWindowsUpdate(extractedDir, currentDir);
+      case UpdatePlatform.linux:
+        return _applyLinuxUpdate(extractedDir, currentDir);
+      case UpdatePlatform.unsupported:
+        return Future.value(false);
+    }
+  }
+
+  /// Clear pending update markers.
+  static Future<void> _clearPendingUpdate() async {
+    await _removeSetting(SettingsKeys.pendingUpdatePath);
+    await _removeSetting(SettingsKeys.pendingUpdateSha);
+  }
+
+  static Future<void> _cleanupExtractedDir(Directory extractedDir) async {
+    try {
+      if (extractedDir.existsSync()) {
+        await extractedDir.delete(recursive: true);
+      }
+    } catch (_) {
+      // Best-effort cleanup only.
+    }
+  }
+
+  static Future<bool> _hasRecentApplyFailure(String sha) async {
+    if (_failedApplyShaThisLaunch == sha) {
+      return true;
+    }
+
+    final failedSha =
+        _getSetting<String>(SettingsKeys.lastUpdateApplyFailureSha);
+    final failedAt = _getSetting<int>(SettingsKeys.lastUpdateApplyFailureAt);
+
+    if (failedSha != sha || failedAt == null) {
+      return false;
+    }
+
+    final failedTime = DateTime.fromMillisecondsSinceEpoch(failedAt);
+    final age = nowProvider().difference(failedTime);
+    final isRecent = age >= Duration.zero && age <= _applyFailureCooldown;
+
+    if (!isRecent && failedSha != null) {
+      await _clearRecentApplyFailureIfMatches(failedSha);
+    }
+
+    return isRecent;
+  }
+
+  static Future<void> _markApplyFailure(String sha) async {
+    _failedApplyShaThisLaunch = sha;
+    await _setSetting(SettingsKeys.lastUpdateApplyFailureSha, sha);
+    await _setSetting(
+      SettingsKeys.lastUpdateApplyFailureAt,
+      nowProvider().millisecondsSinceEpoch,
+    );
+  }
+
+  static Future<void> _clearRecentApplyFailureIfMatches(String sha) async {
+    if (_failedApplyShaThisLaunch == sha) {
+      _failedApplyShaThisLaunch = null;
+    }
+
+    final failedSha =
+        _getSetting<String>(SettingsKeys.lastUpdateApplyFailureSha);
+    if (failedSha == sha) {
+      await _removeSetting(SettingsKeys.lastUpdateApplyFailureSha);
+      await _removeSetting(SettingsKeys.lastUpdateApplyFailureAt);
+    }
+  }
+
+  static T? _getSetting<T>(String key, {T? defaultValue}) {
+    if (testSettingsStore != null) {
+      if (testSettingsStore!.containsKey(key)) {
+        return testSettingsStore![key] as T?;
+      }
+      return defaultValue;
+    }
+    return StorageService.getSetting<T>(key, defaultValue: defaultValue);
+  }
+
+  static Future<void> _setSetting<T>(String key, T value) async {
+    if (testSettingsStore != null) {
+      testSettingsStore![key] = value;
+      return;
+    }
+    await StorageService.setSetting(key, value);
+  }
+
+  static Future<void> _removeSetting(String key) async {
+    if (testSettingsStore != null) {
+      testSettingsStore!.remove(key);
+      return;
+    }
+    await StorageService.removeSetting(key);
+  }
+
+  /// Resolve the `.app` bundle directory from an executable directory.
+  @visibleForTesting
+  static Directory? resolveMacOSAppBundle(Directory executableDir) {
+    final appBundle = executableDir.parent.parent;
+    final normalized = appBundle.path.toLowerCase();
+    if (!normalized.endsWith('.app')) {
+      return null;
+    }
+    return appBundle;
+  }
+
+  /// Apply update on macOS.
   static Future<bool> _applyMacOSUpdate(
     Directory extractedDir,
     Directory currentDir,
@@ -357,15 +635,22 @@ class UpdateService {
     LoggingService.info('UpdateService: Applying macOS update...');
     Directory? backup;
     try {
-      // On macOS, we need to replace the .app bundle
-      // Current executable is inside Toss.app/Contents/MacOS/
-      final appBundle = currentDir.parent.parent.parent;
+      // On macOS, current executable is inside Toss.app/Contents/MacOS/
+      final appBundle = resolveMacOSAppBundle(currentDir);
+      if (appBundle == null) {
+        LoggingService.error(
+          'UpdateService: Invalid macOS app bundle path from ${currentDir.path}',
+        );
+        return false;
+      }
       LoggingService.debug('UpdateService: App bundle path: ${appBundle.path}');
 
       // Find Toss.app in extracted directory
       final newApp = Directory('${extractedDir.path}/Toss.app');
       if (!newApp.existsSync()) {
-        LoggingService.error('UpdateService: Toss.app not found in extracted files');
+        LoggingService.error(
+          'UpdateService: Toss.app not found in extracted files',
+        );
         return false;
       }
 
@@ -395,7 +680,13 @@ class UpdateService {
       if (backup != null && backup.existsSync()) {
         LoggingService.warn('UpdateService: Attempting rollback...');
         try {
-          final appBundle = currentDir.parent.parent.parent;
+          final appBundle = resolveMacOSAppBundle(currentDir);
+          if (appBundle == null) {
+            LoggingService.error(
+              'UpdateService: Rollback aborted, invalid app bundle path',
+            );
+            return false;
+          }
           if (Directory(appBundle.path).existsSync()) {
             await Directory(appBundle.path).delete(recursive: true);
           }
@@ -410,7 +701,7 @@ class UpdateService {
     }
   }
 
-  /// Apply update on Windows
+  /// Apply update on Windows.
   static Future<bool> _applyWindowsUpdate(
     Directory extractedDir,
     Directory currentDir,
@@ -433,9 +724,9 @@ class UpdateService {
       // PowerShell script with error handling and rollback
       final script = '''
 \$ErrorActionPreference = "Stop"
-\$currentPath = '${currentPath}'
-\$extractedPath = '${extractedPath}'
-\$backupPath = '${backupPath}'
+\$currentPath = '$currentPath'
+\$extractedPath = '$extractedPath'
+\$backupPath = '$backupPath'
 
 # Log file for debugging
 \$logFile = "\$env:LOCALAPPDATA\\toss\\logs\\update.log"
@@ -512,16 +803,26 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
 ''';
 
       await File(scriptPath).writeAsString(script);
-      LoggingService.info('UpdateService: Windows update script created at $scriptPath');
+      LoggingService.info(
+        'UpdateService: Windows update script created at $scriptPath',
+      );
 
       // Run the script detached and exit current process
       await Process.start(
         'powershell',
-        ['-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', scriptPath],
+        [
+          '-ExecutionPolicy',
+          'Bypass',
+          '-WindowStyle',
+          'Hidden',
+          '-File',
+          scriptPath,
+        ],
         mode: ProcessStartMode.detached,
       );
 
-      LoggingService.info('UpdateService: Update script started, exiting app...');
+      LoggingService.info(
+          'UpdateService: Update script started, exiting app...');
 
       // Exit current process to allow replacement
       exit(0);
@@ -531,7 +832,7 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
     }
   }
 
-  /// Apply update on Linux
+  /// Apply update on Linux.
   static Future<bool> _applyLinuxUpdate(
     Directory extractedDir,
     Directory currentDir,
@@ -549,9 +850,11 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
       }
 
       // Copy current to backup
-      final backupResult = await Process.run('cp', ['-r', currentDir.path, backupPath]);
+      final backupResult =
+          await Process.run('cp', ['-r', currentDir.path, backupPath]);
       if (backupResult.exitCode != 0) {
-        LoggingService.error('UpdateService: Backup failed: ${backupResult.stderr}');
+        LoggingService.error(
+            'UpdateService: Backup failed: ${backupResult.stderr}');
         return false;
       }
       LoggingService.debug('UpdateService: Backup created');
@@ -559,7 +862,9 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
       // Copy new files over current
       LoggingService.debug('UpdateService: Copying new files...');
       final copyResult = await Process.run(
-          'cp', ['-rf', '${extractedDir.path}/.', currentDir.path]);
+        'cp',
+        ['-rf', '${extractedDir.path}/.', currentDir.path],
+      );
       if (copyResult.exitCode != 0) {
         throw Exception('Copy failed: ${copyResult.stderr}');
       }
@@ -600,7 +905,9 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
 
           // Restore from backup
           final restoreResult = await Process.run(
-              'cp', ['-rf', '$backupPath/.', currentDir.path]);
+            'cp',
+            ['-rf', '$backupPath/.', currentDir.path],
+          );
           if (restoreResult.exitCode == 0) {
             LoggingService.info('UpdateService: Rollback successful');
           }
@@ -613,7 +920,7 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
     }
   }
 
-  /// Get the correct asset name for current platform
+  /// Get the correct asset name for current platform.
   static String _getPlatformAssetName() {
     if (Platform.isMacOS) {
       return 'toss-macos-nightly.zip';
@@ -625,24 +932,18 @@ Remove-Item -Path \$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyCont
     throw UnsupportedError('Unsupported platform for auto-update');
   }
 
-  /// Check if auto-update is supported on current platform
-  static bool get isSupported {
-    return Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-  }
-
-  /// Get last update check time
+  /// Get last update check time.
   static DateTime? get lastCheckTime {
-    final timestamp =
-        StorageService.getSetting<int>(SettingsKeys.lastUpdateCheck);
+    final timestamp = _getSetting<int>(SettingsKeys.lastUpdateCheck);
     if (timestamp == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 
-  /// Update last check time
+  /// Update last check time.
   static Future<void> updateLastCheckTime() async {
-    await StorageService.setSetting(
+    await _setSetting(
       SettingsKeys.lastUpdateCheck,
-      DateTime.now().millisecondsSinceEpoch,
+      nowProvider().millisecondsSinceEpoch,
     );
   }
 }
