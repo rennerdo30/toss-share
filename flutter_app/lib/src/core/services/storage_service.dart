@@ -212,4 +212,7 @@ class SettingsKeys {
   static const String pendingUpdateSha = 'pending_update_sha';
   static const String currentBuildSha = 'current_build_sha';
   static const String lastUpdateCheck = 'last_update_check';
+  static const String lastUpdateApplyFailureSha =
+      'last_update_apply_failure_sha';
+  static const String lastUpdateApplyFailureAt = 'last_update_apply_failure_at';
 }
