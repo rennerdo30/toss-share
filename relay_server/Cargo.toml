@@ -47,7 +47,7 @@ rand = "0.8"
 
 # Admin dashboard
 askama = "0.12"
-askama_axum = "0.4"
+askama_axum = "0.5"
 bcrypt = "0.17"
 
 # Cryptographic HMAC for session tokens
