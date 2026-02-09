@@ -46,7 +46,7 @@ thiserror = "2"
 rand = "0.8"
 
 # Admin dashboard
-askama = "0.12"
+askama = "0.15"
 askama_axum = "0.4"
 bcrypt = "0.17"
 
