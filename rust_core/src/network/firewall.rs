@@ -213,7 +213,7 @@ fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
                 continue;
             };
 
-            if local_ports.to_string().unwrap_or_default() == port_str
+            if local_ports.to_string() == port_str
                 && action == NET_FW_ACTION_ALLOW
                 && protocol == NET_FW_IP_PROTOCOL_UDP.0 as i32
             {
