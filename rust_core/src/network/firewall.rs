@@ -9,6 +9,22 @@ use crate::error::NetworkError;
 #[cfg(target_os = "windows")]
 const FIREWALL_RULE_NAME: &str = "Toss Clipboard Share";
 
+#[cfg(target_os = "windows")]
+fn initialize_com() -> Result<(), NetworkError> {
+    use windows::Win32::Foundation::RPC_E_CHANGED_MODE;
+    use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
+
+    let hr = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
+    if hr.is_ok() || hr == RPC_E_CHANGED_MODE {
+        Ok(())
+    } else {
+        Err(NetworkError::ConnectionFailed(format!(
+            "COM init failed: {}",
+            hr
+        )))
+    }
+}
+
 /// Check if a UDP port has a firewall exemption
 ///
 /// On non-Windows platforms, this always returns true.
@@ -49,13 +65,9 @@ pub fn is_port_allowed(port: u16) -> bool {
 pub fn ensure_firewall_exemption(port: u16, app_name: &str) -> Result<(), NetworkError> {
     use windows::core::BSTR;
     use windows::Win32::NetworkManagement::WindowsFirewall::*;
-    use windows::Win32::System::Com::*;
+    use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER};
 
-    // Initialize COM
-    unsafe {
-        CoInitializeEx(None, COINIT_APARTMENTTHREADED)
-            .map_err(|e| NetworkError::ConnectionFailed(format!("COM init failed: {}", e)))?;
-    }
+    initialize_com()?;
 
     // Create firewall policy
     let policy: INetFwPolicy2 = unsafe {
@@ -109,11 +121,9 @@ pub fn ensure_firewall_exemption(port: u16, app_name: &str) -> Result<(), Networ
 pub fn remove_firewall_exemption(app_name: &str) -> Result<(), NetworkError> {
     use windows::core::BSTR;
     use windows::Win32::NetworkManagement::WindowsFirewall::*;
-    use windows::Win32::System::Com::*;
+    use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER};
 
-    unsafe {
-        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
-    }
+    initialize_com()?;
 
     let policy: INetFwPolicy2 = unsafe {
         CoCreateInstance(&NetFwPolicy2, None, CLSCTX_INPROC_SERVER).map_err(|e| {
@@ -138,12 +148,14 @@ pub fn remove_firewall_exemption(app_name: &str) -> Result<(), NetworkError> {
 
 #[cfg(target_os = "windows")]
 fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
-    use windows::Win32::NetworkManagement::WindowsFirewall::*;
-    use windows::Win32::System::Com::*;
+    use std::convert::TryFrom;
 
-    unsafe {
-        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
-    }
+    use windows::core::{IUnknown, VARIANT};
+    use windows::Win32::NetworkManagement::WindowsFirewall::*;
+    use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER};
+    use windows::Win32::System::Ole::IEnumVARIANT;
+
+    initialize_com()?;
 
     let policy: INetFwPolicy2 = unsafe {
         CoCreateInstance(&NetFwPolicy2, None, CLSCTX_INPROC_SERVER).map_err(|e| {
@@ -158,20 +170,53 @@ fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
             NetworkError::ConnectionFailed(format!("Failed to get firewall rules: {}", e))
         })?;
 
+        let enumerator: IEnumVARIANT = rules
+            ._NewEnum()
+            .map_err(|e| {
+                NetworkError::ConnectionFailed(format!("Failed to enumerate firewall rules: {}", e))
+            })?
+            .cast()
+            .map_err(|e| {
+                NetworkError::ConnectionFailed(format!("Failed to cast firewall enumerator: {}", e))
+            })?;
+
         // Check if any rule exists that allows our port
-        for rule in &rules {
-            if let Ok(local_ports) = rule.LocalPorts() {
-                if local_ports.to_string() == port_str {
-                    if let Ok(action) = rule.Action() {
-                        if action == NET_FW_ACTION_ALLOW {
-                            if let Ok(protocol) = rule.Protocol() {
-                                if protocol == NET_FW_IP_PROTOCOL_UDP.0 as i32 {
-                                    return Ok(true);
-                                }
-                            }
-                        }
-                    }
-                }
+        loop {
+            let mut variants = [VARIANT::new()];
+            let mut fetched = 0u32;
+            let hr = enumerator.Next(&mut variants, &mut fetched);
+
+            if !hr.is_ok() {
+                return Err(NetworkError::ConnectionFailed(format!(
+                    "Failed iterating firewall rules: {}",
+                    hr
+                )));
+            }
+            if fetched == 0 {
+                break;
+            }
+
+            let Ok(unknown) = IUnknown::try_from(&variants[0]) else {
+                continue;
+            };
+            let Ok(rule) = unknown.cast::<INetFwRule>() else {
+                continue;
+            };
+            let Ok(local_ports) = rule.LocalPorts() else {
+                continue;
+            };
+            let Ok(action) = rule.Action() else {
+                continue;
+            };
+            let Ok(protocol) = rule.Protocol() else {
+                continue;
+            };
+
+            if local_ports.to_string().unwrap_or_default() == port_str
+                && action == NET_FW_ACTION_ALLOW
+                && protocol == NET_FW_IP_PROTOCOL_UDP.0 as i32
+            {
+                return Ok(true);
             }
         }
     }
