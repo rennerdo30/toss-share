@@ -314,7 +314,7 @@ impl PairingCoordinator {
             // Listen for pairing services with configurable timeout
             let timeout_duration = Duration::from_secs(DEFAULT_MDNS_TIMEOUT_SECS);
             let timeout = tokio::time::timeout(timeout_duration, async {
-                while let Ok(event) = receiver.recv() {
+                while let Ok(event) = receiver.recv_async().await {
                     tracing::trace!("mDNS event: {:?}", event);
                     if let ServiceEvent::ServiceResolved(info) = event {
                         if let Some(found_code) = info.get_properties().get("code") {

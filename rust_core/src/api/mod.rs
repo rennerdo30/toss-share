@@ -62,6 +62,7 @@ pub struct TossCore {
     clipboard: ClipboardManager,
     network: Option<NetworkManager>,
     pairing_session: Option<PairingSession>,
+    pairing_coordinator: Option<crate::pairing::PairingCoordinator>,
     settings: TossSettings,
     storage: Storage,
     event_receiver: Option<Arc<Mutex<tokio::sync::broadcast::Receiver<NetworkEvent>>>>,
@@ -255,6 +256,7 @@ pub fn init_toss(data_dir: String, device_name: String) -> Result<(), String> {
         clipboard,
         network: None,
         pairing_session: None,
+        pairing_coordinator: None,
         settings,
         storage,
         event_receiver: None,
@@ -362,6 +364,8 @@ pub fn start_pairing() -> Result<PairingInfoDto, String> {
     let session = PairingSession::new(&core.device_name);
     let info = session.info(&core.device_name);
 
+    // Drop any previous coordinator so stale advertisements do not linger.
+    core.pairing_coordinator = None;
     core.pairing_session = Some(session);
 
     Ok(PairingInfoDto {
@@ -404,6 +408,9 @@ pub fn complete_pairing_qr(qr_data: String) -> Result<DeviceInfoDto, String> {
 
     let mut guard = TOSS_INSTANCE.write();
     let core = guard.as_mut().ok_or("Toss not initialized")?;
+
+    // Pairing is being finalized, so we can stop advertising this session.
+    core.pairing_coordinator = None;
 
     let session = core
         .pairing_session
@@ -488,6 +495,9 @@ pub fn complete_pairing_code(
     let mut guard = TOSS_INSTANCE.write();
     let core = guard.as_mut().ok_or("Toss not initialized")?;
 
+    // Pairing is being finalized, so we can stop advertising this session.
+    core.pairing_coordinator = None;
+
     let session = core
         .pairing_session
         .take()
@@ -553,6 +563,7 @@ pub fn complete_pairing_code(
 pub fn cancel_pairing() {
     if let Some(ref mut core) = *TOSS_INSTANCE.write() {
         core.pairing_session = None;
+        core.pairing_coordinator = None;
     }
 }
 
@@ -648,6 +659,9 @@ pub fn complete_manual_pairing(
 
     let mut guard = TOSS_INSTANCE.write();
     let core = guard.as_mut().ok_or("Toss not initialized")?;
+
+    // Pairing is being finalized, so we can stop advertising this session.
+    core.pairing_coordinator = None;
 
     // Get or create a pairing session
     let session = core
@@ -745,6 +759,14 @@ pub async fn register_pairing_advertisement() -> Result<AdvertisementResultDto, 
         .start_advertisement(&code, &public_key)
         .await
         .map_err(|e| format!("Failed to start advertisement: {}", e))?;
+
+    // Keep coordinator alive while pairing is active, otherwise mDNS
+    // advertisement can disappear right after this function returns.
+    {
+        let mut guard = TOSS_INSTANCE.write();
+        let core = guard.as_mut().ok_or("Toss not initialized")?;
+        core.pairing_coordinator = Some(coordinator);
+    }
 
     Ok(AdvertisementResultDto {
         mdns_registered: result.mdns_registered,
