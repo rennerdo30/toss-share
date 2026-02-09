@@ -9,6 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/providers/settings_provider.dart';
+import '../../core/providers/devices_provider.dart';
 import '../../core/services/logging_service.dart';
 import '../../core/services/toss_service.dart';
 
@@ -76,7 +77,8 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
       }
 
       final pairingInfo = await TossService.startPairing();
-      LoggingService.info('Pairing session started with code: ${pairingInfo.code}');
+      LoggingService.info(
+          'Pairing session started with code: ${pairingInfo.code}');
       if (mounted) {
         setState(() {
           _pairingCode = pairingInfo.code;
@@ -92,7 +94,8 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
         // Show warning if device is not discoverable at all
         if (advResult.totalFailure) {
           setState(() {
-            _error = 'Failed to make device discoverable. Check your network connection.';
+            _error =
+                'Failed to make device discoverable. Check your network connection.';
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -105,7 +108,8 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
           );
         } else if (!advResult.mdnsRegistered && advResult.relayRegistered) {
           // mDNS failed but relay succeeded - local network discovery won't work
-          LoggingService.warn('mDNS registration failed, only relay will work: ${advResult.mdnsError}');
+          LoggingService.warn(
+              'mDNS registration failed, only relay will work: ${advResult.mdnsError}');
         }
       }
     } catch (e) {
@@ -165,6 +169,7 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
 
     try {
       final device = await TossService.completePairingQR(data);
+      await ref.read(devicesProvider.notifier).refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -193,7 +198,8 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
   Future<void> _handleManualCode(String code) async {
     if (_isPairing) return;
 
-    LoggingService.info('Starting manual pairing with code: ${code.substring(0, 2)}***');
+    LoggingService.info(
+        'Starting manual pairing with code: ${code.substring(0, 2)}***');
     setState(() {
       _isPairing = true;
       _error = null;
@@ -205,15 +211,18 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
       final device = await TossService.findPairingDevice(code);
 
       // Complete the pairing
-      LoggingService.info('Device found, completing pairing with: ${device.deviceName}');
+      LoggingService.info(
+          'Device found, completing pairing with: ${device.deviceName}');
       final pairedDevice = await TossService.completeManualPairing(device);
+      await ref.read(devicesProvider.notifier).refresh();
 
       if (mounted) {
         final viaText = device.viaRelay ? ' (via relay)' : ' (local network)';
-        LoggingService.info('Pairing completed successfully${viaText}');
+        LoggingService.info('Pairing completed successfully$viaText');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Device "${pairedDevice.name}" paired successfully$viaText!'),
+            content: Text(
+                'Device "${pairedDevice.name}" paired successfully$viaText!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -242,7 +251,8 @@ class _PairingScreenState extends ConsumerState<PairingScreen>
         } else if (errorMsg.contains('relay') && errorMsg.contains('contact')) {
           errorMsg =
               'Could not reach relay server. Check your internet connection.';
-        } else if (!errorMsg.contains('network') && !errorMsg.contains('relay')) {
+        } else if (!errorMsg.contains('network') &&
+            !errorMsg.contains('relay')) {
           // Generic fallback for unknown errors
           errorMsg =
               'Device not found. Make sure the other device is showing the pairing code and both devices are on the same Wi-Fi network.';
