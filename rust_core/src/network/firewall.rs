@@ -150,7 +150,7 @@ pub fn remove_firewall_exemption(app_name: &str) -> Result<(), NetworkError> {
 fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
     use std::convert::TryFrom;
 
-    use windows::core::{IUnknown, VARIANT};
+    use windows::core::{IUnknown, Interface, VARIANT};
     use windows::Win32::NetworkManagement::WindowsFirewall::*;
     use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER};
     use windows::Win32::System::Ole::IEnumVARIANT;
@@ -202,8 +202,9 @@ fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
             let Ok(rule) = unknown.cast::<INetFwRule>() else {
                 continue;
             };
-            let Ok(local_ports) = rule.LocalPorts() else {
-                continue;
+            let local_ports: windows::core::BSTR = match rule.LocalPorts() {
+                Ok(ports) => ports,
+                Err(_) => continue,
             };
             let Ok(action) = rule.Action() else {
                 continue;
