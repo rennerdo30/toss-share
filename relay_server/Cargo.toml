@@ -43,7 +43,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 dashmap = "6"
 futures = "0.3"
 thiserror = "2"
-rand = "0.8"
+rand = "0.10"
 
 # Admin dashboard
 askama = "0.12"
