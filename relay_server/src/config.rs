@@ -68,9 +68,9 @@ impl Config {
 
 fn generate_random_secret() -> String {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     (0..32)
-        .map(|_| rng.gen_range(b'a'..=b'z') as char)
+        .map(|_| rng.random_range(b'a'..=b'z') as char)
         .collect()
 }
 
