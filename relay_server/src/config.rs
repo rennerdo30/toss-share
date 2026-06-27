@@ -67,7 +67,7 @@ impl Config {
 }
 
 fn generate_random_secret() -> String {
-    use rand::Rng;
+    use rand::RngExt;
     let mut rng = rand::rng();
     (0..32)
         .map(|_| rng.random_range(b'a'..=b'z') as char)
