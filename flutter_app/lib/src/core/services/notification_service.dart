@@ -69,7 +69,7 @@ class NotificationService {
 
     LoggingService.debug('NotificationService: Initializing plugin...');
     final initialized = await _notifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
@@ -108,10 +108,10 @@ class NotificationService {
     );
 
     await _notifications.show(
-      1,
-      'Pairing Request',
-      'Device "$deviceName" wants to pair',
-      details,
+      id: 1,
+      title: 'Pairing Request',
+      body: 'Device "$deviceName" wants to pair',
+      notificationDetails: details,
     );
   }
 
@@ -143,10 +143,10 @@ class NotificationService {
         preview.length > 50 ? '${preview.substring(0, 50)}...' : preview;
 
     await _notifications.show(
-      2,
-      'Clipboard Received',
-      truncatedPreview,
-      details,
+      id: 2,
+      title: 'Clipboard Received',
+      body: truncatedPreview,
+      notificationDetails: details,
     );
   }
 
@@ -178,10 +178,10 @@ class NotificationService {
         : 'Disconnected from network';
 
     await _notifications.show(
-      3,
-      'Connection Status',
-      message,
-      details,
+      id: 3,
+      title: 'Connection Status',
+      body: message,
+      notificationDetails: details,
     );
   }
 
@@ -209,10 +209,10 @@ class NotificationService {
     );
 
     await _notifications.show(
-      4,
-      'Error',
-      message,
-      details,
+      id: 4,
+      title: 'Error',
+      body: message,
+      notificationDetails: details,
     );
   }
 
@@ -240,10 +240,10 @@ class NotificationService {
     );
 
     await _notifications.show(
-      5,
-      'Clipboard Conflict',
-      'Ignored clipboard from $sourceDevice (local preference)',
-      details,
+      id: 5,
+      title: 'Clipboard Conflict',
+      body: 'Ignored clipboard from $sourceDevice (local preference)',
+      notificationDetails: details,
     );
   }
 
@@ -275,10 +275,10 @@ class NotificationService {
         : 'Clipboard sent to $deviceCount devices';
 
     await _notifications.show(
-      6,
-      'Auto-Sync',
-      message,
-      details,
+      id: 6,
+      title: 'Auto-Sync',
+      body: message,
+      notificationDetails: details,
     );
   }
 
