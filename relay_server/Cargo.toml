@@ -46,7 +46,7 @@ thiserror = "2"
 rand = "0.10"
 
 # Admin dashboard
-askama = "0.15"
+askama = "0.16"
 bcrypt = "0.19"
 
 # Cryptographic HMAC for session tokens
