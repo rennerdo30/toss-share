@@ -15,7 +15,7 @@ dependencies:
   riverpod_annotation: ^2.3.5
 
   # Rust FFI
-  flutter_rust_bridge: 2.11.1
+  flutter_rust_bridge: 2.12.0
 
   # Navigation
   go_router: ^17.3.0
