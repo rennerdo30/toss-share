@@ -47,7 +47,7 @@ rand = "0.10"
 
 # Admin dashboard
 askama = "0.15"
-bcrypt = "0.18"
+bcrypt = "0.19"
 
 # Cryptographic HMAC for session tokens
 hmac = "0.12"
@@ -62,7 +62,7 @@ tokio-test = "0.4"
 hex = "0.4"
 reqwest = { version = "0.13", features = ["json", "cookies", "form"] }
 tokio-tungstenite = "0.28"
-bcrypt = "0.18"
+bcrypt = "0.19"
 
 [[test]]
 name = "integration_tests"
