@@ -50,7 +50,7 @@ askama = "0.16"
 bcrypt = "0.19"
 
 # Cryptographic HMAC for session tokens
-hmac = "0.12"
+hmac = "0.13"
 sha2 = "0.10"
 
 # System information
