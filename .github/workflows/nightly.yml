@@ -52,7 +52,7 @@ jobs:
           tar -czvf ../../../../../toss-linux-x64-nightly.tar.gz .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-linux-x64-nightly-${{ github.run_number }}
           path: flutter_app/toss-linux-x64-nightly.tar.gz
@@ -99,7 +99,7 @@ jobs:
           zip -r ../../../../../toss-macos-nightly.zip Toss.app
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-macos-nightly-${{ github.run_number }}
           path: flutter_app/toss-macos-nightly.zip
@@ -144,7 +144,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath ../../../../../toss-windows-x64-nightly.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-windows-x64-nightly-${{ github.run_number }}
           path: flutter_app/toss-windows-x64-nightly.zip
@@ -204,7 +204,7 @@ jobs:
           flutter build apk --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-android-nightly-${{ github.run_number }}
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
@@ -251,7 +251,7 @@ jobs:
           zip -r ../../../toss-ios-nightly.ipa Payload
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-ios-nightly-${{ github.run_number }}
           path: flutter_app/toss-ios-nightly.ipa
@@ -290,7 +290,7 @@ jobs:
         run: git push origin :refs/tags/nightly || true
 
       - name: Create nightly release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly
           name: Nightly Build
