@@ -49,7 +49,7 @@ jobs:
           tar -czvf ../../../../../toss-linux-x64.tar.gz .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-linux-x64
           path: flutter_app/toss-linux-x64.tar.gz
@@ -95,7 +95,7 @@ jobs:
           zip -r ../../../../../toss-macos-universal.zip Toss.app
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-macos-universal
           path: flutter_app/toss-macos-universal.zip
@@ -139,7 +139,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath ../../../../../toss-windows-x64.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-windows-x64
           path: flutter_app/toss-windows-x64.zip
@@ -198,7 +198,7 @@ jobs:
           flutter build apk --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-android
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
@@ -244,7 +244,7 @@ jobs:
           zip -r ../../../toss-ios.ipa Payload
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-ios
           path: flutter_app/toss-ios.ipa
@@ -267,7 +267,7 @@ jobs:
           outputs: type=docker,dest=/tmp/toss-relay.tar
 
       - name: Upload Docker image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-relay-docker
           path: /tmp/toss-relay.tar
@@ -290,7 +290,7 @@ jobs:
         run: find artifacts -type f
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           generate_release_notes: true
