@@ -25,7 +25,7 @@ async-trait = "0.1"
 sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "sqlite", "derive"] }
 
 # Authentication
-ed25519-dalek = { version = "2", features = ["rand_core"] }
+ed25519-dalek = { version = "3", features = ["rand_core"] }
 jsonwebtoken = "9"
 rand_core = "0.10"
 
