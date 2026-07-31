@@ -1677,11 +1677,8 @@ pub fn poll_event() -> Option<TossEvent> {
                     // Validate content size limit
                     let max_size = {
                         let guard = TOSS_INSTANCE.read();
-                        if let Some(core) = guard.as_ref() {
-                            (core.settings.max_file_size_mb as u64) * 1024 * 1024
-                        } else {
-                            return None;
-                        }
+                        let core = guard.as_ref()?;
+                        (core.settings.max_file_size_mb as u64) * 1024 * 1024
                     };
 
                     if update.content.metadata.size_bytes > max_size {
