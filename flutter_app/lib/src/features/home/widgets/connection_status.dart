@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/services/websocket_service.dart';
+import '../../../shared/constants/layout_constants.dart';
+import '../../../shared/theme/app_theme.dart';
 
 /// Sync method for real-time updates
 enum SyncMethod {
@@ -35,14 +37,14 @@ enum SyncMethod {
     }
   }
 
-  Color getColor(ColorScheme colorScheme) {
+  Color getColor(ColorScheme colorScheme, AppStatusColors statusColors) {
     switch (this) {
       case SyncMethod.polling:
         return colorScheme.outline;
       case SyncMethod.websocket:
-        return Colors.green;
+        return statusColors.online;
       case SyncMethod.reconnecting:
-        return Colors.orange;
+        return statusColors.warning;
     }
   }
 
@@ -132,7 +134,9 @@ class ConnectionStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final statusColors = AppStatusColors.of(context);
 
     final isConnected = connectedCount > 0;
     final backgroundColor = isConnected
@@ -141,112 +145,119 @@ class ConnectionStatusBanner extends StatelessWidget {
     final foregroundColor = isConnected
         ? colorScheme.onPrimaryContainer
         : colorScheme.onSurfaceVariant;
+    final statusText = isConnected
+        ? '$connectedCount device${connectedCount > 1 ? 's' : ''} connected'
+        : 'No devices connected';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: backgroundColor,
-      child: Row(
-        children: [
-          // Status indicator
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isConnected ? Colors.green : Colors.grey,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Status text
-          Expanded(
-            child: Text(
-              isConnected
-                  ? '$connectedCount device${connectedCount > 1 ? 's' : ''} connected'
-                  : 'No devices connected',
-              style: TextStyle(
-                color: foregroundColor,
-                fontWeight: FontWeight.w500,
+    return Semantics(
+      liveRegion: true,
+      label: '$statusText. Sync: ${syncMethod.displayName}',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutConstants.defaultPadding,
+          vertical: LayoutConstants.gutter,
+        ),
+        color: backgroundColor,
+        child: Row(
+          children: [
+            // Status indicator
+            Container(
+              width: LayoutConstants.smallPadding,
+              height: LayoutConstants.smallPadding,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isConnected ? statusColors.online : statusColors.offline,
               ),
             ),
-          ),
+            const SizedBox(width: LayoutConstants.gutter),
 
-          // Connection type indicator (when connected)
-          if (isConnected && connectionType != null) ...[
-            Tooltip(
-              message: 'Connection: ${connectionType!.displayName}',
-              child: Icon(
-                connectionType!.icon,
-                size: 16,
-                color: foregroundColor.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-
-          // Sync method indicator (WebSocket vs Polling)
-          Tooltip(
-            message: 'Sync: ${syncMethod.displayName}',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: syncMethod.getColor(colorScheme),
-                  ),
+            // Status text
+            Expanded(
+              child: Text(
+                statusText,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: foregroundColor,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  syncMethod.icon,
-                  size: 14,
+              ),
+            ),
+
+            // Connection type indicator (when connected)
+            if (isConnected && connectionType != null) ...[
+              Tooltip(
+                message: 'Connection: ${connectionType!.displayName}',
+                child: Icon(
+                  connectionType!.icon,
+                  size: LayoutConstants.smallIconSize,
                   color: foregroundColor.withValues(alpha: 0.7),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
+              ),
+              const SizedBox(width: LayoutConstants.smallPadding),
+            ],
 
-          // Relay indicator
-          if (relayConfigured) ...[
+            // Sync method indicator (WebSocket vs Polling)
             Tooltip(
-              message: 'Cloud relay enabled',
-              child: Icon(
-                Icons.cloud_done,
-                size: 16,
-                color: foregroundColor.withValues(alpha: 0.7),
+              message: 'Sync: ${syncMethod.displayName}',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: syncMethod.getColor(colorScheme, statusColors),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    syncMethod.icon,
+                    size: 14,
+                    color: foregroundColor.withValues(alpha: 0.7),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-          ],
+            const SizedBox(width: LayoutConstants.smallPadding),
 
-          // Sync indicator
-          if (isSyncing)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: foregroundColor,
-                  ),
+            // Relay indicator
+            if (relayConfigured) ...[
+              Tooltip(
+                message: 'Cloud relay enabled',
+                child: Icon(
+                  Icons.cloud_done,
+                  size: LayoutConstants.smallIconSize,
+                  color: foregroundColor.withValues(alpha: 0.7),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Syncing',
-                  style: TextStyle(
-                    color: foregroundColor,
-                    fontSize: 12,
+              ),
+              const SizedBox(width: LayoutConstants.smallPadding),
+            ],
+
+            // Sync indicator
+            if (isSyncing)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: foregroundColor,
+                    ),
                   ),
-                ),
-              ],
-            ),
-        ],
+                  const SizedBox(width: LayoutConstants.smallPadding),
+                  Text(
+                    'Syncing',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: foregroundColor,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -9,6 +9,8 @@ import 'core/services/tray_service.dart';
 import 'core/services/clipboard_monitor_service.dart';
 import 'core/services/toss_service.dart';
 import 'core/services/ios_background_service.dart';
+import 'core/services/logging_service.dart';
+import 'core/services/storage_service.dart';
 import 'core/services/websocket_service.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/clipboard_provider.dart';
@@ -182,8 +184,46 @@ class _TossAppState extends ConsumerState<TossApp> with WidgetsBindingObserver {
   }
 }
 
-/// Theme mode provider
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+/// Theme mode provider.
+///
+/// The selected mode is restored from local storage on startup and persisted
+/// again whenever it changes, so the choice survives a restart.
+final themeModeProvider =
+    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+  return ThemeModeNotifier();
+});
+
+/// Holds the active [ThemeMode] and keeps it in sync with local storage.
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+  ThemeModeNotifier() : super(_readStoredMode());
+
+  static ThemeMode _readStoredMode() {
+    final stored = StorageService.getSetting<String>(SettingsKeys.themeMode);
+    switch (stored) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      default:
+        if (stored != null) {
+          LoggingService.warn('Unknown stored theme mode: $stored');
+        }
+        return ThemeMode.system;
+    }
+  }
+
+  /// Selects [mode] and stores it for the next app start.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+    try {
+      await StorageService.setSetting(SettingsKeys.themeMode, mode.name);
+    } catch (e) {
+      LoggingService.warn('Failed to persist theme mode: $e');
+    }
+  }
+}
 
 /// Keyboard shortcuts wrapper for desktop platforms
 class _KeyboardShortcutsWrapper extends StatelessWidget {

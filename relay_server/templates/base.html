@@ -1,42 +1,236 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}Toss Admin{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .stat-card {
-            @apply bg-white rounded-lg shadow p-6;
+    <script>
+        // Design tokens shared by every admin page. Colours come from the
+        // built-in Tailwind palettes (indigo = accent, slate = neutral) so no
+        // hex value has to be repeated across templates.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    maxWidth: {
+                        shell: '80rem',
+                    },
+                    boxShadow: {
+                        card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06)',
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            /* One visible focus ring for every interactive element. */
+            a:focus-visible,
+            button:focus-visible,
+            input:focus-visible,
+            select:focus-visible {
+                @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-white;
+            }
+            .app-header a:focus-visible,
+            .app-header button:focus-visible {
+                @apply ring-white ring-offset-indigo-700;
+            }
+        }
+
+        @layer components {
+            /* Surfaces */
+            .card {
+                @apply rounded-xl bg-white shadow-card ring-1 ring-slate-900/5;
+            }
+            .card-pad {
+                @apply p-5 sm:p-6;
+            }
+
+            /* Typography */
+            .page-title {
+                @apply text-2xl font-semibold tracking-tight text-slate-900;
+            }
+            .section-title {
+                @apply text-base font-semibold tracking-tight text-slate-900;
+            }
+            .muted {
+                @apply text-sm text-slate-500;
+            }
+
+            /* Navigation */
+            .nav-link {
+                @apply whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-indigo-100 transition-colors hover:bg-white/10 hover:text-white;
+            }
+            .nav-link[data-active] {
+                @apply bg-white/15 text-white;
+            }
+
+            /* Buttons */
+            .btn {
+                @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+            }
+            .btn-sm {
+                @apply px-3 py-1.5;
+            }
+            .btn-primary {
+                @apply bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800;
+            }
+            .btn-secondary {
+                @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 active:bg-slate-100;
+            }
+            .btn-caution {
+                @apply bg-white text-amber-800 ring-1 ring-inset ring-amber-300 hover:bg-amber-50 active:bg-amber-100;
+            }
+            .btn-danger {
+                @apply bg-white text-rose-700 ring-1 ring-inset ring-rose-300 hover:bg-rose-50 active:bg-rose-100;
+            }
+            .btn-header {
+                @apply bg-white/10 text-white hover:bg-white/20 active:bg-white/25;
+            }
+
+            /* Inline text actions inside tables */
+            .link {
+                @apply rounded font-medium text-indigo-700 underline-offset-2 transition-colors hover:text-indigo-900 hover:underline;
+            }
+            .link-danger {
+                @apply rounded font-medium text-rose-700 underline-offset-2 transition-colors hover:text-rose-900 hover:underline;
+            }
+            .link-caution {
+                @apply rounded font-medium text-amber-700 underline-offset-2 transition-colors hover:text-amber-900 hover:underline;
+            }
+
+            /* Forms */
+            .label {
+                @apply mb-1.5 block text-sm font-medium text-slate-700;
+            }
+            .input {
+                @apply block w-full rounded-lg border-0 bg-white px-3 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 transition placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600;
+            }
+            .select {
+                @apply rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600;
+            }
+            .alert-error {
+                @apply rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-inset ring-rose-200;
+            }
+
+            /* Tables */
+            .table-wrap {
+                @apply overflow-x-auto;
+            }
+            .data-table {
+                @apply min-w-full divide-y divide-slate-200;
+            }
+            .data-table tbody tr {
+                @apply transition-colors hover:bg-slate-50;
+            }
+            .th {
+                @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500;
+            }
+            .td {
+                @apply px-4 py-3 text-sm text-slate-700;
+            }
+            .td-strong {
+                @apply px-4 py-3 text-sm font-medium text-slate-900;
+            }
+            .code-chip {
+                @apply rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600;
+            }
+
+            /* Badges */
+            .badge {
+                @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset;
+            }
+            .badge-success {
+                @apply bg-emerald-50 text-emerald-800 ring-emerald-600/20;
+            }
+            .badge-neutral {
+                @apply bg-slate-50 text-slate-700 ring-slate-500/20;
+            }
+            .badge-info {
+                @apply bg-sky-50 text-sky-800 ring-sky-600/20;
+            }
+            .badge-warning {
+                @apply bg-amber-50 text-amber-800 ring-amber-600/20;
+            }
+            .badge-danger {
+                @apply bg-rose-50 text-rose-800 ring-rose-600/20;
+            }
+            .badge-accent {
+                @apply bg-indigo-50 text-indigo-800 ring-indigo-600/20;
+            }
+            .badge-dot {
+                @apply h-1.5 w-1.5 rounded-full;
+            }
+
+            /* Stats */
+            .stat-icon {
+                @apply grid h-11 w-11 shrink-0 place-items-center rounded-xl;
+            }
+            .stat-label {
+                @apply text-sm font-medium text-slate-500;
+            }
+            .stat-value {
+                @apply mt-0.5 text-2xl font-semibold tracking-tight tabular-nums text-slate-900;
+            }
+
+            /* Empty states */
+            .empty-state {
+                @apply px-6 py-12 text-center;
+            }
+            .empty-icon {
+                @apply mx-auto mb-4 h-12 w-12 text-slate-300;
+            }
+            .empty-title {
+                @apply text-base font-semibold text-slate-900;
+            }
+            .empty-text {
+                @apply mx-auto mt-1 max-w-md text-sm text-slate-500;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <nav class="bg-indigo-600 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <span class="text-xl font-bold">Toss Relay Admin</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="hover:text-indigo-200 {% block nav_dashboard %}{% endblock %}">Dashboard</a>
-                    <a href="/admin/devices" class="hover:text-indigo-200 {% block nav_devices %}{% endblock %}">Devices</a>
-                    <a href="/admin/teams" class="hover:text-indigo-200 {% block nav_teams %}{% endblock %}">Teams</a>
-                    <a href="/admin/sessions" class="hover:text-indigo-200 {% block nav_sessions %}{% endblock %}">Sessions</a>
-                    <a href="/admin/logs" class="hover:text-indigo-200 {% block nav_logs %}{% endblock %}">Logs</a>
-                    <form action="/admin/logout" method="POST" class="inline">
-                        <button type="submit" class="hover:text-indigo-200">Logout</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
+<body class="flex min-h-full flex-col bg-slate-50 text-slate-800 antialiased">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-indigo-700 focus:shadow-card">Skip to content</a>
 
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <header class="app-header sticky top-0 z-40 bg-indigo-700 text-white shadow-md">
+        <div class="mx-auto max-w-shell px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between gap-4">
+                <a href="/admin" class="flex items-center gap-2 rounded-lg text-base font-semibold tracking-tight sm:text-lg">
+                    <svg class="h-6 w-6 shrink-0 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>Toss <span class="font-normal text-indigo-200">Relay Admin</span></span>
+                </a>
+                <form action="/admin/logout" method="POST">
+                    <button type="submit" class="btn btn-sm btn-header">Sign out</button>
+                </form>
+            </div>
+            <nav aria-label="Admin sections" class="-mx-1 flex gap-1 overflow-x-auto pb-2">
+                <a href="/admin" class="nav-link" {% block nav_dashboard %}{% endblock %}>Dashboard</a>
+                <a href="/admin/devices" class="nav-link" {% block nav_devices %}{% endblock %}>Devices</a>
+                <a href="/admin/teams" class="nav-link" {% block nav_teams %}{% endblock %}>Teams</a>
+                <a href="/admin/sessions" class="nav-link" {% block nav_sessions %}{% endblock %}>Sessions</a>
+                <a href="/admin/logs" class="nav-link" {% block nav_logs %}{% endblock %}>Logs</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="mx-auto w-full max-w-shell flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-auto py-4 text-center text-gray-500 text-sm">
+    <footer class="mx-auto w-full max-w-shell px-4 py-8 text-center text-sm text-slate-500 sm:px-6 lg:px-8">
         <p>Toss Relay Server &middot; Admin Dashboard</p>
     </footer>
 </body>

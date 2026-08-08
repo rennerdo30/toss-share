@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 /// A context menu item
 class ContextMenuItem {
   final IconData? icon;
@@ -178,7 +180,7 @@ class _ContextMenuCardState extends State<ContextMenuCard> {
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: AppTheme.motion(context, AppTheme.fastAnimation),
           margin: widget.margin ?? const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
             color: _isHovered
