@@ -22,18 +22,21 @@ Toss is a cross-platform clipboard sharing application with end-to-end encryptio
 
 ## Installation
 
-### Desktop
+There is no stable release yet. The only published build is the rolling
+[**nightly** pre-release](https://github.com/rennerdo30/toss-share/releases/tag/nightly),
+which is rebuilt from `main` and carries artifacts for every platform:
 
-Download the latest release for your platform:
+| Platform | Artifact |
+|----------|----------|
+| macOS | `toss-macos-nightly.zip` |
+| Windows (x64) | `toss-windows-x64-nightly.zip` |
+| Linux (x64) | `toss-linux-x64-nightly.tar.gz` |
+| Android | `toss-android-nightly.apk` |
+| iOS | `toss-ios-nightly.ipa` (unsigned — needs your own signing to install) |
 
-- [macOS (Universal)](https://github.com/rennerdo30/toss-share/releases/latest)
-- [Windows (x64)](https://github.com/rennerdo30/toss-share/releases/latest)
-- [Linux (AppImage)](https://github.com/rennerdo30/toss-share/releases/latest)
-
-### Mobile
-
-- iOS: Coming soon to the App Store
-- Android: Coming soon to Google Play
+Nightlies are untagged development builds: expect rough edges. Toss is not on the
+App Store or Google Play, so mobile installs mean sideloading the artifacts above
+or [building from source](#build-from-source).
 
 ### Build from Source
 
@@ -220,58 +223,61 @@ You can run your own relay server:
 
 ```bash
 cd relay_server
-docker-compose up -d
+cp .env.example .env      # then set JWT_SECRET to a random string
+docker compose up -d
 ```
+
+The compose file falls back to a placeholder `JWT_SECRET` if you do not provide
+one, so set it before exposing the relay to a network. The server listens on
+`:8080` and exposes `/health` for the container healthcheck. State is kept in a
+SQLite database on the `relay_data` volume.
 
 Then configure Toss to use your relay:
 Settings → Relay Server → Enter your server URL
 
+## Development
+
+Common tasks are wrapped in the `Makefile` — `make help` lists every target.
+
+```bash
+make build            # Build the Rust core + relay server
+make test             # Rust core + relay server test suites
+make test-flutter     # Flutter unit/widget tests
+make fmt lint         # cargo fmt + clippy / dart analyze
+make ci               # fmt + lint + test, the same set CI runs
+make generate-ffi     # Regenerate flutter_rust_bridge bindings after changing rust_core
+make run              # Run the Flutter app on the host platform
+make run-relay        # Run the relay server locally
+```
+
+The `flutter_rust_bridge` bindings under `flutter_app/lib/src/rust/` are generated
+and committed, so `make generate-ffi` is only needed after changing the public API
+in `rust_core`. `TossService` degrades gracefully when the native library cannot be
+loaded: it logs the failure and falls back to a local-only device ID rather than
+crashing.
+
 ## Project Status
 
-✅ **MVP Implementation Complete** (2024-12-19)
-
-🎉 **All 26 planned MVP features implemented (81.3% of total items)**
-
-- ✅ Platform-specific structures for all target platforms
-- ✅ Testing infrastructure and CI/CD pipelines ready
-- ✅ FFI configuration and verification complete
-- ✅ Comprehensive documentation (14+ files)
-- 📝 Future enhancements documented with design specifications
-
-See [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md) for celebration details!
-
-**Quick Links**:
-- [GETTING_STARTED.md](GETTING_STARTED.md) - Quick start guide
-- [SUMMARY.md](SUMMARY.md) - Quick project summary
-- [COMPLETION_VERIFICATION.md](COMPLETION_VERIFICATION.md) - Completion verification
-- [FINAL_STATUS.md](FINAL_STATUS.md) - Final status report
-- [NEXT_STEPS.md](NEXT_STEPS.md) - Next steps guide
-- [FFI_READY.md](FFI_READY.md) - FFI generation guide
-- [TODO.md](TODO.md) - Detailed project status
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Completion overview
-- [QUICK_START.md](QUICK_START.md) - Development guide
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current status summary
-- [CHECKLIST.md](CHECKLIST.md) - Pre-release checklist
-- [docs/INDEX.md](docs/INDEX.md) - Documentation index
-
-**Next Steps**: 
-1. Generate FFI bindings: `make generate-ffi` (see [NEXT_STEPS.md](NEXT_STEPS.md))
-2. Uncomment FFI calls in `toss_service.dart`
-3. Implement platform-specific native code (see `docs/PLATFORM_SPECIFIC.md`)
-4. Test on devices
-
-See [NEXT_STEPS.md](NEXT_STEPS.md) for detailed instructions.
+Pre-release. The Rust core, Flutter app, relay server, and browser extension build
+and are wired together over `flutter_rust_bridge`, and nightly artifacts are
+produced for every target platform. Not done yet: a tagged stable release, app
+store distribution, and signed iOS builds. See [TODO.md](TODO.md) for the
+remaining work.
 
 ## Documentation
 
-- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Current project status and quick reference
-- **[TODO.md](TODO.md)** - Detailed TODO list with all items and status
-- **[QUICK_START.md](QUICK_START.md)** - Development quick start guide
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Complete implementation overview
-- **[COMPLETION_REPORT.md](COMPLETION_REPORT.md)** - Detailed completion report
-- **[FINAL_STATUS.md](FINAL_STATUS.md)** - Final project status summary
-- **[CHECKLIST.md](CHECKLIST.md)** - Pre-release checklist
-- **[docs/INDEX.md](docs/INDEX.md)** - Documentation index
+Full documentation is published at
+[toss.docs.renner.dev](https://toss.docs.renner.dev/); its source is the Astro site
+in [`docs/`](docs).
+
+In-repo references:
+
+- [GETTING_STARTED.md](GETTING_STARTED.md) — installation and pairing walkthrough
+- [QUICK_START.md](QUICK_START.md) — development quick start
+- [SPECIFICATION.md](SPECIFICATION.md) — protocol and architecture specification
+- [TODO.md](TODO.md) — remaining work and status
+- [CHANGELOG.md](CHANGELOG.md) — release history
+- [SECURITY.md](SECURITY.md) — vulnerability reporting
 
 ## Contributing
 
@@ -287,4 +293,4 @@ Built with:
 - [Rust](https://www.rust-lang.org/) - Core library
 - [Flutter](https://flutter.dev/) - Cross-platform UI
 - [Quinn](https://github.com/quinn-rs/quinn) - QUIC implementation
-- [flutter_rust_bridge](https://github.com/aspect-build/flutter_rust_bridge) - Rust/Dart FFI
+- [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) - Rust/Dart FFI
