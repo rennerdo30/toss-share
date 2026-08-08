@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/providers/toss_provider.dart';
 import '../../core/models/device.dart';
+import '../theme/app_theme.dart';
 import '../utils/platform_utils.dart';
 import 'responsive_layout.dart';
 
@@ -76,7 +77,8 @@ class AppSidebar extends ConsumerWidget {
         : Breakpoints.sidebarWidth;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: AppTheme.motion(context),
+      curve: Curves.easeOutCubic,
       width: width,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -324,7 +326,9 @@ class _ConnectionStatusHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isConnected = onlineCount > 0;
-    final statusColor = isConnected ? Colors.green : theme.colorScheme.outline;
+    final statusColor = isConnected
+        ? AppStatusColors.of(context).online
+        : theme.colorScheme.outline;
 
     if (isCollapsed) {
       return Padding(
@@ -485,7 +489,7 @@ class _DeviceListTile extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: AppStatusColors.of(context).online,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: theme.colorScheme.surface,

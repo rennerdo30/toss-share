@@ -2,155 +2,153 @@
 
 {% block title %}Dashboard - Toss Admin{% endblock %}
 
-{% block nav_dashboard %}font-bold{% endblock %}
+{% block nav_dashboard %}data-active aria-current="page"{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+<div class="mb-8">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="muted mt-1">Live overview of devices, traffic and health for this relay server.</p>
+</div>
 
 <!-- Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-green-100 text-green-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<section aria-label="Server statistics" class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-emerald-50 text-emerald-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Online Devices</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ online_devices }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Online Devices</p>
+                <p class="stat-value">{{ online_devices }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-sky-50 text-sky-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Total Devices</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ total_devices }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Total Devices</p>
+                <p class="stat-value">{{ total_devices }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-amber-50 text-amber-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Queued Messages</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ queued_messages }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Queued Messages</p>
+                <p class="stat-value">{{ queued_messages }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-violet-50 text-violet-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Uptime</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ uptime }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Uptime</p>
+                <p class="stat-value">{{ uptime }}</p>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Second Row Stats -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-pink-100 text-pink-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-pink-50 text-pink-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Memory Usage</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ memory_usage }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Memory Usage</p>
+                <p class="stat-value">{{ memory_usage }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-cyan-100 text-cyan-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-cyan-50 text-cyan-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Pairing Sessions</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ pairing_sessions }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Pairing Sessions</p>
+                <p class="stat-value">{{ pairing_sessions }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-            <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card card-pad">
+        <div class="flex items-center gap-4">
+            <span class="stat-icon bg-indigo-50 text-indigo-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                 </svg>
-            </div>
-            <div class="ml-4">
-                <h2 class="text-gray-500 text-sm font-medium">Teams</h2>
-                <p class="text-2xl font-bold text-gray-800">{{ total_teams }}</p>
+            </span>
+            <div class="min-w-0">
+                <p class="stat-label">Teams</p>
+                <p class="stat-value">{{ total_teams }}</p>
             </div>
         </div>
     </div>
-</div>
+</section>
 
 <!-- Active Connections -->
-<div class="bg-white rounded-lg shadow p-6 mb-8">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-bold text-gray-800">Active WebSocket Connections</h2>
-        <span class="text-2xl font-bold text-indigo-600">{{ active_connections }}</span>
+<section class="card card-pad mb-8">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="section-title">Active WebSocket Connections</h2>
+        <span class="text-2xl font-semibold tabular-nums text-indigo-700">{{ active_connections }}</span>
     </div>
-    <div class="h-2 bg-gray-200 rounded-full">
-        <div class="h-2 bg-indigo-600 rounded-full" style="width: {{ connection_percent }}%"></div>
+    <div class="h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow="{{ connection_percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Share of registered devices connected via WebSocket">
+        <div class="h-full rounded-full bg-indigo-600 transition-all duration-500" style="width: {{ connection_percent }}%"></div>
     </div>
-    <p class="text-sm text-gray-500 mt-2">{{ active_connections }} of {{ total_devices }} devices connected via WebSocket</p>
-</div>
+    <p class="muted mt-2">{{ active_connections }} of {{ total_devices }} registered devices connected via WebSocket ({{ connection_percent }}%)</p>
+</section>
 
 <!-- Cleanup Actions -->
-<div class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">Maintenance Actions</h2>
+<section class="card card-pad">
+    <h2 class="section-title">Maintenance</h2>
+    <p class="muted mt-1">These actions delete data immediately and cannot be undone.</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <form action="/admin/cleanup/messages" method="POST" onsubmit="return confirm('Delete old queued messages?')">
+    <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <form action="/admin/cleanup/messages" method="POST" onsubmit="return confirm('Delete old queued messages?')" class="flex flex-col gap-2 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">
-                Cleanup Old Messages
-            </button>
-            <p class="text-sm text-gray-500 mt-1">Delete messages older than 24 hours</p>
+            <p class="text-sm font-medium text-slate-900">Old messages</p>
+            <p class="muted flex-1">Deletes queued messages older than 24 hours.</p>
+            <button type="submit" class="btn btn-caution w-full">Clean up messages</button>
         </form>
 
-        <form action="/admin/cleanup/pairings" method="POST" onsubmit="return confirm('Delete expired pairing sessions?')">
+        <form action="/admin/cleanup/pairings" method="POST" onsubmit="return confirm('Delete expired pairing sessions?')" class="flex flex-col gap-2 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">
-                Cleanup Expired Pairings
-            </button>
-            <p class="text-sm text-gray-500 mt-1">Delete expired pairing sessions</p>
+            <p class="text-sm font-medium text-slate-900">Expired pairings</p>
+            <p class="muted flex-1">Deletes pairing sessions that have already expired.</p>
+            <button type="submit" class="btn btn-caution w-full">Clean up pairings</button>
         </form>
 
-        <form action="/admin/cleanup/devices" method="POST" onsubmit="return confirm('Delete devices not seen in 30 days?')">
+        <form action="/admin/cleanup/devices" method="POST" onsubmit="return confirm('Delete devices not seen in 30 days?')" class="flex flex-col gap-2 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
-                Cleanup Stale Devices
-            </button>
-            <p class="text-sm text-gray-500 mt-1">Delete devices not seen in 30 days</p>
+            <p class="text-sm font-medium text-slate-900">Stale devices</p>
+            <p class="muted flex-1">Deletes devices that have not been seen for 30 days.</p>
+            <button type="submit" class="btn btn-danger w-full">Clean up devices</button>
         </form>
     </div>
-</div>
+</section>
 {% endblock %}

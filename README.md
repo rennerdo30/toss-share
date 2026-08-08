@@ -226,52 +226,61 @@ docker-compose up -d
 Then configure Toss to use your relay:
 Settings → Relay Server → Enter your server URL
 
+### Relay Server Configuration
+
+The relay server is configured entirely through environment variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `HOST` | `0.0.0.0` | Bind address |
+| `PORT` | `8080` | HTTP/WebSocket port |
+| `DATABASE_URL` | `sqlite:./data/toss.db?mode=rwc` | SQLite database location |
+| `JWT_SECRET` | random per start | Signing key for device tokens (set it, or tokens break on restart) |
+| `JWT_EXPIRATION` | `86400` | Token lifetime in seconds |
+| `RATE_LIMIT_MESSAGES` | `100` | Relay messages allowed per minute |
+| `RATE_LIMIT_REGISTER` | `10` | Device registrations allowed per hour |
+| `SESSION_SECRET` | random per start | Signing key for admin dashboard cookies |
+| `ADMIN_USERNAME` | unset | Enables the admin dashboard when set together with the password hash |
+| `ADMIN_PASSWORD_HASH` | unset | bcrypt hash of the admin password |
+| `RUST_LOG` | `info` | Log filter (`error`, `warn`, `info`, `debug`, `trace`) |
+
+### Admin Dashboard
+
+When `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` are both set, the relay serves a
+server-rendered dashboard at `/admin` with an overview of devices, teams,
+pairing sessions, recent log entries and maintenance actions (cleaning up stale
+devices, expired pairings and queued messages). Health checks live at `/health`.
+
 ## Project Status
 
-✅ **MVP Implementation Complete** (2024-12-19)
+Toss is a personal project under active development. The Rust core, Flutter
+client, relay server and browser extension are all implemented; releases are
+built per platform from the `Makefile` targets listed above.
 
-🎉 **All 26 planned MVP features implemented (81.3% of total items)**
-
-- ✅ Platform-specific structures for all target platforms
-- ✅ Testing infrastructure and CI/CD pipelines ready
-- ✅ FFI configuration and verification complete
-- ✅ Comprehensive documentation (14+ files)
-- 📝 Future enhancements documented with design specifications
-
-See [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md) for celebration details!
-
-**Quick Links**:
-- [GETTING_STARTED.md](GETTING_STARTED.md) - Quick start guide
-- [SUMMARY.md](SUMMARY.md) - Quick project summary
-- [COMPLETION_VERIFICATION.md](COMPLETION_VERIFICATION.md) - Completion verification
-- [FINAL_STATUS.md](FINAL_STATUS.md) - Final status report
-- [NEXT_STEPS.md](NEXT_STEPS.md) - Next steps guide
-- [FFI_READY.md](FFI_READY.md) - FFI generation guide
-- [TODO.md](TODO.md) - Detailed project status
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Completion overview
-- [QUICK_START.md](QUICK_START.md) - Development guide
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current status summary
-- [CHECKLIST.md](CHECKLIST.md) - Pre-release checklist
-- [docs/INDEX.md](docs/INDEX.md) - Documentation index
-
-**Next Steps**: 
-1. Generate FFI bindings: `make generate-ffi` (see [NEXT_STEPS.md](NEXT_STEPS.md))
-2. Uncomment FFI calls in `toss_service.dart`
-3. Implement platform-specific native code (see `docs/PLATFORM_SPECIFIC.md`)
-4. Test on devices
-
-See [NEXT_STEPS.md](NEXT_STEPS.md) for detailed instructions.
+Working on the Flutter client requires generated FFI bindings — run
+`make generate-ffi` after a `make build`, otherwise `flutter analyze` reports
+unresolved bindings in `lib/src/rust/`.
 
 ## Documentation
 
-- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Current project status and quick reference
-- **[TODO.md](TODO.md)** - Detailed TODO list with all items and status
-- **[QUICK_START.md](QUICK_START.md)** - Development quick start guide
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Complete implementation overview
-- **[COMPLETION_REPORT.md](COMPLETION_REPORT.md)** - Detailed completion report
-- **[FINAL_STATUS.md](FINAL_STATUS.md)** - Final project status summary
-- **[CHECKLIST.md](CHECKLIST.md)** - Pre-release checklist
-- **[docs/INDEX.md](docs/INDEX.md)** - Documentation index
+Full documentation is published at
+[toss.docs.renner.dev](http://toss.docs.renner.dev/) and lives in
+[`docs/`](docs) as an Astro Starlight site:
+
+```bash
+cd docs
+npm install
+npm run dev
+```
+
+In-repo references:
+
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - First build and run
+- **[QUICK_START.md](QUICK_START.md)** - Development quick start
+- **[SPECIFICATION.md](SPECIFICATION.md)** - Protocol and architecture specification
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+- **[SECURITY.md](SECURITY.md)** - Security policy
+- **[CHANGELOG.md](CHANGELOG.md)** - Release history
 
 ## Contributing
 
@@ -287,4 +296,4 @@ Built with:
 - [Rust](https://www.rust-lang.org/) - Core library
 - [Flutter](https://flutter.dev/) - Cross-platform UI
 - [Quinn](https://github.com/quinn-rs/quinn) - QUIC implementation
-- [flutter_rust_bridge](https://github.com/aspect-build/flutter_rust_bridge) - Rust/Dart FFI
+- [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) - Rust/Dart FFI

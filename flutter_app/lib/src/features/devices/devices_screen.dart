@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/devices_provider.dart';
 import '../../core/models/device.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/theme/app_theme.dart';
 import '../../shared/utils/platform_utils.dart';
 import '../../shared/utils/timestamp_utils.dart';
 
@@ -207,6 +208,9 @@ class _DeviceListItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final statusColors = AppStatusColors.of(context);
+
     return Card(
       child: ListTile(
         leading: Stack(
@@ -224,9 +228,11 @@ class _DeviceListItem extends ConsumerWidget {
                   height: 12,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: device.isOnline ? Colors.green : Colors.grey,
+                    color: device.isOnline
+                        ? statusColors.online
+                        : statusColors.offline,
                     border: Border.all(
-                      color: Theme.of(context).cardColor,
+                      color: theme.cardColor,
                       width: 2,
                     ),
                   ),
@@ -245,8 +251,8 @@ class _DeviceListItem extends ConsumerWidget {
                 device.syncEnabled ? Icons.sync : Icons.sync_disabled,
                 size: 18,
                 color: device.syncEnabled
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey,
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outline,
               ),
             ),
           ],
@@ -278,11 +284,14 @@ class _DeviceListItem extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'remove',
               child: ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('Remove', style: TextStyle(color: Colors.red)),
+                leading: Icon(Icons.delete, color: theme.colorScheme.error),
+                title: Text(
+                  'Remove',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
