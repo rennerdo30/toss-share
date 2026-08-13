@@ -220,7 +220,7 @@ generate-ffi:
 	@FLUTTER_RUST_BRIDGE_CODEGEN=$$(command -v flutter_rust_bridge_codegen 2>/dev/null || echo "$$HOME/.cargo/bin/flutter_rust_bridge_codegen"); \
 	if [ ! -f "$$FLUTTER_RUST_BRIDGE_CODEGEN" ]; then \
 		echo "ERROR: flutter_rust_bridge_codegen not found. Install with:"; \
-		echo "  cargo install flutter_rust_bridge_codegen --version 2.11.1"; \
+		echo "  cargo install flutter_rust_bridge_codegen --version 2.12.0"; \
 		exit 1; \
 	fi
 	@echo "Verifying Rust core compiles..."
