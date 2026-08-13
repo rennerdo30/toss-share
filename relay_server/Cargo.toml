@@ -26,7 +26,10 @@ sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio",
 
 # Authentication
 ed25519-dalek = { version = "3", features = ["rand_core"] }
-jsonwebtoken = "9"
+# jsonwebtoken >=10 requires selecting exactly one crypto backend; `rust_crypto`
+# keeps the build pure-Rust and reuses the hmac/sha2/ed25519-dalek stack already
+# present here (`aws_lc_rs` would add a cmake/NASM native build dependency).
+jsonwebtoken = { version = "11", features = ["rust_crypto"] }
 rand_core = "0.10"
 
 # Serialization
