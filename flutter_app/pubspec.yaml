@@ -34,7 +34,7 @@ dependencies:
   desktop_drop: ^0.7.1
 
   # Permissions
-  permission_handler: ^13.0.0
+  permission_handler: ^13.0.1
 
   # Notifications
   flutter_local_notifications: ^22.2.0
