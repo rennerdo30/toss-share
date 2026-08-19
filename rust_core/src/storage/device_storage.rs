@@ -1,6 +1,7 @@
 //! Device storage operations
 
 use super::secure_storage::{decrypt_from_storage, encrypt_for_storage};
+use super::{timestamp_from_sql, timestamp_to_sql};
 use rusqlite::Result as SqliteResult;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -53,8 +54,8 @@ impl<'conn> DeviceStorage<'conn> {
                 device.name,
                 device.public_key,
                 encrypted_session_key,
-                device.last_seen,
-                device.created_at,
+                device.last_seen.map(timestamp_to_sql),
+                timestamp_to_sql(device.created_at),
                 device.is_active as i32,
                 device.platform,
                 device.sync_enabled as i32,
@@ -85,8 +86,8 @@ impl<'conn> DeviceStorage<'conn> {
                 name: row.get(1)?,
                 public_key: row.get(2)?,
                 session_key,
-                last_seen: row.get(4)?,
-                created_at: row.get(5)?,
+                last_seen: row.get::<_, Option<i64>>(4)?.map(timestamp_from_sql),
+                created_at: timestamp_from_sql(row.get(5)?),
                 is_active: row.get::<_, i32>(6)? != 0,
                 platform: row.get(7).ok(), // Platform is optional, may not exist in old databases
                 sync_enabled: row.get::<_, Option<i32>>(8).ok().flatten().unwrap_or(1) != 0, // Default to true for old databases
@@ -123,8 +124,8 @@ impl<'conn> DeviceStorage<'conn> {
                     name: row.get(1)?,
                     public_key: row.get(2)?,
                     session_key,
-                    last_seen: row.get(4)?,
-                    created_at: row.get(5)?,
+                    last_seen: row.get::<_, Option<i64>>(4)?.map(timestamp_from_sql),
+                    created_at: timestamp_from_sql(row.get(5)?),
                     is_active: row.get::<_, i32>(6)? != 0,
                     platform: row.get(7).ok(), // Platform is optional, may not exist in old databases
                     sync_enabled: row.get::<_, Option<i32>>(8).ok().flatten().unwrap_or(1) != 0, // Default to true for old databases
@@ -151,7 +152,7 @@ impl<'conn> DeviceStorage<'conn> {
             .expect("storage mutex poisoned - this is a bug");
         conn.execute(
             "UPDATE devices SET last_seen = ?1 WHERE id = ?2",
-            rusqlite::params![now, device_id],
+            rusqlite::params![timestamp_to_sql(now), device_id],
         )?;
         Ok(())
     }
