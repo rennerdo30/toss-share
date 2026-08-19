@@ -24,6 +24,29 @@ use rusqlite::{Connection, Result as SqliteResult};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+/// Largest `u64` timestamp that SQLite's signed 64-bit INTEGER storage class
+/// can represent.
+const SQL_TIMESTAMP_MAX: u64 = i64::MAX as u64;
+
+/// Convert a `u64` Unix timestamp for storage in SQLite.
+///
+/// SQLite's INTEGER storage class is a signed 64-bit value, which is why
+/// rusqlite deliberately provides no `ToSql`/`FromSql` impls for `u64`. All
+/// timestamps in this module therefore convert at the storage boundary.
+/// Values beyond [`SQL_TIMESTAMP_MAX`] saturate rather than wrap.
+pub(crate) fn timestamp_to_sql(timestamp: u64) -> i64 {
+    timestamp.min(SQL_TIMESTAMP_MAX) as i64
+}
+
+/// Convert a timestamp read back out of SQLite into a `u64`.
+///
+/// Negative values cannot be produced by [`timestamp_to_sql`]; if one is found
+/// (a hand-edited or corrupted database) it saturates to `0` instead of
+/// wrapping to a nonsensical far-future timestamp.
+pub(crate) fn timestamp_from_sql(value: i64) -> u64 {
+    value.max(0) as u64
+}
+
 /// Storage manager
 /// Note: rusqlite::Connection is not Sync, so we wrap operations in Mutex
 /// when needed for thread-safe access
@@ -404,6 +427,25 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
         let storage = Storage::new(&db_path);
         assert!(storage.is_ok());
+    }
+
+    #[test]
+    fn test_timestamp_sql_round_trip() {
+        for timestamp in [0_u64, 1, 1_700_000_000, SQL_TIMESTAMP_MAX] {
+            assert_eq!(timestamp_from_sql(timestamp_to_sql(timestamp)), timestamp);
+        }
+    }
+
+    #[test]
+    fn test_timestamp_to_sql_saturates_instead_of_wrapping() {
+        assert_eq!(timestamp_to_sql(u64::MAX), i64::MAX);
+        assert_eq!(timestamp_to_sql(SQL_TIMESTAMP_MAX + 1), i64::MAX);
+    }
+
+    #[test]
+    fn test_timestamp_from_sql_clamps_negative_values() {
+        assert_eq!(timestamp_from_sql(-1), 0);
+        assert_eq!(timestamp_from_sql(i64::MIN), 0);
     }
 
     #[test]

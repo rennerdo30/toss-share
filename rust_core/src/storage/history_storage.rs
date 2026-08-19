@@ -1,5 +1,6 @@
 //! Clipboard history storage operations
 
+use super::{timestamp_from_sql, timestamp_to_sql};
 use rusqlite::Result as SqliteResult;
 use std::sync::Mutex;
 
@@ -44,7 +45,7 @@ impl<'conn> HistoryStorage<'conn> {
                 item.encrypted_content,
                 item.preview,
                 item.source_device,
-                item.created_at,
+                timestamp_to_sql(item.created_at),
             ],
         )?;
         Ok(())
@@ -68,7 +69,7 @@ impl<'conn> HistoryStorage<'conn> {
                 encrypted_content: row.get(3)?,
                 preview: row.get(4)?,
                 source_device: row.get(5)?,
-                created_at: row.get(6)?,
+                created_at: timestamp_from_sql(row.get(6)?),
             })
         });
 
@@ -128,9 +129,10 @@ impl<'conn> HistoryStorage<'conn> {
         let mut stmt = conn.prepare(&query)?;
 
         // Build parameter list based on which filters are present
-        let params: Vec<u64> = [start_timestamp, end_timestamp]
+        let params: Vec<i64> = [start_timestamp, end_timestamp]
             .into_iter()
             .flatten()
+            .map(timestamp_to_sql)
             .collect();
 
         let items = stmt
@@ -142,7 +144,7 @@ impl<'conn> HistoryStorage<'conn> {
                     encrypted_content: row.get(3)?,
                     preview: row.get(4)?,
                     source_device: row.get(5)?,
-                    created_at: row.get(6)?,
+                    created_at: timestamp_from_sql(row.get(6)?),
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -178,7 +180,7 @@ impl<'conn> HistoryStorage<'conn> {
             .expect("storage mutex poisoned - this is a bug");
         let count = conn.execute(
             "DELETE FROM clipboard_history WHERE created_at < ?1",
-            [before_timestamp],
+            [timestamp_to_sql(before_timestamp)],
         )?;
         Ok(count)
     }
@@ -202,7 +204,9 @@ impl<'conn> HistoryStorage<'conn> {
         let mut stmt = conn.prepare(
             "SELECT created_at FROM clipboard_history ORDER BY created_at DESC LIMIT 1 OFFSET ?1",
         )?;
-        let cutoff_timestamp: Option<u64> = stmt.query_row([max_items], |row| row.get(0)).ok();
+        // Kept in SQLite's own i64 domain: the value is only ever fed straight
+        // back into the DELETE below, so it needs no u64 round trip.
+        let cutoff_timestamp: Option<i64> = stmt.query_row([max_items], |row| row.get(0)).ok();
         drop(stmt);
 
         if let Some(timestamp) = cutoff_timestamp {
