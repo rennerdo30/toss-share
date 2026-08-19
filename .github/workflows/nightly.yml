@@ -13,7 +13,7 @@ jobs:
     name: Nightly Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -34,7 +34,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -52,7 +52,7 @@ jobs:
           tar -czvf ../../../../../toss-linux-x64-nightly.tar.gz .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-linux-x64-nightly-${{ github.run_number }}
           path: flutter_app/toss-linux-x64-nightly.tar.gz
@@ -62,7 +62,7 @@ jobs:
     name: Nightly macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -78,7 +78,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -99,7 +99,7 @@ jobs:
           zip -r ../../../../../toss-macos-nightly.zip Toss.app
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-macos-nightly-${{ github.run_number }}
           path: flutter_app/toss-macos-nightly.zip
@@ -109,7 +109,7 @@ jobs:
     name: Nightly Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -125,7 +125,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         shell: bash
@@ -144,7 +144,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath ../../../../../toss-windows-x64-nightly.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-windows-x64-nightly-${{ github.run_number }}
           path: flutter_app/toss-windows-x64-nightly.zip
@@ -154,7 +154,7 @@ jobs:
     name: Nightly Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -183,7 +183,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -204,7 +204,7 @@ jobs:
           flutter build apk --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-android-nightly-${{ github.run_number }}
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
@@ -214,7 +214,7 @@ jobs:
     name: Nightly iOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -230,7 +230,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -251,7 +251,7 @@ jobs:
           zip -r ../../../toss-ios-nightly.ipa Payload
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-ios-nightly-${{ github.run_number }}
           path: flutter_app/toss-ios-nightly.ipa
@@ -264,10 +264,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -290,7 +290,7 @@ jobs:
         run: git push origin :refs/tags/nightly || true
 
       - name: Create nightly release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly
           name: Nightly Build

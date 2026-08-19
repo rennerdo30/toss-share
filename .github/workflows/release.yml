@@ -10,7 +10,7 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -31,7 +31,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -49,7 +49,7 @@ jobs:
           tar -czvf ../../../../../toss-linux-x64.tar.gz .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-linux-x64
           path: flutter_app/toss-linux-x64.tar.gz
@@ -58,7 +58,7 @@ jobs:
     name: Build macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -74,7 +74,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -95,7 +95,7 @@ jobs:
           zip -r ../../../../../toss-macos-universal.zip Toss.app
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-macos-universal
           path: flutter_app/toss-macos-universal.zip
@@ -104,7 +104,7 @@ jobs:
     name: Build Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -120,7 +120,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         shell: bash
@@ -139,7 +139,7 @@ jobs:
           Compress-Archive -Path * -DestinationPath ../../../../../toss-windows-x64.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-windows-x64
           path: flutter_app/toss-windows-x64.zip
@@ -148,7 +148,7 @@ jobs:
     name: Build Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain with Android targets
         uses: dtolnay/rust-toolchain@stable
@@ -177,7 +177,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -198,7 +198,7 @@ jobs:
           flutter build apk --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-android
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
@@ -207,7 +207,7 @@ jobs:
     name: Build iOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -223,7 +223,7 @@ jobs:
         run: cargo build --release
 
       - name: Install flutter_rust_bridge_codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0
 
       - name: Generate FFI bindings
         run: make generate-ffi
@@ -244,7 +244,7 @@ jobs:
           zip -r ../../../toss-ios.ipa Payload
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-ios
           path: flutter_app/toss-ios.ipa
@@ -253,13 +253,13 @@ jobs:
     name: Build Relay Server
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./relay_server
           push: false
@@ -267,7 +267,7 @@ jobs:
           outputs: type=docker,dest=/tmp/toss-relay.tar
 
       - name: Upload Docker image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: toss-relay-docker
           path: /tmp/toss-relay.tar
@@ -279,10 +279,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -290,7 +290,7 @@ jobs:
         run: find artifacts -type f
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           generate_release_notes: true
