@@ -794,15 +794,13 @@ impl TurnClient {
                 TURN_ATTR_XOR_RELAYED_ADDRESS => {
                     relay_address = Self::parse_xor_relayed_address(attr_data, transaction_id);
                 }
-                TURN_ATTR_LIFETIME => {
-                    if attr_len >= 4 {
-                        lifetime = u32::from_be_bytes([
-                            attr_data[0],
-                            attr_data[1],
-                            attr_data[2],
-                            attr_data[3],
-                        ]);
-                    }
+                TURN_ATTR_LIFETIME if attr_len >= 4 => {
+                    lifetime = u32::from_be_bytes([
+                        attr_data[0],
+                        attr_data[1],
+                        attr_data[2],
+                        attr_data[3],
+                    ]);
                 }
                 _ => {}
             }
@@ -1201,7 +1199,7 @@ pub async fn gather_candidates(
     }
 
     // Sort by priority (highest first)
-    candidates.sort_by(|a, b| b.priority.cmp(&a.priority));
+    candidates.sort_by_key(|c| std::cmp::Reverse(c.priority));
 
     Ok(candidates)
 }

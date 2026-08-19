@@ -4,13 +4,18 @@
 
 use base64::Engine;
 use ed25519_dalek::{Signer, SigningKey};
-use rand::rngs::OsRng;
+use rand::Rng;
 use serde_json::{json, Value};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Helper to generate test signing key pair
 fn generate_keypair() -> (SigningKey, String, String) {
-    let signing_key = SigningKey::generate(&mut OsRng);
+    // Generate a random 32-byte seed using rand 0.10's API and build the
+    // signing key from it. This avoids depending on ed25519-dalek's pinned
+    // rand_core 0.6 OsRng, which is incompatible with rand 0.10's RNG traits.
+    let mut secret_bytes = [0u8; 32];
+    rand::rng().fill_bytes(&mut secret_bytes);
+    let signing_key = SigningKey::from_bytes(&secret_bytes);
     let verifying_key = signing_key.verifying_key();
 
     let public_key_base64 =

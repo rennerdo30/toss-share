@@ -12,7 +12,7 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
     Form,
 };
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde::Deserialize;
 use sha2::Sha256;
 

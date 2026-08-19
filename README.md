@@ -22,18 +22,21 @@ Toss is a cross-platform clipboard sharing application with end-to-end encryptio
 
 ## Installation
 
-### Desktop
+There is no stable release yet. The only published build is the rolling
+[**nightly** pre-release](https://github.com/rennerdo30/toss-share/releases/tag/nightly),
+which is rebuilt from `main` and carries artifacts for every platform:
 
-Download the latest release for your platform:
+| Platform | Artifact |
+|----------|----------|
+| macOS | `toss-macos-nightly.zip` |
+| Windows (x64) | `toss-windows-x64-nightly.zip` |
+| Linux (x64) | `toss-linux-x64-nightly.tar.gz` |
+| Android | `toss-android-nightly.apk` |
+| iOS | `toss-ios-nightly.ipa` (unsigned — needs your own signing to install) |
 
-- [macOS (Universal)](https://github.com/rennerdo30/toss-share/releases/latest)
-- [Windows (x64)](https://github.com/rennerdo30/toss-share/releases/latest)
-- [Linux (AppImage)](https://github.com/rennerdo30/toss-share/releases/latest)
-
-### Mobile
-
-- iOS: Coming soon to the App Store
-- Android: Coming soon to Google Play
+Nightlies are untagged development builds: expect rough edges. Toss is not on the
+App Store or Google Play, so mobile installs mean sideloading the artifacts above
+or [building from source](#build-from-source).
 
 ### Build from Source
 
@@ -220,8 +223,14 @@ You can run your own relay server:
 
 ```bash
 cd relay_server
-docker-compose up -d
+cp .env.example .env      # then set JWT_SECRET to a random string
+docker compose up -d
 ```
+
+The compose file falls back to a placeholder `JWT_SECRET` if you do not provide
+one, so set it before exposing the relay to a network. The server listens on
+`:8080` and exposes `/health` for the container healthcheck. State is kept in a
+SQLite database on the `relay_data` volume.
 
 Then configure Toss to use your relay:
 Settings → Relay Server → Enter your server URL
@@ -251,21 +260,40 @@ server-rendered dashboard at `/admin` with an overview of devices, teams,
 pairing sessions, recent log entries and maintenance actions (cleaning up stale
 devices, expired pairings and queued messages). Health checks live at `/health`.
 
+## Development
+
+Common tasks are wrapped in the `Makefile` — `make help` lists every target.
+
+```bash
+make build            # Build the Rust core + relay server
+make test             # Rust core + relay server test suites
+make test-flutter     # Flutter unit/widget tests
+make fmt lint         # cargo fmt + clippy / dart analyze
+make ci               # fmt + lint + test, the same set CI runs
+make generate-ffi     # Regenerate flutter_rust_bridge bindings after changing rust_core
+make run              # Run the Flutter app on the host platform
+make run-relay        # Run the relay server locally
+```
+
+The `flutter_rust_bridge` bindings under `flutter_app/lib/src/rust/` are generated
+and committed, so `make generate-ffi` is only needed after changing the public API
+in `rust_core`. `TossService` degrades gracefully when the native library cannot be
+loaded: it logs the failure and falls back to a local-only device ID rather than
+crashing.
+
 ## Project Status
 
-Toss is a personal project under active development. The Rust core, Flutter
-client, relay server and browser extension are all implemented; releases are
-built per platform from the `Makefile` targets listed above.
-
-Working on the Flutter client requires generated FFI bindings — run
-`make generate-ffi` after a `make build`, otherwise `flutter analyze` reports
-unresolved bindings in `lib/src/rust/`.
+Pre-release. The Rust core, Flutter app, relay server, and browser extension build
+and are wired together over `flutter_rust_bridge`, and nightly artifacts are
+produced for every target platform. Not done yet: a tagged stable release, app
+store distribution, and signed iOS builds. See [TODO.md](TODO.md) for the
+remaining work.
 
 ## Documentation
 
 Full documentation is published at
-[toss.docs.renner.dev](http://toss.docs.renner.dev/) and lives in
-[`docs/`](docs) as an Astro Starlight site:
+[toss.docs.renner.dev](https://toss.docs.renner.dev/); its source is the Astro
+Starlight site in [`docs/`](docs), served locally with:
 
 ```bash
 cd docs
@@ -275,12 +303,13 @@ npm run dev
 
 In-repo references:
 
-- **[GETTING_STARTED.md](GETTING_STARTED.md)** - First build and run
-- **[QUICK_START.md](QUICK_START.md)** - Development quick start
-- **[SPECIFICATION.md](SPECIFICATION.md)** - Protocol and architecture specification
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
-- **[SECURITY.md](SECURITY.md)** - Security policy
-- **[CHANGELOG.md](CHANGELOG.md)** - Release history
+- [GETTING_STARTED.md](GETTING_STARTED.md) — installation and pairing walkthrough
+- [QUICK_START.md](QUICK_START.md) — development quick start
+- [SPECIFICATION.md](SPECIFICATION.md) — protocol and architecture specification
+- [TODO.md](TODO.md) — remaining work and status
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guidelines
+- [CHANGELOG.md](CHANGELOG.md) — release history
+- [SECURITY.md](SECURITY.md) — vulnerability reporting
 
 ## Contributing
 

@@ -286,7 +286,7 @@ impl NetworkManager {
         // Close all peer connections (sync operation, release lock immediately)
         {
             let peers = self.peers.write();
-            for (_id, conn) in peers.iter() {
+            for conn in peers.values() {
                 conn.close();
             }
         }
