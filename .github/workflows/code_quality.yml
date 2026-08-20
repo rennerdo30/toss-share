@@ -131,18 +131,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The PR body is passed through the environment rather than interpolated
+      # into the script: bodies containing backticks, quotes or $(...) would
+      # otherwise be executed as shell code and break (or hijack) the step.
       - name: Check PR has description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          if [ -z "${{ github.event.pull_request.body }}" ]; then
+          if [ -z "$PR_BODY" ]; then
             echo "❌ PR description is required"
             exit 1
           fi
           echo "✅ PR has description"
 
       - name: Check PR references issue or TODO
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          BODY="${{ github.event.pull_request.body }}"
-          if [[ ! "$BODY" =~ (Fixes|Closes|Resolves|#\d+|TODO) ]]; then
+          if [[ ! "$PR_BODY" =~ (Fixes|Closes|Resolves|#[0-9]+|TODO) ]]; then
             echo "⚠️  PR should reference an issue or TODO item"
           else
             echo "✅ PR references issue or TODO"
