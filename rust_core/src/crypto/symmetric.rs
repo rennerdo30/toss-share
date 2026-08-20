@@ -59,12 +59,12 @@ pub fn encrypt(
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
     StdRng::from_entropy().fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = Nonce::from(nonce_bytes);
 
     // Encrypt with AAD
     let ciphertext = cipher
         .encrypt(
-            nonce,
+            &nonce,
             aes_gcm::aead::Payload {
                 msg: plaintext,
                 aad,
@@ -92,11 +92,11 @@ pub fn decrypt(
     let cipher =
         Aes256Gcm::new_from_slice(key).map_err(|e| CryptoError::Decryption(e.to_string()))?;
 
-    let nonce = Nonce::from_slice(&message.nonce);
+    let nonce = Nonce::from(message.nonce);
 
     cipher
         .decrypt(
-            nonce,
+            &nonce,
             aes_gcm::aead::Payload {
                 msg: &message.ciphertext,
                 aad,
