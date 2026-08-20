@@ -11,7 +11,7 @@
 
 ### 1.2 Supported Platforms
 - Windows 10/11
-- macOS 11+
+- macOS 12+
 - Linux (X11 and Wayland)
 - iOS 14+
 - Android 10+
