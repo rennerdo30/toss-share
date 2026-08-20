@@ -39,7 +39,7 @@ quinn = "0.11"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 rcgen = "0.14"
 mdns-sd = "0.17"
-tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
 # Clipboard (desktop only)
@@ -62,7 +62,7 @@ futures-util = "0.3"
 flutter_rust_bridge = "=2.12.0"
 
 # Storage
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 
 # Utilities
 thiserror = "2"
@@ -90,7 +90,7 @@ windows = { version = "0.58", features = [
     "Win32_System_Com",
 ] }
 windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging"] }
-secret-service = { version = "4", features = ["rt-tokio-crypto-rust"] }
+secret-service = { version = "5", features = ["rt-tokio-crypto-rust"] }
 
 # Testing
 tokio-test = "0.4"
