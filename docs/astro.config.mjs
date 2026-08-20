@@ -9,7 +9,9 @@ export default defineConfig({
     starlight({
       title: "Toss",
       description: "Cross-platform clipboard sharing with end-to-end encryption",
-      logo: { src: "/logo.svg", alt: "Toss" },
+      // Starlight resolves `logo.src` through Astro's asset pipeline, so it has
+      // to live in src/assets; `favicon` is served verbatim from public/.
+      logo: { src: "./src/assets/logo.svg", alt: "Toss" },
       favicon: "/logo.svg",
       plugins: [starlightThemeGalaxy(), starlightClientMermaid()],
       customCss: ["./src/styles/custom.css"],
