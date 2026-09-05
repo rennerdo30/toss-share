@@ -32,6 +32,14 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# C++/WinRT falls back to <experimental/coroutine> when compiled as C++17, which
+# is what APPLY_STANDARD_SETTINGS selects for plugin targets. Since MSVC 14.51
+# that header is a hard error (STL1011) unless the escape hatch below is defined,
+# which breaks any plugin using winrt coroutines (e.g. permission_handler_windows).
+# Applied at directory scope so it also reaches the plugin subdirectories added by
+# flutter/generated_plugins.cmake further down.
+add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by
