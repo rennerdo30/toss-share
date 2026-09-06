@@ -1,7 +1,9 @@
 //! Device identity using Ed25519 signatures
 
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use rand_core::OsRng;
+use ed25519_dalek::{
+    Signature, Signer, SigningKey, Verifier, VerifyingKey, SECRET_KEY_LENGTH as SECRET_KEY_SIZE,
+};
+use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
 
 use crate::error::CryptoError;
@@ -16,7 +18,13 @@ pub struct DeviceIdentity {
 impl DeviceIdentity {
     /// Generate a new random device identity
     pub fn generate() -> Result<Self, CryptoError> {
-        let signing_key = SigningKey::generate(&mut OsRng);
+        // Draw the 32-byte seed from the OS RNG ourselves and build the key
+        // from it. `SigningKey::generate` requires an RNG implementing
+        // ed25519-dalek 3's rand_core 0.10 traits, while x25519-dalek 2 still
+        // ties this crate to rand_core 0.6; the seed is equivalent either way.
+        let mut secret_bytes = [0u8; SECRET_KEY_SIZE];
+        OsRng.fill_bytes(&mut secret_bytes);
+        let signing_key = SigningKey::from_bytes(&secret_bytes);
         let verifying_key = signing_key.verifying_key();
 
         // Device ID is SHA-256 hash of public key
