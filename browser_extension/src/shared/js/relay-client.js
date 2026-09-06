@@ -143,7 +143,7 @@ export class RelayClient {
     const signature = await signAuthMessage(
       this.identity.privateKey,
       this.identity.deviceId,
-      timestamp
+      timestamp,
     );
 
     const authMessage = {
@@ -173,25 +173,25 @@ export class RelayClient {
       }
 
       switch (message.type) {
-        case WsMessageType.AUTH_RESPONSE:
-          this.handleAuthResponse(message);
-          break;
+      case WsMessageType.AUTH_RESPONSE:
+        this.handleAuthResponse(message);
+        break;
 
-        case WsMessageType.RELAY:
-          await this.handleRelayMessage(message);
-          break;
+      case WsMessageType.RELAY:
+        await this.handleRelayMessage(message);
+        break;
 
-        case WsMessageType.ERROR:
-          console.error('Server error:', message.message);
-          this.onError(new Error(message.message));
-          break;
+      case WsMessageType.ERROR:
+        console.error('Server error:', message.message);
+        this.onError(new Error(message.message));
+        break;
 
-        case WsMessageType.PONG:
-          // Pong received, connection is alive
-          break;
+      case WsMessageType.PONG:
+        // Pong received, connection is alive
+        break;
 
-        default:
-          console.warn('Unknown message type:', message.type);
+      default:
+        console.warn('Unknown message type:', message.type);
       }
 
       this.onMessage(message);
@@ -238,7 +238,7 @@ export class RelayClient {
       if (this.sessionKey) {
         const decrypted = await decrypt(
           this.sessionKey,
-          relayMessage.encrypted_payload
+          relayMessage.encrypted_payload,
         );
         content = JSON.parse(new TextDecoder().decode(decrypted));
       } else {
@@ -324,7 +324,7 @@ export class RelayClient {
     if (this.sessionKey) {
       encryptedPayload = await encrypt(
         this.sessionKey,
-        JSON.stringify(payload)
+        JSON.stringify(payload),
       );
     } else {
       // Base64 encode for transport

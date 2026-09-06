@@ -12,7 +12,7 @@ const browserAPI = typeof chrome !== 'undefined' ? chrome : browser;
 let elements = {};
 
 // Current state
-let state = {
+const state = {
   connectionState: 'disconnected',
   identity: null,
   settings: null,
@@ -155,24 +155,24 @@ async function loadState() {
  */
 function handleBackgroundMessage(message) {
   switch (message.type) {
-    case 'CONNECTION_STATE_CHANGED':
-      state.connectionState = message.state;
-      updateConnectionStatus();
-      updateQuickActions();
-      break;
+  case 'CONNECTION_STATE_CHANGED':
+    state.connectionState = message.state;
+    updateConnectionStatus();
+    updateQuickActions();
+    break;
 
-    case 'CLIPBOARD_UPDATE':
-      state.clipboardHistory.unshift(message.item);
-      updateHistoryList();
-      break;
+  case 'CLIPBOARD_UPDATE':
+    state.clipboardHistory.unshift(message.item);
+    updateHistoryList();
+    break;
 
-    case 'CLIPBOARD_SENT':
-      // Optionally show confirmation
-      break;
+  case 'CLIPBOARD_SENT':
+    // Optionally show confirmation
+    break;
 
-    case 'ERROR':
-      showError(message.message);
-      break;
+  case 'ERROR':
+    showError(message.message);
+    break;
   }
 }
 
@@ -187,29 +187,29 @@ function updateConnectionStatus() {
   statusEl.classList.remove('connected', 'connecting', 'disconnected', 'error');
 
   switch (state.connectionState) {
-    case 'connected':
-      statusEl.classList.add('connected');
-      textEl.textContent = 'Connected';
-      elements.connectBtn.textContent = 'Disconnect';
-      break;
+  case 'connected':
+    statusEl.classList.add('connected');
+    textEl.textContent = 'Connected';
+    elements.connectBtn.textContent = 'Disconnect';
+    break;
 
-    case 'connecting':
-    case 'authenticating':
-      statusEl.classList.add('connecting');
-      textEl.textContent = 'Connecting...';
-      elements.connectBtn.textContent = 'Cancel';
-      break;
+  case 'connecting':
+  case 'authenticating':
+    statusEl.classList.add('connecting');
+    textEl.textContent = 'Connecting...';
+    elements.connectBtn.textContent = 'Cancel';
+    break;
 
-    case 'error':
-      statusEl.classList.add('error');
-      textEl.textContent = 'Error';
-      elements.connectBtn.textContent = 'Retry';
-      break;
+  case 'error':
+    statusEl.classList.add('error');
+    textEl.textContent = 'Error';
+    elements.connectBtn.textContent = 'Retry';
+    break;
 
-    default:
-      statusEl.classList.add('disconnected');
-      textEl.textContent = 'Disconnected';
-      elements.connectBtn.textContent = 'Connect';
+  default:
+    statusEl.classList.add('disconnected');
+    textEl.textContent = 'Disconnected';
+    elements.connectBtn.textContent = 'Connect';
   }
 }
 
@@ -669,9 +669,15 @@ function showError(message) {
 function formatTimeAgo(timestamp) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
 
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 60) {
+    return 'Just now';
+  }
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)}m ago`;
+  }
+  if (seconds < 86400) {
+    return `${Math.floor(seconds / 3600)}h ago`;
+  }
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 

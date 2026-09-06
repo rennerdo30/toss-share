@@ -26,7 +26,7 @@ export async function generateDeviceIdentity() {
       namedCurve: 'P-256',
     },
     true,
-    ['sign', 'verify']
+    ['sign', 'verify'],
   );
 
   // Export keys for storage
@@ -56,7 +56,7 @@ export async function signAuthMessage(privateKeyJwk, deviceId, timestamp) {
     privateKeyJwk,
     { name: 'ECDSA', namedCurve: 'P-256' },
     false,
-    ['sign']
+    ['sign'],
   );
 
   const message = `auth:${deviceId}:${timestamp}`;
@@ -65,7 +65,7 @@ export async function signAuthMessage(privateKeyJwk, deviceId, timestamp) {
   const signature = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
     privateKey,
-    messageBuffer
+    messageBuffer,
   );
 
   return arrayBufferToBase64(signature);
@@ -87,7 +87,7 @@ export async function deriveSessionKey(sharedSecret, info = 'toss-session-encryp
     sharedSecret,
     'HKDF',
     false,
-    ['deriveBits']
+    ['deriveBits'],
   );
 
   const derivedBits = await crypto.subtle.deriveBits(
@@ -98,7 +98,7 @@ export async function deriveSessionKey(sharedSecret, info = 'toss-session-encryp
       info: new TextEncoder().encode(info),
     },
     keyMaterial,
-    256
+    256,
   );
 
   return new Uint8Array(derivedBits);
@@ -114,7 +114,7 @@ export async function encrypt(keyBytes, plaintext, additionalData = null) {
     keyBytes,
     'AES-GCM',
     false,
-    ['encrypt']
+    ['encrypt'],
   );
 
   const nonce = generateNonce();
@@ -137,7 +137,7 @@ export async function encrypt(keyBytes, plaintext, additionalData = null) {
   const ciphertext = await crypto.subtle.encrypt(
     encryptParams,
     key,
-    plaintextBuffer
+    plaintextBuffer,
   );
 
   // Combine nonce + ciphertext (which includes tag in Web Crypto)
@@ -157,7 +157,7 @@ export async function decrypt(keyBytes, encryptedBase64, additionalData = null) 
     keyBytes,
     'AES-GCM',
     false,
-    ['decrypt']
+    ['decrypt'],
   );
 
   const encrypted = base64ToArrayBuffer(encryptedBase64);
@@ -181,7 +181,7 @@ export async function decrypt(keyBytes, encryptedBase64, additionalData = null) 
   const plaintext = await crypto.subtle.decrypt(
     decryptParams,
     key,
-    ciphertext
+    ciphertext,
   );
 
   return new Uint8Array(plaintext);

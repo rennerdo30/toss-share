@@ -11,7 +11,7 @@ import { storage, DefaultSettings } from '../shared/js/storage.js';
 
 // Global state
 let relayClient = null;
-let currentState = {
+const currentState = {
   connectionState: ConnectionState.DISCONNECTED,
   identity: null,
   settings: null,
@@ -106,9 +106,15 @@ async function handleClipboardUpdate(update) {
 
   // Check if content type is enabled
   const contentType = update.content.content_type || 'text';
-  if (contentType === 'text' && !settings.syncTextEnabled) return;
-  if (contentType === 'image' && !settings.syncImagesEnabled) return;
-  if (contentType === 'url' && !settings.syncUrlsEnabled) return;
+  if (contentType === 'text' && !settings.syncTextEnabled) {
+    return;
+  }
+  if (contentType === 'image' && !settings.syncImagesEnabled) {
+    return;
+  }
+  if (contentType === 'url' && !settings.syncUrlsEnabled) {
+    return;
+  }
 
   // Add to history
   const historyItem = await storage.addToClipboardHistory({
@@ -155,22 +161,22 @@ function updateBadge(state) {
   let color, text;
 
   switch (state) {
-    case ConnectionState.CONNECTED:
-      color = '#22c55e'; // green
-      text = '';
-      break;
-    case ConnectionState.CONNECTING:
-    case ConnectionState.AUTHENTICATING:
-      color = '#f59e0b'; // yellow
-      text = '...';
-      break;
-    case ConnectionState.ERROR:
-      color = '#ef4444'; // red
-      text = '!';
-      break;
-    default:
-      color = '#6b7280'; // gray
-      text = '';
+  case ConnectionState.CONNECTED:
+    color = '#22c55e'; // green
+    text = '';
+    break;
+  case ConnectionState.CONNECTING:
+  case ConnectionState.AUTHENTICATING:
+    color = '#f59e0b'; // yellow
+    text = '...';
+    break;
+  case ConnectionState.ERROR:
+    color = '#ef4444'; // red
+    text = '!';
+    break;
+  default:
+    color = '#6b7280'; // gray
+    text = '';
   }
 
   browser.browserAction.setBadgeBackgroundColor({ color });
