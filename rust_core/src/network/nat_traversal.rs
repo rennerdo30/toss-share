@@ -503,7 +503,7 @@ impl TurnClient {
         let key = hasher.finalize();
 
         // HMAC-SHA1 of message with key
-        use hmac::{Hmac, Mac};
+        use hmac::{Hmac, KeyInit, Mac};
         type HmacSha1 = Hmac<sha1::Sha1>;
 
         let mut mac = HmacSha1::new_from_slice(&key[..16]).expect("HMAC can take key of any size");

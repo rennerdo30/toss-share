@@ -137,11 +137,11 @@ pub fn encrypt_for_storage(plaintext: &[u8]) -> Result<Vec<u8>, CryptoError> {
     // Generate random nonce
     let mut nonce_bytes = [0u8; 12];
     rand::thread_rng().fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = Nonce::from(nonce_bytes);
 
     // Encrypt
     let ciphertext = cipher
-        .encrypt(nonce, plaintext)
+        .encrypt(&nonce, plaintext)
         .map_err(|e| CryptoError::Encryption(e.to_string()))?;
 
     // Prepend nonce to ciphertext
@@ -169,11 +169,12 @@ pub fn decrypt_from_storage(encrypted: &[u8]) -> Result<Vec<u8>, CryptoError> {
     let key = get_or_create_storage_encryption_key()?;
     let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| CryptoError::InvalidKey)?;
 
-    let nonce = Nonce::from_slice(&encrypted[..12]);
+    let nonce = Nonce::try_from(&encrypted[..12])
+        .map_err(|_| CryptoError::Decryption("invalid nonce".to_string()))?;
     let ciphertext = &encrypted[12..];
 
     cipher
-        .decrypt(nonce, ciphertext)
+        .decrypt(&nonce, ciphertext)
         .map_err(|e| CryptoError::Decryption(e.to_string()))
 }
 
@@ -665,11 +666,11 @@ impl AndroidKeystoreStorage {
         // Generate random nonce
         let mut nonce_bytes = [0u8; 12];
         rand::thread_rng().fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
         // Encrypt
         let ciphertext = cipher
-            .encrypt(nonce, plaintext)
+            .encrypt(&nonce, plaintext)
             .map_err(|e| CryptoError::Encryption(e.to_string()))?;
 
         // Format: nonce (12 bytes) || ciphertext
@@ -692,11 +693,12 @@ impl AndroidKeystoreStorage {
 
         let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| CryptoError::InvalidKey)?;
 
-        let nonce = Nonce::from_slice(&encrypted[..12]);
+        let nonce = Nonce::try_from(&encrypted[..12])
+            .map_err(|_| CryptoError::Decryption("invalid nonce".to_string()))?;
         let ciphertext = &encrypted[12..];
 
         cipher
-            .decrypt(nonce, ciphertext)
+            .decrypt(&nonce, ciphertext)
             .map_err(|e| CryptoError::Decryption(e.to_string()))
     }
 }
