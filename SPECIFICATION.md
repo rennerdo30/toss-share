@@ -740,3 +740,9 @@ Browser extension for Chrome/Firefox that integrates with the Toss relay server 
 Browser extension pull requests run ESLint, generate icons with Sharp, and build
 both Chrome and Firefox packages. These checks cover the extension independently
 of the Rust and Flutter application workflows.
+
+### Documentation dependency validation
+
+Documentation pull requests build the Astro site before merge. Astro 7 uses an
+explicit Starlight content loader and the astro-mermaid integration; the older
+client Mermaid plugin is incompatible with its configuration API.
