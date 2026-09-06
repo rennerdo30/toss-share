@@ -235,6 +235,31 @@ SQLite database on the `relay_data` volume.
 Then configure Toss to use your relay:
 Settings → Relay Server → Enter your server URL
 
+### Relay Server Configuration
+
+The relay server is configured entirely through environment variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `HOST` | `0.0.0.0` | Bind address |
+| `PORT` | `8080` | HTTP/WebSocket port |
+| `DATABASE_URL` | `sqlite:./data/toss.db?mode=rwc` | SQLite database location |
+| `JWT_SECRET` | random per start | Signing key for device tokens (set it, or tokens break on restart) |
+| `JWT_EXPIRATION` | `86400` | Token lifetime in seconds |
+| `RATE_LIMIT_MESSAGES` | `100` | Relay messages allowed per minute |
+| `RATE_LIMIT_REGISTER` | `10` | Device registrations allowed per hour |
+| `SESSION_SECRET` | random per start | Signing key for admin dashboard cookies |
+| `ADMIN_USERNAME` | unset | Enables the admin dashboard when set together with the password hash |
+| `ADMIN_PASSWORD_HASH` | unset | bcrypt hash of the admin password |
+| `RUST_LOG` | `info` | Log filter (`error`, `warn`, `info`, `debug`, `trace`) |
+
+### Admin Dashboard
+
+When `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` are both set, the relay serves a
+server-rendered dashboard at `/admin` with an overview of devices, teams,
+pairing sessions, recent log entries and maintenance actions (cleaning up stale
+devices, expired pairings and queued messages). Health checks live at `/health`.
+
 ## Development
 
 Common tasks are wrapped in the `Makefile` — `make help` lists every target.
@@ -267,8 +292,14 @@ remaining work.
 ## Documentation
 
 Full documentation is published at
-[toss.docs.renner.dev](https://toss.docs.renner.dev/); its source is the Astro site
-in [`docs/`](docs).
+[toss.docs.renner.dev](https://toss.docs.renner.dev/); its source is the Astro
+Starlight site in [`docs/`](docs), served locally with:
+
+```bash
+cd docs
+npm install
+npm run dev
+```
 
 In-repo references:
 
@@ -276,6 +307,7 @@ In-repo references:
 - [QUICK_START.md](QUICK_START.md) — development quick start
 - [SPECIFICATION.md](SPECIFICATION.md) — protocol and architecture specification
 - [TODO.md](TODO.md) — remaining work and status
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guidelines
 - [CHANGELOG.md](CHANGELOG.md) — release history
 - [SECURITY.md](SECURITY.md) — vulnerability reporting
 

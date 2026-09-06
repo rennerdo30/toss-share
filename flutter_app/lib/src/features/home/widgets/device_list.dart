@@ -4,6 +4,7 @@ import '../../../core/models/device.dart';
 import '../../../shared/utils/platform_utils.dart';
 import '../../../shared/utils/timestamp_utils.dart';
 import '../../../shared/constants/layout_constants.dart';
+import '../../../shared/theme/app_theme.dart';
 
 class DeviceList extends StatelessWidget {
   final List<Device> devices;
@@ -26,7 +27,8 @@ class DeviceList extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: devices.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) =>
+            const SizedBox(width: LayoutConstants.gutter),
         itemBuilder: (context, index) {
           final device = devices[index];
           return DeviceCard(
@@ -52,20 +54,26 @@ class DeviceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final statusColors = AppStatusColors.of(context);
+    final borderRadius =
+        BorderRadius.circular(LayoutConstants.defaultBorderRadius);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: borderRadius,
       child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(12),
+        width: LayoutConstants.deviceCardWidth,
+        padding: const EdgeInsets.all(LayoutConstants.smallPadding + 4),
         decoration: BoxDecoration(
+          color: device.isOnline
+              ? colorScheme.primary.withValues(alpha: 0.04)
+              : null,
           border: Border.all(
             color: device.isOnline
                 ? colorScheme.primary.withValues(alpha: 0.5)
-                : colorScheme.outline.withValues(alpha: 0.3),
+                : colorScheme.outlineVariant,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: borderRadius,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -91,7 +99,9 @@ class DeviceCard extends StatelessWidget {
                       height: 10,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: device.isOnline ? Colors.green : Colors.grey,
+                        color: device.isOnline
+                            ? statusColors.online
+                            : statusColors.offline,
                         border: Border.all(
                           color: Theme.of(context).scaffoldBackgroundColor,
                           width: 2,
