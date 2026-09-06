@@ -733,3 +733,10 @@ Browser extension for Chrome/Firefox that integrates with the Toss relay server 
 
 - Selective sync (choose devices)
 - Conflict resolution
+
+
+### Documentation dependency validation
+
+Documentation pull requests build the Astro site before merge. Astro 7 uses an
+explicit Starlight content loader and the astro-mermaid integration; the older
+client Mermaid plugin is incompatible with its configuration API.
