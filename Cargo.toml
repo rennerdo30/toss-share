@@ -38,7 +38,7 @@ if-addrs = "0.14"
 quinn = "0.11"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 rcgen = "0.14"
-mdns-sd = "0.17"
+mdns-sd = "0.20"
 tokio-tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
