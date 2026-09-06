@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 
+import '../theme/app_theme.dart';
+
 /// A widget that accepts file drops from the operating system
 class DropZone extends StatefulWidget {
   final Widget child;
@@ -151,7 +153,7 @@ class _DropZoneCardState extends State<DropZoneCard> {
         }
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: AppTheme.motion(context),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: _isDragging

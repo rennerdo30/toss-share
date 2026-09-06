@@ -803,7 +803,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: ThemeMode.values.map((mode) {
           return SimpleDialogOption(
             onPressed: () {
-              ref.read(themeModeProvider.notifier).state = mode;
+              ref.read(themeModeProvider.notifier).setThemeMode(mode);
               Navigator.pop(context);
             },
             child: Text(

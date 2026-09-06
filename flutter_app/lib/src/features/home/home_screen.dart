@@ -15,6 +15,7 @@ import '../../core/providers/websocket_provider.dart';
 import '../../core/services/toss_service.dart';
 import '../../core/models/device.dart';
 import '../../core/models/clipboard_item.dart';
+import '../../shared/constants/layout_constants.dart';
 import '../../shared/widgets/responsive_layout.dart';
 import '../../shared/utils/timestamp_utils.dart';
 import 'widgets/connection_status.dart';
@@ -122,7 +123,14 @@ class _MobileLayout extends StatelessWidget {
             // Main content
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                // Extra bottom padding keeps content clear of the floating
+                // "Send" button instead of hiding behind it.
+                padding: const EdgeInsets.fromLTRB(
+                  LayoutConstants.defaultPadding,
+                  LayoutConstants.defaultPadding,
+                  LayoutConstants.defaultPadding,
+                  LayoutConstants.fabClearance,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -223,6 +231,9 @@ class _MobileLayout extends StatelessWidget {
             child: const Text('Close'),
           ),
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             onPressed: () async {
               Navigator.pop(context);
               await TossService.removeDevice(device.id);
@@ -233,7 +244,7 @@ class _MobileLayout extends StatelessWidget {
                 );
               }
             },
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -495,18 +506,13 @@ class _DesktopSendRow extends StatelessWidget {
                 },
           icon: tossState.isSyncing
               ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: isChunkedTransfer
-                      ? CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                          value: progress.progress,
-                        )
-                      : const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                  width: LayoutConstants.smallIconSize,
+                  height: LayoutConstants.smallIconSize,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.colorScheme.onPrimary,
+                    value: isChunkedTransfer ? progress.progress : null,
+                  ),
                 )
               : const Icon(Icons.send),
           label: Text(
@@ -563,16 +569,11 @@ class _SendButton extends StatelessWidget {
           ? SizedBox(
               width: 18,
               height: 18,
-              child: isChunkedTransfer
-                  ? CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                      value: progress.progress,
-                    )
-                  : const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                value: isChunkedTransfer ? progress.progress : null,
+              ),
             )
           : const Icon(Icons.send),
       label: Text(
