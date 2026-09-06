@@ -746,3 +746,9 @@ of the Rust and Flutter application workflows.
 Documentation pull requests build the Astro site before merge. Astro 7 uses an
 explicit Starlight content loader and the astro-mermaid integration; the older
 client Mermaid plugin is incompatible with its configuration API.
+
+### Flutter bridge version alignment
+
+The Dart dependency, Rust workspace dependency, Rust lockfile, generated Rust
+bindings and code-generator commands use flutter_rust_bridge 2.13.0 together.
+The Bridge Version Check rejects inconsistent pins before the platform builds.
