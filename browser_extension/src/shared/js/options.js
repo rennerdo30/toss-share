@@ -62,7 +62,7 @@ function setupEventListeners() {
   // Auto-save on change
   const autoSaveInputs = [
     'relayUrl', 'autoSync', 'targetDevice', 'syncText',
-    'syncImages', 'syncUrls', 'notifications', 'maxHistory'
+    'syncImages', 'syncUrls', 'notifications', 'maxHistory',
   ];
 
   autoSaveInputs.forEach(id => {
@@ -225,7 +225,9 @@ async function handleExportData() {
  */
 async function handleImportData(event) {
   const file = event.target.files?.[0];
-  if (!file) return;
+  if (!file) {
+    return;
+  }
 
   try {
     const text = await file.text();

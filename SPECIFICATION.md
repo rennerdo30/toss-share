@@ -733,3 +733,10 @@ Browser extension for Chrome/Firefox that integrates with the Toss relay server 
 
 - Selective sync (choose devices)
 - Conflict resolution
+
+
+### Browser extension dependency validation
+
+Browser extension pull requests run ESLint, generate icons with Sharp, and build
+both Chrome and Firefox packages. These checks cover the extension independently
+of the Rust and Flutter application workflows.

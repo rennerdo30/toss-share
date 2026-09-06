@@ -241,7 +241,9 @@ export class StorageManager {
    */
   async getSessionKey() {
     const keyBase64 = await this.get(StorageKeys.SESSION_KEY);
-    if (!keyBase64) return null;
+    if (!keyBase64) {
+      return null;
+    }
 
     // Convert base64 to Uint8Array
     const binary = atob(keyBase64);

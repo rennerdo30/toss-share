@@ -1,0 +1,29 @@
+name: Browser Extension Check
+
+on:
+  pull_request:
+    paths:
+      - 'browser_extension/**'
+      - '.github/workflows/browser-extension-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint and Build Browser Extensions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: browser_extension
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: browser_extension/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run icons
+      - run: npm run build
