@@ -733,3 +733,10 @@ Browser extension for Chrome/Firefox that integrates with the Toss relay server 
 
 - Selective sync (choose devices)
 - Conflict resolution
+
+
+### Flutter bridge version alignment
+
+The Dart dependency, Rust workspace dependency, Rust lockfile, generated Rust
+bindings and code-generator commands use flutter_rust_bridge 2.13.0 together.
+The Bridge Version Check rejects inconsistent pins before the platform builds.
