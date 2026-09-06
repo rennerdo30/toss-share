@@ -1,11 +1,18 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeGalaxy from "starlight-theme-galaxy";
-import starlightClientMermaid from "@pasqal-io/starlight-client-mermaid";
+import mermaid from "astro-mermaid";
 
 export default defineConfig({
   // site and base are set via CLI args in CI (from actions/configure-pages)
   integrations: [
+    // Must be listed before starlight: astro-mermaid registers the remark
+    // plugin that has to see ```mermaid fences before Starlight processes
+    // the markdown.
+    mermaid({
+      // Follows Starlight's light/dark toggle via the data-theme attribute.
+      autoTheme: true,
+    }),
     starlight({
       title: "Toss",
       description: "Cross-platform clipboard sharing with end-to-end encryption",
@@ -13,7 +20,7 @@ export default defineConfig({
       // to live in src/assets; `favicon` is served verbatim from public/.
       logo: { src: "./src/assets/logo.svg", alt: "Toss" },
       favicon: "/logo.svg",
-      plugins: [starlightThemeGalaxy(), starlightClientMermaid()],
+      plugins: [starlightThemeGalaxy()],
       customCss: ["./src/styles/custom.css"],
       social: [
         { icon: "github", label: "GitHub", href: "https://github.com/rennerdo30/toss-share" },
