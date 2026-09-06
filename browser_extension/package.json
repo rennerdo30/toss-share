@@ -16,7 +16,9 @@
     "icons": "node scripts/generate-icons.js"
   },
   "devDependencies": {
-    "eslint": "^8.56.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
     "sharp": "^0.35.3"
   },
   "engines": {
