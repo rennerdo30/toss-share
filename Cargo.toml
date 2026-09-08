@@ -49,7 +49,7 @@ arboard = "3"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
 serde_json = "1"
-base64 = "0.22"
+base64 = "0.23"
 
 # Compression
 zstd = "0.13"
