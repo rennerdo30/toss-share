@@ -55,7 +55,7 @@ dependencies:
 
   # UI
   flutter_svg: ^2.3.0
-  cached_network_image: ^3.4.1
+  cached_network_image: ^4.0.0
   rust_lib_toss:
     path: rust_builder
 
