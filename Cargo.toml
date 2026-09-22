@@ -21,7 +21,7 @@ repository = "https://github.com/rennerdo30/toss-share"
 tokio = { version = "1.49", features = ["full"] }
 
 # Crypto
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+x25519-dalek = { version = "3.0", features = ["static_secrets", "getrandom"] }
 aes-gcm = "0.11"
 hkdf = "0.13"
 sha2 = "0.11"
