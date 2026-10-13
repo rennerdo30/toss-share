@@ -4,7 +4,9 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: '>=3.13.0 <4.0.0'
+  # Preserve the app language version required by Freezed 2.x bridge generation.
+  # Flutter 3.47+ supplies Dart 3.13+ required by tray_manager/nativeapi.
+  sdk: '>=3.3.0 <4.0.0'
   flutter: '>=3.47.0'
 
 dependencies:
