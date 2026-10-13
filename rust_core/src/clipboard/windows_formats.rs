@@ -41,7 +41,7 @@ mod windows_impl {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
     use std::ptr;
-    use windows::Win32::Foundation::{HANDLE, HGLOBAL, HWND};
+    use windows::Win32::Foundation::{HANDLE, HGLOBAL};
     use windows::Win32::System::DataExchange::{
         CloseClipboard, GetClipboardData, IsClipboardFormatAvailable, OpenClipboard,
         SetClipboardData,
@@ -57,7 +57,7 @@ mod windows_impl {
         /// Open the clipboard for the current thread
         fn open() -> Result<Self, ClipboardError> {
             unsafe {
-                if OpenClipboard(HWND::default()).is_ok() {
+                if OpenClipboard(None).is_ok() {
                     Ok(ClipboardGuard)
                 } else {
                     Err(ClipboardError::OperationFailed(
@@ -204,7 +204,7 @@ mod windows_impl {
             let _ = GlobalUnlock(mem_handle);
 
             // Set clipboard data
-            let result = SetClipboardData(CF_HDROP.0 as u32, HANDLE(mem_handle.0));
+            let result = SetClipboardData(CF_HDROP.0 as u32, Some(HANDLE(mem_handle.0)));
             if result.is_err() {
                 // Note: memory may leak on error, but GlobalFree is not available in windows 0.58
                 return Err(ClipboardError::OperationFailed(

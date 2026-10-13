@@ -148,12 +148,11 @@ pub fn remove_firewall_exemption(app_name: &str) -> Result<(), NetworkError> {
 
 #[cfg(target_os = "windows")]
 fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
-    use std::convert::TryFrom;
-
-    use windows::core::{IUnknown, Interface, VARIANT};
+    use windows::core::{IUnknown, Interface};
     use windows::Win32::NetworkManagement::WindowsFirewall::*;
     use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER};
     use windows::Win32::System::Ole::IEnumVARIANT;
+    use windows::Win32::System::Variant::{VariantClear, VARIANT, VT_DISPATCH, VT_UNKNOWN};
 
     initialize_com()?;
 
@@ -182,7 +181,7 @@ fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
 
         // Check if any rule exists that allows our port
         loop {
-            let mut variants = [VARIANT::new()];
+            let mut variants = [VARIANT::default()];
             let mut fetched = 0u32;
             let hr = enumerator.Next(&mut variants, &mut fetched);
 
@@ -196,7 +195,17 @@ fn check_firewall_rule(port: u16) -> Result<bool, NetworkError> {
                 break;
             }
 
-            let Ok(unknown) = IUnknown::try_from(&variants[0]) else {
+            // Take an owned (AddRef'd) interface pointer out of the VARIANT,
+            // then clear the VARIANT to release the reference it holds.
+            let inner = &variants[0].Anonymous.Anonymous;
+            let unknown: Option<IUnknown> = if inner.vt == VT_UNKNOWN || inner.vt == VT_DISPATCH {
+                // IDispatch derives from IUnknown, so punkVal is valid for both.
+                (*inner.Anonymous.punkVal).clone()
+            } else {
+                None
+            };
+            let _ = VariantClear(&mut variants[0]);
+            let Some(unknown) = unknown else {
                 continue;
             };
             let Ok(rule) = unknown.cast::<INetFwRule>() else {
