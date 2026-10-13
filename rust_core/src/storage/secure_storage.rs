@@ -342,7 +342,7 @@ impl SecureStorage for WindowsCredentialStorage {
             match CredReadW(
                 PCWSTR(target_name.as_ptr()),
                 CRED_TYPE_GENERIC,
-                0,
+                None,
                 &mut cred_ptr,
             ) {
                 Ok(()) => {
@@ -376,7 +376,7 @@ impl SecureStorage for WindowsCredentialStorage {
         let target_name = self.make_target_name(key);
 
         unsafe {
-            match CredDeleteW(PCWSTR(target_name.as_ptr()), CRED_TYPE_GENERIC, 0) {
+            match CredDeleteW(PCWSTR(target_name.as_ptr()), CRED_TYPE_GENERIC, None) {
                 Ok(()) => Ok(()),
                 Err(e) => {
                     // Ignore "not found" error on delete

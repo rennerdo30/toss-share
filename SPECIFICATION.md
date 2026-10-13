@@ -752,3 +752,18 @@ client Mermaid plugin is incompatible with its configuration API.
 The Dart dependency, Rust workspace dependency, Rust lockfile, generated Rust
 bindings and code-generator commands use flutter_rust_bridge 2.13.0 together.
 The Bridge Version Check rejects inconsistent pins before the platform builds.
+
+### Desktop tray dependency compatibility
+
+The Flutter application requires Flutter 3.47+ and Dart 3.13+, matching the
+`tray_manager` 0.7 and `nativeapi` SDK constraints. The explicit Flutter minimum
+enforces that runtime requirement. The application keeps its existing Dart 3.3
+language version through the SDK lower bound because Freezed 2.x generates
+legacy final factory parameters, which Dart 3.13 language mode rejects. External
+packages use their own language versions; analyzer rules remain enabled.
+Existing tray menu and listener behavior uses the package-supported `tray_manager/legacy.dart` bridge. Desktop
+plugin registrants and FFI plugin lists follow the resolved package metadata.
+The macOS project uses Flutter 3.47 Swift Package Manager integration while
+retaining CocoaPods support for plugins that require it. The QUIC lockfile pins
+`quinn-proto` 0.11.18, addressing the peer-triggered denial-of-service advisories
+RUSTSEC-2026-0338 through RUSTSEC-2026-0342.
