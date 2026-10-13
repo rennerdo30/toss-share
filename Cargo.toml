@@ -89,7 +89,7 @@ windows = { version = "0.58", features = [
     "Win32_NetworkManagement_WindowsFirewall",
     "Win32_System_Com",
 ] }
-windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging"] }
 secret-service = { version = "5", features = ["rt-tokio-crypto-rust"] }
 
 # Testing
