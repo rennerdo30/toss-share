@@ -1,6 +1,5 @@
 //! X25519 key exchange
 
-use rand_core::OsRng;
 use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret as X25519SharedSecret};
 
 /// Ephemeral key pair for X25519 key exchange
@@ -12,7 +11,7 @@ pub struct EphemeralKeyPair {
 impl EphemeralKeyPair {
     /// Generate a new ephemeral key pair
     pub fn generate() -> Self {
-        let secret = EphemeralSecret::random_from_rng(OsRng);
+        let secret = EphemeralSecret::random();
         let public = PublicKey::from(&secret);
         Self { secret, public }
     }
