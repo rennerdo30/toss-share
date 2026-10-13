@@ -3138,7 +3138,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "windows",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
  "x25519-dalek",
  "zstd",
 ]
