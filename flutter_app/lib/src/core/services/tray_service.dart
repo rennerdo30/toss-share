@@ -3,7 +3,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:tray_manager/tray_manager.dart';
+// tray_manager 0.7 exposes its existing listener API through this official bridge.
+import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/window_manager.dart';
 import 'logging_service.dart';
 
