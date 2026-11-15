@@ -32,10 +32,12 @@ updates:
       default-days: 3
 
   - package-ecosystem: "cargo"
+    # /rust_core and /flutter_app/rust are members of the root workspace and
+    # are covered by "/"; listing them separately makes Cargo see two
+    # workspace roots and every update fails. /relay_server is standalone.
     directories:
       - "/"
       - "/relay_server"
-      - "/rust_core"
     patterns: ["*"]
     multi-ecosystem-group: "weekly-dependencies"
     cooldown:
